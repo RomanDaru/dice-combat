@@ -119,9 +119,14 @@ export default function HeroSelectScreen({
     );
   }
 
+  const headingText =
+    phase === "detail" && selectedHeroOption
+      ? selectedHeroOption.hero.name
+      : "Select Your Hero";
+
   return (
     <div className='welcome-screen phase-select'>
-      <div className='welcome-heading raised'>Select Your Hero</div>
+      <div className='welcome-heading raised'>{headingText}</div>
       {phase === "grid" ? (
         <div className='welcome-body'>
           <p className='welcome-subtext'>
