@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { Hero } from "../game/types";
 import styles from "./HeroSelectScreen.module.css";
+import PyromancerPreview from "../assets/Pyromancer_Animated1.mp4";
 
 const AbilityPreviewList = ({ hero }: { hero: Hero }) => {
   return (
@@ -124,6 +125,35 @@ export default function HeroSelectScreen({
       ? selectedHeroOption.hero.name
       : "Select Your Hero";
 
+  const renderDetailVisual = () => {
+    if (!selectedHeroOption) return null;
+    const { hero, image } = selectedHeroOption;
+    const isPyromancer = hero.id === "Pyromancer";
+
+    return (
+      <div className={styles.detailVisual}>
+        {isPyromancer ? (
+          <video
+            key={hero.id}
+            className={styles.detailMedia}
+            autoPlay
+            loop
+            muted
+            playsInline
+            poster={image}>
+            <source src={PyromancerPreview} type='video/mp4' />
+          </video>
+        ) : (
+          <img
+            src={image}
+            alt={hero.name}
+            className={styles.detailMedia}
+          />
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className='welcome-screen phase-select'>
       <div className='welcome-heading raised'>{headingText}</div>
@@ -160,13 +190,7 @@ export default function HeroSelectScreen({
               Review abilities and confirm your choice.
             </p>
             <div className={styles.detailLayout}>
-              <div className={styles.detailHeader}>
-                <img
-                  src={selectedHeroOption.image}
-                  alt={selectedHeroOption.hero.name}
-                  className={styles.detailImage}
-                />
-              </div>
+              {renderDetailVisual()}
 
               <div className={styles.abilityPreview}>
                 <AbilityPreviewList hero={selectedHeroOption.hero} />

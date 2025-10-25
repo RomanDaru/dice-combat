@@ -58,18 +58,25 @@
   margin: 24px auto 0;
   width: min(100%, 960px);
   align-items: stretch;
-  justify-items: center;
+  justify-items: stretch;
   grid-template-columns: minmax(0, 1fr);
 }
 
-.detailImage {
+.detailVisual {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.detailMedia {
   width: 100%;
   max-width: 520px;
   height: 100%;
   object-fit: cover;
   border-radius: 12px;
   border: 1px solid #3f3f46;
-  justify-self: center;
+  background: #000;
+  display: block;
 }
 
 .abilityPreview {
@@ -78,11 +85,11 @@
   padding: 16px;
   background: rgba(24, 24, 27, 0.6);
   width: 100%;
-  height: 50%;
   display: flex;
   flex-direction: column;
   max-width: 520px;
-  align-self: center;
+  justify-self: center;
+  align-self: stretch;
 }
 
 .actionRow {
@@ -96,5 +103,13 @@
 @media (min-width: 900px) {
   .detailLayout {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 899px) {
+  .detailVisual,
+  .abilityPreview {
+    max-width: 520px;
+    margin: 0 auto;
   }
 }
