@@ -145,7 +145,8 @@ export const buildAttackResolutionLines = ({
   return lines;
 };
 
-export function useCombatLog() {\n  const { dispatch } = useGame();
+export function useCombatLog() {
+  const { dispatch } = useGame();
   const pushLog = useCallback(
     (entry: string | string[], options: LogOptions = {}) => {
       if (options.blankLineBefore)
