@@ -12,13 +12,14 @@ type HeroSelectScreenProps = {
   onConfirm: (playerHero: Hero, aiHero: Hero) => void;
 };
 
+type ScreenPhase = "intro" | "select" | "detail";
+
 export default function HeroSelectScreen({
   heroOptions,
   onConfirm,
 }: HeroSelectScreenProps) {
-  const [selectedHeroId, setSelectedHeroId] = useState<string | null>(
-    heroOptions[0]?.hero.id ?? null
-  );
+  const [phase, setPhase] = useState<ScreenPhase>("intro");
+  const [selectedHeroId, setSelectedHeroId] = useState<string | null>(null);
 
   const selectedHeroOption = useMemo(
     () => heroOptions.find((option) => option.hero.id === selectedHeroId) ?? null,
@@ -26,14 +27,31 @@ export default function HeroSelectScreen({
   );
 
   const aiHeroOption = useMemo(() => {
-    if (!selectedHeroOption) return heroOptions[0] ?? null;
+    if (!selectedHeroOption) {
+      return heroOptions[0] ?? null;
+    }
     const remaining = heroOptions.filter(
       (option) => option.hero.id !== selectedHeroOption.hero.id
     );
     return remaining[0] ?? selectedHeroOption;
   }, [heroOptions, selectedHeroOption]);
 
-  const handleStartBattle = () => {
+  const handleBegin = () => {
+    setPhase("select");
+    setSelectedHeroId(null);
+  };
+
+  const handleSelectHero = (heroId: string) => {
+    setSelectedHeroId(heroId);
+    setPhase("detail");
+  };
+
+  const handleBackToGrid = () => {
+    setPhase("select");
+    setSelectedHeroId(null);
+  };
+
+  const handleConfirm = () => {
     if (!selectedHeroOption || !aiHeroOption) return;
     onConfirm(selectedHeroOption.hero, aiHeroOption.hero);
   };
@@ -48,74 +66,85 @@ export default function HeroSelectScreen({
   }
 
   return (
-    <div className='welcome-screen phase-select'>
-      <div className='welcome-heading raised'>Fantasy Dice Combat</div>
-      <div className='welcome-body visible'>
-        <p className='welcome-subtext'>Choose your hero to begin the battle.</p>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.2fr)",
-            gap: 24,
-            marginTop: 24,
-            width: "100%",
-          }}>
+    <div className={`welcome-screen phase-${phase}`}>
+      <div className={`welcome-heading ${phase !== "intro" ? "raised" : ""}`}>
+        Fantasy Dice Combat
+      </div>
+      {phase === "intro" ? (
+        <div className='welcome-body visible'>
+          <p className='welcome-subtext'>Prepare for battle!</p>
+          <div className='welcome-action'>
+            <button
+              type='button'
+              className='welcome-primary'
+              onClick={handleBegin}>
+              Select Hero
+            </button>
+          </div>
+        </div>
+      ) : phase === "select" ? (
+        <div className='welcome-body visible'>
+          <p className='welcome-subtext'>Choose your hero to begin the battle.</p>
           <div
             className='hero-grid'
             style={{
               display: "grid",
               gap: 16,
               gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              marginTop: 24,
+              width: "100%",
             }}>
-            {heroOptions.map((option) => {
-              const selected = selectedHeroId === option.hero.id;
-              return (
-                <button
-                  key={option.hero.id}
-                  type='button'
-                  className={`hero-card ${selected ? "selected" : ""}`}
-                  onClick={() => setSelectedHeroId(option.hero.id)}
-                  style={{ textAlign: "left" }}>
-                  <img src={option.image} alt={option.hero.name} />
-                  <span>{option.hero.name}</span>
-                </button>
-              );
-            })}
+            {heroOptions.map((option) => (
+              <button
+                key={option.hero.id}
+                type='button'
+                className='hero-card'
+                onClick={() => handleSelectHero(option.hero.id)}>
+                <img src={option.image} alt={option.hero.name} />
+                <span>{option.hero.name}</span>
+              </button>
+            ))}
           </div>
-
-          {selectedHeroOption ? (
+        </div>
+      ) : (
+        selectedHeroOption && (
+          <div className='welcome-body visible'>
+            <p className='welcome-subtext'>
+              Review abilities and confirm your choice.
+            </p>
             <div
-              className='hero-confirm'
               style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 16,
+                display: "grid",
+                gap: 24,
+                marginTop: 24,
+                width: "100%",
               }}>
               <div
                 style={{
                   display: "flex",
-                  gap: 16,
+                  gap: 24,
+                  flexWrap: "wrap",
                   alignItems: "flex-start",
                 }}>
                 <img
                   src={selectedHeroOption.image}
                   alt={selectedHeroOption.hero.name}
                   style={{
-                    width: 160,
-                    height: 160,
+                    width: 200,
+                    height: 200,
                     objectFit: "cover",
                     borderRadius: 12,
                     border: "1px solid #3f3f46",
                   }}
                 />
-                <div style={{ display: "grid", gap: 8 }}>
-                  <h3 style={{ fontSize: 22, margin: 0 }}>
+                <div style={{ minWidth: 220, display: "grid", gap: 8 }}>
+                  <h3 style={{ fontSize: 24, margin: 0 }}>
                     {selectedHeroOption.hero.name}
                   </h3>
                   <p style={{ margin: 0, color: "#a1a1aa" }}>
                     Max HP: {selectedHeroOption.hero.maxHp}
                   </p>
-                  {aiHeroOption && (
+                  {aiHeroOption && aiHeroOption.hero.id !== selectedHeroOption.hero.id && (
                     <p style={{ margin: 0, color: "#d4d4d8" }}>
                       AI opponent:{" "}
                       <strong>{aiHeroOption.hero.name}</strong>
@@ -125,7 +154,6 @@ export default function HeroSelectScreen({
               </div>
 
               <div
-                className='hero-abilities'
                 style={{
                   border: "1px solid #3f3f46",
                   borderRadius: 12,
@@ -136,44 +164,28 @@ export default function HeroSelectScreen({
               </div>
 
               <div
-                className='hero-confirm-actions'
                 style={{
                   display: "flex",
                   gap: 12,
                   justifyContent: "flex-end",
-                  marginTop: 8,
                 }}>
                 <button
                   type='button'
                   className='welcome-secondary'
-                  onClick={() => setSelectedHeroId(null)}>
-                  Clear selection
+                  onClick={handleBackToGrid}>
+                  Back to heroes
                 </button>
                 <button
                   type='button'
                   className='welcome-primary'
-                  onClick={handleStartBattle}>
-                  Start Battle
+                  onClick={handleConfirm}>
+                  Confirm {selectedHeroOption.hero.name}
                 </button>
               </div>
             </div>
-          ) : (
-            <div
-              style={{
-                border: "1px dashed #52525b",
-                borderRadius: 12,
-                padding: 24,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#a1a1aa",
-                background: "rgba(24,24,27,.4)",
-              }}>
-              Select a hero on the left to see their abilities.
-            </div>
-          )}
-        </div>
-      </div>
+          </div>
+        )
+      )}
     </div>
   );
 }
