@@ -441,15 +441,6 @@ body {
   color: #e5e7eb;
   border: 1px solid rgba(148, 163, 184, 0.35);
 }
-.hero-grid {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 16px;
-  width: 100%;
-  overflow-x: hidden;
-}
 
 .hero-card {
   position: relative;
@@ -562,6 +553,7 @@ body {
     align-items: start;
   }
 }
+
 
 
 
