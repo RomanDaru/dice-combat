@@ -1,6 +1,5 @@
 import { Ability, PlayerState } from './types';
-
-const MAX_BURN_STACKS = 3;
+import { applyBurnStacks, MAX_BURN_STACKS } from './statuses/burn';
 
 export function applyAttack(
   attacker: PlayerState,
@@ -59,10 +58,7 @@ export function applyAttack(
 
   const currentBurn = defender.tokens.burn ?? 0;
   const burnGain = apply.burn ?? 0;
-  const nextBurn = Math.max(
-    0,
-    Math.min(MAX_BURN_STACKS, currentBurn + burnGain)
-  );
+  const nextBurn = applyBurnStacks(currentBurn, burnGain);
 
   const nextDef: PlayerState = {
     ...defender,

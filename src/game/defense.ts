@@ -1,5 +1,9 @@
 import { DefenseRoll, Tokens, PlayerState } from './types';
 import { rollDie } from './combos';
+import {
+  getBurnDamage,
+  tickBurn,
+} from "./statuses/burn";
 
 function clampChi(chi: number) {
   return Math.max(0, Math.min(chi, 3));
@@ -39,22 +43,9 @@ export function monkDefenseRoll(tokens: Tokens): DefenseRoll {
   return { roll, ...monkDefenseFromRoll({ roll, tokens }) };
 }
 
-export const getBurnDamage = (stacks: number) =>
-  stacks > 0 ? 2 + Math.min(stacks - 1, 2) : 0;
-
 export function tickStatuses(state: PlayerState): PlayerState {
-  let hp = state.hp;
-  const burnStacks = state.tokens.burn ?? 0;
-  const burnDamage = getBurnDamage(burnStacks);
-  if (burnDamage > 0) {
-    hp -= burnDamage;
-  }
-  return {
-    ...state,
-    hp,
-    tokens: {
-      ...state.tokens,
-      burn: burnStacks > 0 ? Math.max(0, burnStacks - 1) : burnStacks,
-    },
-  };
+  const { updated } = tickBurn(state);
+  return updated;
 }
+
+export { getBurnDamage } from "./statuses/burn";
