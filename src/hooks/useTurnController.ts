@@ -1,59 +1,81 @@
-import { MutableRefObject, useCallback } from 'react';
-import type { GameState } from '../game/state';
-import type { Phase, Side } from '../game/types';
-import type { PlayerState } from '../game/types';
-import { tickStatuses } from '../game/defense';
-import { indentLog } from './useCombatLog';
+import { MutableRefObject, useCallback, useEffect, useRef } from "react";
+import type { GameState } from "../game/state";
+import type { Side } from "../game/types";
+import type { PlayerState } from "../game/types";
+import { tickStatuses } from "../game/defense";
+import { indentLog } from "./useCombatLog";
+import { useGame } from "../context/GameContext";
 
 type UseTurnControllerArgs = {
-  stateRef: MutableRefObject<GameState>;
-  setYou: (player: PlayerState) => void;
-  setAi: (player: PlayerState) => void;
-  setTurn: (side: Side) => void;
-  setPhase: (phase: Phase) => void;
-  setRound: (round: number) => void;
-  setPendingAttack: (attack: GameState['pendingAttack']) => void;
-  setPendingStatusClear: (status: GameState['pendingStatusClear']) => void;
-  setAiSimActive: (value: boolean) => void;
-  setAiSimRolling: (value: boolean) => void;
-  setAiDefenseSim: (value: boolean) => void;
-  setAiDefenseRoll: (value: number | null) => void;
-  setAiEvasiveRoll: (value: number | null) => void;
   resetRoll: () => void;
-  pushLog: (entry: string | string[], options?: { blankLineBefore?: boolean; blankLineAfter?: boolean }) => void;
-  popDamage: (side: Side, amount: number, kind?: 'hit' | 'reflect') => void;
+  pushLog: (
+    entry: string | string[],
+    options?: { blankLineBefore?: boolean; blankLineAfter?: boolean }
+  ) => void;
+  popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
   statusResumeRef: MutableRefObject<(() => void) | null>;
 };
 
 export function useTurnController({
-  stateRef,
-  setYou,
-  setAi,
-  setTurn,
-  setPhase,
-  setRound,
-  setPendingAttack,
-  setPendingStatusClear,
-  setAiSimActive,
-  setAiSimRolling,
-  setAiDefenseSim,
-  setAiDefenseRoll,
-  setAiEvasiveRoll,
   resetRoll,
   pushLog,
   popDamage,
   statusResumeRef,
 }: UseTurnControllerArgs) {
+  const { state, dispatch } = useGame();
+  const stateRef = useRef<GameState>(state);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  const setPlayer = useCallback(
+    (side: Side, player: PlayerState) => {
+      dispatch({ type: "SET_PLAYER", side, player });
+    },
+    [dispatch]
+  );
+
+  const patchState = useCallback(
+    (partial: Partial<GameState>) => {
+      dispatch({ type: "PATCH_STATE", payload: partial });
+      stateRef.current = { ...stateRef.current, ...partial };
+    },
+    [dispatch]
+  );
+
+  const patchAiPreview = useCallback(
+    (partial: Partial<GameState["aiPreview"]>) => {
+      dispatch({ type: "PATCH_AI_PREVIEW", payload: partial });
+      stateRef.current = {
+        ...stateRef.current,
+        aiPreview: { ...stateRef.current.aiPreview, ...partial },
+      };
+    },
+    [dispatch]
+  );
+
+  const patchAiDefense = useCallback(
+    (partial: Partial<GameState["aiDefense"]>) => {
+      dispatch({ type: "PATCH_AI_DEFENSE", payload: partial });
+      stateRef.current = {
+        ...stateRef.current,
+        aiDefense: { ...stateRef.current.aiDefense, ...partial },
+      };
+    },
+    [dispatch]
+  );
+
   const tickAndStart = useCallback(
     (next: Side, afterReady?: () => void): boolean => {
       let continueBattle = true;
       let statusPending = false;
-      let statusEntry: { side: Side; status: 'burn'; stacks: number } | null =
+      let statusEntry: { side: Side; status: "burn"; stacks: number } | null =
         null;
       const upkeepLines: string[] = [];
       let aiHeader: string | null = null;
 
-      if (next === 'you') {
+      if (next === "you") {
         const before = stateRef.current.players.you;
         if (before) {
           const heroName = before.hero.name;
@@ -62,17 +84,17 @@ export function useTurnController({
           const igniteDamage = before.tokens.ignite > 0 ? 1 : 0;
           const totalDamage = burnDamage + igniteDamage;
           const after = tickStatuses(before);
-          setYou(after);
+          setPlayer("you", after);
           if (totalDamage > 0) {
-            popDamage('you', totalDamage, 'hit');
+            popDamage("you", totalDamage, "hit");
             const parts: string[] = [];
             if (burnDamage > 0)
               parts.push(`Burn ${burnStacks} -> ${burnDamage} dmg`);
-            if (igniteDamage > 0) parts.push('Ignite -> 1 dmg');
+            if (igniteDamage > 0) parts.push("Ignite -> 1 dmg");
             upkeepLines.push(
               indentLog(
                 `Upkeep: ${heroName} takes ${totalDamage} dmg (${parts.join(
-                  ', '
+                  ", "
                 )}). HP: ${after.hp}/${after.hero.maxHp}.`
               )
             );
@@ -89,7 +111,7 @@ export function useTurnController({
             statusPending = true;
             statusEntry = {
               side: next,
-              status: 'burn',
+              status: "burn",
               stacks: after.tokens.burn,
             };
           }
@@ -106,17 +128,17 @@ export function useTurnController({
           const igniteDamage = before.tokens.ignite > 0 ? 1 : 0;
           const totalDamage = burnDamage + igniteDamage;
           const after = tickStatuses(before);
-          setAi(after);
+          setPlayer("ai", after);
           if (totalDamage > 0) {
-            popDamage('ai', totalDamage, 'hit');
+            popDamage("ai", totalDamage, "hit");
             const parts: string[] = [];
             if (burnDamage > 0)
               parts.push(`Burn ${burnStacks} -> ${burnDamage} dmg`);
-            if (igniteDamage > 0) parts.push('Ignite -> 1 dmg');
+            if (igniteDamage > 0) parts.push("Ignite -> 1 dmg");
             upkeepLines.push(
               indentLog(
                 `Upkeep: ${heroName} takes ${totalDamage} dmg (${parts.join(
-                  ', '
+                  ", "
                 )}). HP: ${after.hp}/${after.hero.maxHp}.`
               )
             );
@@ -133,7 +155,7 @@ export function useTurnController({
             statusPending = true;
             statusEntry = {
               side: next,
-              status: 'burn',
+              status: "burn",
               stacks: after.tokens.burn,
             };
           }
@@ -142,32 +164,27 @@ export function useTurnController({
         }
       }
 
-      setTurn(next);
-      setPhase('upkeep');
-      setPendingAttack(null);
-      setAiSimActive(false);
-      setAiSimRolling(false);
-      setAiDefenseSim(false);
-      setAiDefenseRoll(null);
-      setAiEvasiveRoll(null);
+      patchState({ turn: next, phase: "upkeep" });
+      dispatch({ type: "SET_PENDING_ATTACK", attack: null });
+      patchAiPreview({ active: false, rolling: false });
+      patchAiDefense({ inProgress: false, defenseRoll: null, evasiveRoll: null });
       resetRoll();
 
       if (!continueBattle) {
-        setPendingStatusClear(null);
+        dispatch({ type: "SET_PENDING_STATUS", status: null });
         statusResumeRef.current = null;
         return false;
       }
 
-      if (next === 'you') {
+      if (next === "you") {
         const newRound = stateRef.current.round + 1;
-        setRound(newRound);
-        stateRef.current = { ...stateRef.current, round: newRound };
+        patchState({ round: newRound });
         pushLog(`--- Kolo ${newRound} ---`, { blankLineBefore: true });
         if (upkeepLines.length) {
           pushLog(upkeepLines);
         }
-      } else if (next === 'ai') {
-        const lines = [aiHeader ?? '[AI] AI \u00FAto\u010D\u00ED:'];
+      } else if (next === "ai") {
+        const lines = [aiHeader ?? "[AI] AI \u00FAto\u010D\u00ED:"];
         if (upkeepLines.length) lines.push(...upkeepLines);
         pushLog(lines, { blankLineBefore: true });
       } else if (upkeepLines.length) {
@@ -175,34 +192,26 @@ export function useTurnController({
       }
 
       if (statusPending && statusEntry) {
-        setPendingStatusClear(statusEntry);
+        dispatch({ type: "SET_PENDING_STATUS", status: statusEntry });
         statusResumeRef.current = afterReady ?? null;
       } else {
-        setPendingStatusClear(null);
+        dispatch({ type: "SET_PENDING_STATUS", status: null });
         statusResumeRef.current = null;
-        window.setTimeout(() => setPhase('roll'), 600);
+        window.setTimeout(() => patchState({ phase: "roll" }), 600);
         afterReady?.();
       }
 
       return true;
     },
     [
+      dispatch,
       popDamage,
       pushLog,
       resetRoll,
-      setAi,
-      setAiDefenseRoll,
-      setAiDefenseSim,
-      setAiEvasiveRoll,
-      setAiSimActive,
-      setAiSimRolling,
-      setPendingAttack,
-      setPendingStatusClear,
-      setPhase,
-      setRound,
-      setTurn,
-      setYou,
-      stateRef,
+      patchAiDefense,
+      patchAiPreview,
+      patchState,
+      setPlayer,
       statusResumeRef,
     ]
   );
@@ -211,4 +220,3 @@ export function useTurnController({
     tickAndStart,
   };
 }
-
