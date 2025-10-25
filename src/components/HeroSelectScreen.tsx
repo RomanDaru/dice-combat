@@ -47,6 +47,44 @@ const AbilityPreviewList = ({ hero }: { hero: Hero }) => {
   );
 };
 
+const HERO_MEDIA: Partial<Record<string, string>> = {
+  Pyromancer: PyromancerPreview,
+};
+
+type HeroDetailPanelProps = {
+  hero: Hero;
+  image: string;
+};
+
+const HeroDetailPanel = ({ hero, image }: HeroDetailPanelProps) => {
+  const mediaSource = HERO_MEDIA[hero.id] ?? null;
+
+  return (
+    <div className={styles.detailLayout}>
+      <div className={styles.detailVisual}>
+        {mediaSource ? (
+          <video
+            key={hero.id}
+            className={styles.detailMedia}
+            autoPlay
+            loop
+            muted
+            playsInline
+            poster={image}>
+            <source src={mediaSource} type='video/mp4' />
+          </video>
+        ) : (
+          <img src={image} alt={hero.name} className={styles.detailMedia} />
+        )}
+      </div>
+
+      <div className={styles.abilityPreview}>
+        <AbilityPreviewList hero={hero} />
+      </div>
+    </div>
+  );
+};
+
 export type HeroOption = {
   hero: Hero;
   image: string;
@@ -125,35 +163,6 @@ export default function HeroSelectScreen({
       ? selectedHeroOption.hero.name
       : "Select Your Hero";
 
-  const renderDetailVisual = () => {
-    if (!selectedHeroOption) return null;
-    const { hero, image } = selectedHeroOption;
-    const isPyromancer = hero.id === "Pyromancer";
-
-    return (
-      <div className={styles.detailVisual}>
-        {isPyromancer ? (
-          <video
-            key={hero.id}
-            className={styles.detailMedia}
-            autoPlay
-            loop
-            muted
-            playsInline
-            poster={image}>
-            <source src={PyromancerPreview} type='video/mp4' />
-          </video>
-        ) : (
-          <img
-            src={image}
-            alt={hero.name}
-            className={styles.detailMedia}
-          />
-        )}
-      </div>
-    );
-  };
-
   return (
     <div className='welcome-screen phase-select'>
       <div className={clsx("welcome-heading", "raised", styles.headingSwapWrapper)}>
@@ -195,27 +204,23 @@ export default function HeroSelectScreen({
             <p className='welcome-subtext'>
               Review abilities and confirm your choice.
             </p>
-            <div className={styles.detailLayout}>
-              {renderDetailVisual()}
-
-              <div className={styles.abilityPreview}>
-                <AbilityPreviewList hero={selectedHeroOption.hero} />
-              </div>
-
-              <div className={styles.actionRow}>
-                <button
-                  type='button'
-                  className='welcome-secondary'
-                  onClick={handleBackToGrid}>
-                  Back to heroes
-                </button>
-                <button
-                  type='button'
-                  className='welcome-primary'
-                  onClick={handleConfirm}>
-                  Confirm {selectedHeroOption.hero.name}
-                </button>
-              </div>
+            <HeroDetailPanel
+              hero={selectedHeroOption.hero}
+              image={selectedHeroOption.image}
+            />
+            <div className={styles.actionRow}>
+              <button
+                type='button'
+                className='welcome-secondary'
+                onClick={handleBackToGrid}>
+                Back to heroes
+              </button>
+              <button
+                type='button'
+                className='welcome-primary'
+                onClick={handleConfirm}>
+                Confirm {selectedHeroOption.hero.name}
+              </button>
             </div>
           </div>
         )
