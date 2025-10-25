@@ -1,4 +1,9 @@
-import React from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import AbilityList from "../components/AbilityList";
 import { PlayerPanel } from "../components/PlayerPanel";
 import { PlayerActionPanel } from "../components/PlayerActionPanel";
@@ -7,89 +12,320 @@ import { CombatLogPanel } from "../components/CombatLogPanel";
 import { TipsPanel } from "../components/TipsPanel";
 import { TurnIndicator } from "../components/TurnIndicator";
 import Section from "../components/Section";
-import type { Ability, Phase, PlayerState, Side } from "../game/types";
-import type {
-  GameState,
-  PendingStatusClear,
-} from "../game/state";
+import { useGame } from "../context/GameContext";
+import { useCombatLog } from "../hooks/useCombatLog";
+import { useDiceAnimator } from "../hooks/useDiceAnimator";
+import { useAiDiceAnimator } from "../hooks/useAiDiceAnimator";
+import { useAiController } from "../hooks/useAiController";
+import { useStatusManager } from "../hooks/useStatusManager";
+import { useDefenseActions } from "../hooks/useDefenseActions";
+import { useTurnController } from "../hooks/useTurnController";
+import { bestAbility, detectCombos, rollDie } from "../game/combos";
+import type { GameState } from "../game/state";
+import type { Side } from "../game/types";
 
-type BattleScreenProps = {
-  onReset: () => void;
-  you: PlayerState;
-  ai: PlayerState;
-  turn: Side;
-  winner: string | null;
-  showDcLogo: boolean;
-  phase: Phase;
-  dice: number[];
-  held: boolean[];
-  rolling: boolean[];
-  onToggleHold: (index: number) => void;
-  defDieIndex: number;
-  onRoll: () => void;
-  onConfirmAttack: () => void;
-  onEndTurnNoAttack: () => void;
-  onUserDefenseRoll: () => void;
-  onUserEvasiveRoll: () => void;
-  rollsLeft: number;
-  isDefenseTurn: boolean;
-  statusActive: boolean;
-  pendingStatusClear: PendingStatusClear;
-  performStatusClearRoll: (side: Side) => void;
-  ability: Ability | null;
-  readyForActing: Record<string, boolean>;
-  readyForAI: Record<string, boolean>;
-  aiSimDice: number[];
-  aiSimRolling: boolean;
-  aiSimHeld: boolean[];
-  aiDefenseSim: boolean;
-  aiDefenseRoll: number | null;
-  aiEvasiveRoll: number | null;
-  floatDmgYou: GameState["fx"]["floatDamage"]["you"];
-  floatDmgAi: GameState["fx"]["floatDamage"]["ai"];
-  shakeYou: boolean;
-  shakeAi: boolean;
-  log: GameState["log"];
-};
+const DEF_DIE_INDEX = 2;
+const ROLL_ANIM_MS = 1300;
+const AI_ROLL_ANIM_MS = 900;
+const AI_STEP_MS = 2000;
 
-export function BattleScreen({
-  onReset,
-  you,
-  ai,
-  turn,
-  winner,
-  showDcLogo,
-  phase,
-  dice,
-  held,
-  rolling,
-  onToggleHold,
-  defDieIndex,
-  onRoll,
-  onConfirmAttack,
-  onEndTurnNoAttack,
-  onUserDefenseRoll,
-  onUserEvasiveRoll,
-  rollsLeft,
-  isDefenseTurn,
-  statusActive,
-  pendingStatusClear,
-  performStatusClearRoll,
-  ability,
-  readyForActing,
-  readyForAI,
-  aiSimDice,
-  aiSimRolling,
-  aiSimHeld,
-  aiDefenseSim,
-  aiDefenseRoll,
-  aiEvasiveRoll,
-  floatDmgYou,
-  floatDmgAi,
-  shakeYou,
-  shakeAi,
-  log,
-}: BattleScreenProps) {
+export function BattleScreen() {
+  const { state, dispatch } = useGame();
+  const stateRef = useRef<GameState>(state);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  const {
+    players,
+    turn,
+    phase,
+    dice,
+    held,
+    rolling,
+    rollsLeft,
+    log,
+    aiPreview,
+    aiDefense,
+    pendingAttack,
+    pendingStatusClear,
+    fx,
+  } = state;
+
+  const patchState = useCallback(
+    (partial: Partial<GameState>) => {
+      dispatch({ type: "PATCH_STATE", payload: partial });
+      stateRef.current = { ...stateRef.current, ...partial };
+    },
+    [dispatch]
+  );
+
+  const setDice = useCallback(
+    (value: number[] | ((prev: number[]) => number[])) => {
+      const next =
+        typeof value === "function"
+          ? (value as (prev: number[]) => number[])(stateRef.current.dice)
+          : value;
+      patchState({ dice: next });
+    },
+    [patchState]
+  );
+
+  const setHeld = useCallback(
+    (value: boolean[] | ((prev: boolean[]) => boolean[])) => {
+      const next =
+        typeof value === "function"
+          ? (value as (prev: boolean[]) => boolean[])(stateRef.current.held)
+          : value;
+      patchState({ held: next });
+    },
+    [patchState]
+  );
+
+  const setRolling = useCallback(
+    (value: boolean[]) => {
+      patchState({ rolling: value });
+    },
+    [patchState]
+  );
+
+  const setRollsLeft = useCallback(
+    (value: number | ((prev: number) => number)) => {
+      const next =
+        typeof value === "function"
+          ? (value as (prev: number) => number)(stateRef.current.rollsLeft)
+          : value;
+      patchState({ rollsLeft: next });
+    },
+    [patchState]
+  );
+
+  const setFloatDamage = useCallback(
+    (side: Side, value: GameState["fx"]["floatDamage"][Side]) => {
+      dispatch({ type: "SET_FLOAT_DAMAGE", side, value });
+      stateRef.current = {
+        ...stateRef.current,
+        fx: {
+          ...stateRef.current.fx,
+          floatDamage: { ...stateRef.current.fx.floatDamage, [side]: value },
+        },
+      };
+    },
+    [dispatch]
+  );
+
+  const setShake = useCallback(
+    (side: Side, value: boolean) => {
+      dispatch({ type: "SET_SHAKE", side, value });
+      stateRef.current = {
+        ...stateRef.current,
+        fx: {
+          ...stateRef.current.fx,
+          shake: { ...stateRef.current.fx.shake, [side]: value },
+        },
+      };
+    },
+    [dispatch]
+  );
+
+  const popDamage = useCallback(
+    (side: Side, amount: number, kind: "hit" | "reflect" = "hit") => {
+      const payload = { val: amount, kind } as const;
+      setFloatDamage(side, payload);
+      if (kind === "hit") {
+        setShake(side, true);
+        window.setTimeout(() => setShake(side, false), 450);
+      }
+      window.setTimeout(() => setFloatDamage(side, null), 1300);
+    },
+    [setFloatDamage, setShake]
+  );
+
+  const {
+    pushLog,
+    logPlayerAttackStart,
+    logPlayerNoCombo,
+    logAiAttackRoll,
+    logAiNoCombo,
+  } = useCombatLog();
+
+  const acting = turn === "you" ? players.you : players.ai;
+  const ability = useMemo(
+    () => bestAbility(acting.hero, dice),
+    [acting.hero, dice]
+  );
+  const readyForActing = useMemo(() => detectCombos(dice), [dice]);
+  const readyForAI = useMemo(() => detectCombos(aiPreview.dice), [aiPreview.dice]);
+  const isDefenseTurn = !!pendingAttack && pendingAttack.defender === "you";
+  const statusActive = !!pendingStatusClear;
+  const showDcLogo =
+    turn === "you" && rollsLeft === 3 && !pendingAttack && !statusActive;
+
+  const timersRef = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (timersRef.current) {
+        window.clearInterval(timersRef.current);
+      }
+    },
+    []
+  );
+
+  const { resetRoll, animateDefenseDie, restoreDiceAfterDefense } =
+    useDiceAnimator({ defenseDieIndex: DEF_DIE_INDEX });
+  const { animatePreviewRoll } = useAiDiceAnimator({
+    rollDurationMs: AI_ROLL_ANIM_MS,
+  });
+  const { statusResumeRef, performStatusClearRoll } = useStatusManager({
+    pushLog,
+    animateDefenseDie,
+    restoreDiceAfterDefense,
+  });
+  const { tickAndStart } = useTurnController({
+    resetRoll,
+    pushLog,
+    popDamage,
+    statusResumeRef,
+  });
+  const { aiPlay } = useAiController({
+    logAiNoCombo,
+    logAiAttackRoll,
+    animatePreviewRoll,
+    tickAndStart,
+    aiStepDelay: AI_STEP_MS,
+  });
+  const { onConfirmAttack, onUserDefenseRoll, onUserEvasiveRoll } =
+    useDefenseActions({
+      turn,
+      rolling,
+      ability,
+      dice,
+      you: players.you,
+      pendingAttack,
+      logPlayerNoCombo,
+      logPlayerAttackStart,
+      pushLog,
+      animateDefenseDie,
+      popDamage,
+      restoreDiceAfterDefense,
+      tickAndStart,
+      aiPlay,
+      aiStepDelay: AI_STEP_MS,
+    });
+
+  const onRoll = useCallback(() => {
+    if (turn !== "you" || rollsLeft <= 0 || statusActive || isDefenseTurn) {
+      return;
+    }
+    const mask = held.map((h) => !h);
+    setRolling(mask);
+    const start = Date.now();
+    let workingDice = [...stateRef.current.dice];
+    if (timersRef.current) window.clearInterval(timersRef.current);
+    timersRef.current = window.setInterval(() => {
+      workingDice = workingDice.map((value, idx) =>
+        mask[idx] ? rollDie() : value
+      );
+      setDice([...workingDice]);
+      if (Date.now() - start > ROLL_ANIM_MS) {
+        if (timersRef.current) window.clearInterval(timersRef.current);
+        workingDice = workingDice.map((value, idx) =>
+          mask[idx] ? rollDie() : value
+        );
+        setDice([...workingDice]);
+        setRolling([false, false, false, false, false]);
+        setRollsLeft((n) => n - 1);
+      }
+    }, 100);
+  }, [
+    held,
+    isDefenseTurn,
+    rollsLeft,
+    setDice,
+    setRolling,
+    setRollsLeft,
+    statusActive,
+    turn,
+  ]);
+
+  const onToggleHold = useCallback(
+    (index: number) => {
+      if (turn !== "you") return;
+      setHeld((prev) =>
+        prev.map((value, idx) => (idx === index ? !value : value))
+      );
+    },
+    [setHeld, turn]
+  );
+
+  useEffect(() => {
+    if (
+      pendingStatusClear &&
+      pendingStatusClear.side === "ai" &&
+      !pendingStatusClear.roll &&
+      !pendingStatusClear.rolling
+    ) {
+      const timer = window.setTimeout(() => performStatusClearRoll("ai"), 700);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [pendingStatusClear, performStatusClearRoll]);
+
+  const onEndTurnNoAttack = useCallback(() => {
+    if (turn !== "you" || rolling.some(Boolean)) return;
+    window.setTimeout(() => {
+      const cont = tickAndStart("ai", () => {
+        window.setTimeout(() => {
+          const aiState = stateRef.current.players.ai;
+          const youState = stateRef.current.players.you;
+          if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
+            return;
+          aiPlay();
+        }, 450);
+      });
+      if (!cont) return;
+    }, 0);
+  }, [aiPlay, rolling, tickAndStart, turn]);
+
+  const handleReset = useCallback(() => {
+    const current = stateRef.current;
+    dispatch({
+      type: "RESET",
+      payload: {
+        youHero: current.players.you.hero,
+        aiHero: current.players.ai.hero,
+      },
+    });
+    resetRoll();
+  }, [dispatch, resetRoll]);
+
+  const initialStartRef = useRef(false);
+  useEffect(() => {
+    if (
+      state.phase === "upkeep" &&
+      state.round === 0 &&
+      state.log.length === 1
+    ) {
+      initialStartRef.current = false;
+    }
+  }, [state.phase, state.round, state.log.length]);
+
+  useEffect(() => {
+    if (
+      !initialStartRef.current &&
+      state.phase === "upkeep" &&
+      state.round === 0
+    ) {
+      initialStartRef.current = true;
+      window.setTimeout(() => tickAndStart("you"), 0);
+    }
+  }, [state.phase, state.round, tickAndStart]);
+
+  const you = players.you;
+  const ai = players.ai;
+  const winner = you.hp <= 0 ? ai.hero.id : ai.hp <= 0 ? you.hero.id : null;
+
   return (
     <div className='container'>
       <div className='row'>
@@ -124,7 +360,7 @@ export function BattleScreen({
               </span>{" "}
               Fantasy Dice Combat
             </h1>
-            <button className='btn' onClick={onReset}>
+            <button className='btn' onClick={handleReset}>
               Reset
             </button>
           </div>
@@ -134,15 +370,15 @@ export function BattleScreen({
               title={`You - ${you.hero.name}`}
               active={turn === "you"}
               player={you}
-              shake={shakeYou}
-              floatDamage={floatDmgYou}
+              shake={fx.shake.you}
+              floatDamage={fx.floatDamage.you}
             />
             <PlayerPanel
               title={`Opponent - ${ai.hero.name} (AI)`}
               active={turn === "ai"}
               player={ai}
-              shake={shakeAi}
-              floatDamage={floatDmgAi}
+              shake={fx.shake.ai}
+              floatDamage={fx.floatDamage.ai}
             />
           </div>
 
@@ -174,7 +410,7 @@ export function BattleScreen({
                     rolling={rolling}
                     canInteract={turn === "you" && !isDefenseTurn && !statusActive}
                     onToggleHold={onToggleHold}
-                    defIndex={defDieIndex}
+                    defIndex={DEF_DIE_INDEX}
                     showDcLogo={showDcLogo}
                     isDefensePhase={
                       isDefenseTurn || statusActive || phase === "defense"
@@ -193,9 +429,9 @@ export function BattleScreen({
                     performStatusClearRoll={performStatusClearRoll}
                     youHeroName={you.hero.name}
                     aiHeroName={ai.hero.name}
-                    aiEvasiveRoll={aiEvasiveRoll}
-                    aiDefenseRoll={aiDefenseRoll}
-                    aiDefenseSim={aiDefenseSim}
+                    aiEvasiveRoll={aiDefense.evasiveRoll}
+                    aiDefenseRoll={aiDefense.defenseRoll}
+                    aiDefenseSim={aiDefense.inProgress}
                     ability={ability}
                   />
                 </div>
@@ -203,9 +439,9 @@ export function BattleScreen({
                 <AiPreviewPanel
                   hero={ai.hero}
                   readyCombos={readyForAI as any}
-                  dice={aiSimDice}
-                  rolling={aiSimRolling}
-                  held={aiSimHeld}
+                  dice={aiPreview.dice}
+                  rolling={aiPreview.rolling}
+                  held={aiPreview.held}
                 />
               </div>
             )}
@@ -218,4 +454,4 @@ export function BattleScreen({
     </div>
   );
 }
-
+*** End Patch
