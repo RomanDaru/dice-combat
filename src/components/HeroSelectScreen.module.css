@@ -44,10 +44,12 @@
 
 .heroGrid {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  margin-top: 24px;
-  width: 100%;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  justify-content: center;
+  justify-items: center;
+  margin: 24px auto 0;
+  width: min(100%, 960px);
 }
 
 .detailLayout {
