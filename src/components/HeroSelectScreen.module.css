@@ -1,3 +1,45 @@
+.phaseBody {
+  position: relative;
+  width: 100%;
+}
+
+.gridEnter {
+  animation: panelFade 0.35s ease both;
+}
+
+.detailEnter {
+  animation: detailSlide 0.45s ease both;
+}
+
+@keyframes panelFade {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes detailSlide {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gridEnter,
+  .detailEnter {
+    animation: none;
+  }
+}
+
 .abilityList {
   display: grid;
   gap: 6px;
