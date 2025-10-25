@@ -27,6 +27,7 @@ import {
   indentLog,
   useCombatLog,
 } from "./hooks/useCombatLog";
+import { useGameActions } from "./hooks/useGameActions";
 import PyromancerPortrait from "./assets/Pyromancer_Hero.png";
 import ShadowMonkPortrait from "./assets/Shadow_Monk_Hero.png";
 
@@ -95,15 +96,6 @@ export default function App() {
     startBattle(playerHero, aiHero);
   };
 
-  const patchState = (partial: Partial<GameState>) =>
-    dispatch({ type: "PATCH_STATE", payload: partial });
-
-  const patchAiPreview = (partial: Partial<AiPreviewState>) =>
-    dispatch({ type: "PATCH_AI_PREVIEW", payload: partial });
-
-  const patchAiDefense = (partial: Partial<AiDefenseState>) =>
-    dispatch({ type: "PATCH_AI_DEFENSE", payload: partial });
-
   const {
     pushLog,
     logPlayerAttackStart,
@@ -112,86 +104,30 @@ export default function App() {
     logAiNoCombo,
   } = useCombatLog(dispatch);
 
-  const setPlayer = (side: Side, player: PlayerState) =>
-    dispatch({ type: "SET_PLAYER", side, player });
-
-  const setYou = (player: PlayerState) => setPlayer("you", player);
-  const setAi = (player: PlayerState) => setPlayer("ai", player);
-
-  const setPendingStatusClear = (status: PendingStatusClear) =>
-    dispatch({ type: "SET_PENDING_STATUS", status });
-
-  const setPendingAttack = (attack: GameState["pendingAttack"]) =>
-    dispatch({ type: "SET_PENDING_ATTACK", attack });
-
-  const setSavedDiceForDefense = (saved: number[] | null) =>
-    dispatch({ type: "SET_SAVED_DEFENSE_DICE", dice: saved });
-
-  const setTurn = (next: Side) => patchState({ turn: next });
-  const setPhase = (next: Phase) => patchState({ phase: next });
-  const setRound = (next: number) => patchState({ round: next });
-  const setDice = (
-    value: number[] | ((prev: number[]) => number[])
-  ) => {
-    const next =
-      typeof value === "function"
-        ? (value as (prev: number[]) => number[])(stateRef.current.dice)
-        : value;
-    patchState({ dice: next });
-  };
-  const setHeld = (
-    value: boolean[] | ((prev: boolean[]) => boolean[])
-  ) => {
-    const next =
-      typeof value === "function"
-        ? (value as (prev: boolean[]) => boolean[])(
-            stateRef.current.held
-          )
-        : value;
-    patchState({ held: next });
-  };
-  const setRolling = (next: boolean[]) => patchState({ rolling: next });
-  const setRollsLeft = (value: number | ((prev: number) => number)) => {
-    const next =
-      typeof value === "function"
-        ? (value as (prev: number) => number)(stateRef.current.rollsLeft)
-        : value;
-    patchState({ rollsLeft: next });
-  };
-
-  const setAiSimActive = (value: boolean) =>
-    patchAiPreview({ active: value });
-  const setAiSimRolling = (value: boolean) =>
-    patchAiPreview({ rolling: value });
-  const setAiSimDice = (
-    value: number[] | ((prev: number[]) => number[])
-  ) => {
-    const next =
-      typeof value === "function"
-        ? (value as (prev: number[]) => number[])(
-            stateRef.current.aiPreview.dice
-          )
-        : value;
-    patchAiPreview({ dice: next });
-  };
-  const setAiSimHeld = (value: boolean[]) =>
-    patchAiPreview({ held: value });
-
-  const setAiDefenseSim = (value: boolean) =>
-    patchAiDefense({ inProgress: value });
-  const setAiDefenseRoll = (value: number | null) =>
-    patchAiDefense({ defenseRoll: value });
-  const setAiEvasiveRoll = (value: number | null) =>
-    patchAiDefense({ evasiveRoll: value });
-
-
-  const setFloatDamage = (
-    side: Side,
-    value: GameState["fx"]["floatDamage"][Side]
-  ) => dispatch({ type: "SET_FLOAT_DAMAGE", side, value });
-
-  const setShake = (side: Side, value: boolean) =>
-    dispatch({ type: "SET_SHAKE", side, value });
+  const {
+    setPlayer,
+    setYou,
+    setAi,
+    setPendingStatusClear,
+    setPendingAttack,
+    setSavedDiceForDefense,
+    setTurn,
+    setPhase,
+    setRound,
+    setDice,
+    setHeld,
+    setRolling,
+    setRollsLeft,
+    setAiSimActive,
+    setAiSimRolling,
+    setAiSimDice,
+    setAiSimHeld,
+    setAiDefenseSim,
+    setAiDefenseRoll,
+    setAiEvasiveRoll,
+    setFloatDamage,
+    setShake,
+  } = useGameActions(dispatch, stateRef);
 
   const DEF_DIE_INDEX = 2;
   const ROLL_ANIM_MS = 1300;
