@@ -113,7 +113,7 @@ export default function HeroSelectScreen({
     <div className='welcome-screen phase-select'>
       <div className='welcome-heading raised'>Select Your Hero</div>
       {phase === "grid" ? (
-        <div className='welcome-body visible'>
+        <div className='welcome-body'>
           <p className='welcome-subtext'>
             Choose your hero to begin the battle.
           </p>
@@ -140,7 +140,7 @@ export default function HeroSelectScreen({
         </div>
       ) : (
         selectedHeroOption && (
-          <div className='welcome-body visible'>
+          <div className='welcome-body'>
             <p className='welcome-subtext'>
               Review abilities and confirm your choice.
             </p>
