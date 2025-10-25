@@ -1,9 +1,5 @@
-import { DefenseRoll, Tokens, PlayerState } from './types';
+import { DefenseRoll, Tokens } from './types';
 import { rollDie } from './combos';
-import {
-  getBurnDamage,
-  tickBurn,
-} from "./statuses/burn";
 
 function clampChi(chi: number) {
   return Math.max(0, Math.min(chi, 3));
@@ -43,9 +39,3 @@ export function monkDefenseRoll(tokens: Tokens): DefenseRoll {
   return { roll, ...monkDefenseFromRoll({ roll, tokens }) };
 }
 
-export function tickStatuses(state: PlayerState): PlayerState {
-  const { updated } = tickBurn(state);
-  return updated;
-}
-
-export { getBurnDamage } from "./statuses/burn";

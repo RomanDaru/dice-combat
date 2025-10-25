@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { BURN_STATUS_ID } from "../game/statuses";
 import type { PendingStatusClear } from "../game/state";
 import type { Side, PlayerState, Phase } from "../game/types";
 import { indentLog } from "./useCombatLog";
@@ -56,7 +57,15 @@ export function useStatusManager({
   const performStatusClearRoll = useCallback(
     (side: Side) => {
       const currentStatus = stateRef.current.pendingStatusClear;
-      if (!currentStatus || currentStatus.side !== side || currentStatus.rolling) {
+      if (
+        !currentStatus ||
+        currentStatus.side !== side ||
+        currentStatus.rolling
+      ) {
+        return;
+      }
+
+      if (currentStatus.status !== BURN_STATUS_ID) {
         return;
       }
 
@@ -73,10 +82,11 @@ export function useStatusManager({
           setPlayer(side, updatedPlayer);
         }
         const heroName = playerState?.hero.name ?? (side === "you" ? "You" : "AI");
+        const statusLabel = "Burn";
         pushLog(
           indentLog(
-            `Upkeep: ${heroName} roll vs Burn: ${roll} ${
-              success ? "-> removes Burn" : "-> Burn persists"
+            `Upkeep: ${heroName} roll vs ${statusLabel}: ${roll} ${
+              success ? `-> removes ${statusLabel}` : `-> ${statusLabel} persists`
             }.`
           )
         );
@@ -107,3 +117,4 @@ export function useStatusManager({
     performStatusClearRoll,
   };
 }
+

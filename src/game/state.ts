@@ -1,4 +1,5 @@
 import { Ability } from "./types";
+import type { StatusId } from "./statuses";
 import { HEROES } from "./heroes";
 import { Hero, Phase, PlayerState, Side } from "./types";
 import { Tokens } from "./types";
@@ -14,7 +15,7 @@ export type PendingAttack = {
 
 export type PendingStatusClear = {
   side: Side;
-  status: "burn";
+  status: StatusId;
   stacks: number;
   rolling?: boolean;
   roll?: number;
@@ -254,3 +255,5 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 }
 
 export type GameDispatch = (action: GameAction) => void;
+
+

@@ -2,7 +2,8 @@ import { MutableRefObject, useCallback, useEffect, useRef } from "react";
 import type { GameState } from "../game/state";
 import type { Side } from "../game/types";
 import type { PlayerState } from "../game/types";
-import { getBurnDamage, tickStatuses } from "../game/defense";
+import { tickAllStatuses } from "../game/statuses";
+import type { StatusId } from "../game/statuses";
 import { indentLog } from "./useCombatLog";
 import { useGame } from "../context/GameContext";
 
@@ -16,7 +17,7 @@ type UseTurnControllerArgs = {
   statusResumeRef: MutableRefObject<(() => void) | null>;
 };
 
-type PendingStatusEntry = { side: Side; status: "burn"; stacks: number };
+type PendingStatusEntry = { side: Side; status: StatusId; stacks: number };
 
 type UpkeepOutcome = {
   continueBattle: boolean;
@@ -94,18 +95,23 @@ export function useTurnController({
       }
 
       const heroName = before.hero.name;
-      const burnStacks = before.tokens.burn;
-      const burnDamage = getBurnDamage(burnStacks);
+      const {
+        player: after,
+        totalDamage,
+        logParts,
+        prompts,
+      } = tickAllStatuses(before);
 
-      const after = tickStatuses(before);
       setPlayer(side, after);
 
       const lines: string[] = [];
-      if (burnDamage > 0) {
-        popDamage(side, burnDamage, "hit");
+      if (totalDamage > 0) {
+        popDamage(side, totalDamage, "hit");
+        const detail =
+          logParts.length > 0 ? ` (${logParts.join(", ")})` : "";
         lines.push(
           indentLog(
-            `Upkeep: ${heroName} takes ${burnDamage} dmg (Burn ${burnStacks} -> ${burnDamage} dmg). HP: ${after.hp}/${after.hero.maxHp}.`
+            `Upkeep: ${heroName} takes ${totalDamage} dmg${detail}. HP: ${after.hp}/${after.hero.maxHp}.`
           )
         );
       }
@@ -114,7 +120,7 @@ export function useTurnController({
         pushLog(`${heroName} fell to status damage.`);
         return {
           continueBattle: false,
-          header: side === "ai" ? `[AI] ${heroName} útočí:` : null,
+          header: side === "ai" ? `[AI] ${heroName} attacks:` : null,
           lines,
           pendingStatus: null,
         };
@@ -124,20 +130,20 @@ export function useTurnController({
       if (!opponent || opponent.hp <= 0) {
         return {
           continueBattle: false,
-          header: side === "ai" ? `[AI] ${heroName} útočí:` : null,
+          header: side === "ai" ? `[AI] ${heroName} attacks:` : null,
           lines,
           pendingStatus: null,
         };
       }
 
-      const pendingStatus: PendingStatusEntry | null =
-        burnDamage > 0 && after.tokens.burn > 0
-          ? { side, status: "burn", stacks: after.tokens.burn }
-          : null;
+      const prompt = prompts[0];
+      const pendingStatus: PendingStatusEntry | null = prompt
+        ? { side, status: prompt.id, stacks: prompt.stacks }
+        : null;
 
       return {
         continueBattle: true,
-        header: side === "ai" ? `[AI] ${heroName} útočí:` : null,
+        header: side === "ai" ? `[AI] ${heroName} attacks:` : null,
         lines,
         pendingStatus,
       };
@@ -171,8 +177,8 @@ export function useTurnController({
         }
       } else if (next === "ai") {
         const payload = lines.length
-          ? [header ?? "[AI] AI útočí:", ...lines]
-          : [header ?? "[AI] AI útočí:"];
+          ? [header ?? "[AI] AI attacks:", ...lines]
+          : [header ?? "[AI] AI attacks:"];
         pushLog(payload, { blankLineBefore: true });
       } else if (lines.length) {
         pushLog(lines, { blankLineBefore: true });

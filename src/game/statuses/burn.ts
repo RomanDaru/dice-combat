@@ -1,6 +1,6 @@
 import type { PlayerState } from "../types";
 
-export const BURN_STATUS_ID = "burn";
+export const BURN_STATUS_ID = "burn" as const;
 export const MAX_BURN_STACKS = 3;
 
 export const getBurnDamage = (stacks: number): number => {
