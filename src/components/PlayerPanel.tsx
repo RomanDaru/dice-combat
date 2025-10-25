@@ -1,9 +1,11 @@
 import React from "react";
+import clsx from "clsx";
 import Section from "./Section";
 import HPBar from "./HPBar";
 import TokenChips from "./TokenChips";
 import DamageOverlay from "./DamageOverlay";
 import { useGame } from "../context/GameContext";
+import styles from "./PlayerPanel.module.css";
 
 type PlayerPanelProps = {
   side: "you" | "ai";
@@ -23,30 +25,16 @@ export function PlayerPanel({ side }: PlayerPanelProps) {
   return (
     <Section title={title} active={active}>
       <div
-        className={shake ? "shake-card" : ""}
-        style={{ position: "relative" }}>
+        className={clsx(styles.panelContainer, shake && "shake-card")}>
         <div className='row'>
           <HPBar hp={player.hp} max={player.hero.maxHp} />
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}>
+          <div className={styles.statusRow}>
             <div className='label'>Statuses</div>
             <TokenChips tokens={player.tokens} />
           </div>
         </div>
         {floatDamage && (
-          <div
-            style={{
-              pointerEvents: "none",
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}>
+          <div className={styles.floatOverlay}>
             <DamageOverlay val={floatDamage.val} kind={floatDamage.kind} />
           </div>
         )}

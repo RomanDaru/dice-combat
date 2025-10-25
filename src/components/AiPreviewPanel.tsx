@@ -2,6 +2,7 @@ import React from "react";
 import AbilityList from "./AbilityList";
 import DiceGrid from "./DiceGrid";
 import { useGame } from "../context/GameContext";
+import styles from "./AiPreviewPanel.module.css";
 
 export function AiPreviewPanel() {
   const { state } = useGame();
@@ -24,7 +25,7 @@ export function AiPreviewPanel() {
           isAi={true}
           aiSimHeld={held}
         />
-        <div style={{ fontSize: 12, color: "#9ca3af" }}>
+        <div className={styles.infoText}>
           AI abilities highlight according to this preview roll sequence.
         </div>
       </div>
