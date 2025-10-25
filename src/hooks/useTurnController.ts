@@ -122,7 +122,7 @@ export function useTurnController({
           const heroName = before.hero.name;
           aiHeader = `[AI] ${heroName} \u00FAto\u010D\u00ED:`;
           const burnStacks = before.tokens.burn;
-          const burnDamage = burnStacks * 2;
+          const burnDamage = getBurnDamage(burnStacks);
           const totalDamage = burnDamage;
           const after = tickStatuses(before);
           setPlayer("ai", after);
