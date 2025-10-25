@@ -62,8 +62,9 @@ export default function App() {
 
   return (
     <GameContext.Provider value={{ state, dispatch }}>
-      {content}
+      <div key={screen} className='screen-transition'>
+        {content}
+      </div>
     </GameContext.Provider>
   );
 }
-
