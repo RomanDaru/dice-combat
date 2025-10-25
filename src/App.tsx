@@ -22,6 +22,11 @@ import {
   createInitialState,
   gameReducer,
 } from "./game/state";
+import {
+  buildAttackResolutionLines,
+  indentLog,
+  useCombatLog,
+} from "./hooks/useCombatLog";
 import PyromancerPortrait from "./assets/Pyromancer_Hero.png";
 import ShadowMonkPortrait from "./assets/Shadow_Monk_Hero.png";
 
@@ -99,15 +104,13 @@ export default function App() {
   const patchAiDefense = (partial: Partial<AiDefenseState>) =>
     dispatch({ type: "PATCH_AI_DEFENSE", payload: partial });
 
-  const pushLog = (
-    entry: string | string[],
-    options: { blankLineBefore?: boolean; blankLineAfter?: boolean } = {}
-  ) => {
-    if (options.blankLineBefore) dispatch({ type: "PUSH_LOG", entry: "" });
-    const text = Array.isArray(entry) ? entry.join("\n") : entry;
-    dispatch({ type: "PUSH_LOG", entry: text });
-    if (options.blankLineAfter) dispatch({ type: "PUSH_LOG", entry: "" });
-  };
+  const {
+    pushLog,
+    logPlayerAttackStart,
+    logPlayerNoCombo,
+    logAiAttackRoll,
+    logAiNoCombo,
+  } = useCombatLog(dispatch);
 
   const setPlayer = (side: Side, player: PlayerState) =>
     dispatch({ type: "SET_PLAYER", side, player });
@@ -181,157 +184,6 @@ export default function App() {
   const setAiEvasiveRoll = (value: number | null) =>
     patchAiDefense({ evasiveRoll: value });
 
-  const formatDice = (values: number[]) => values.join(" ");
-  const indent = (line: string) => ` > ${line}`;
-  const formatAbilityName = (ability: Ability) => ability.label ?? ability.combo;
-  const formatStacks = (value: number) =>
-    `${value} stack${value === 1 ? "" : "s"}`;
-
-  const getStatusGainLines = (
-    attackerBefore: PlayerState,
-    attackerAfter: PlayerState,
-    defenderBefore: PlayerState,
-    defenderAfter: PlayerState
-  ) => {
-    const lines: string[] = [];
-    const burnBefore = defenderBefore.tokens.burn ?? 0;
-    const burnAfter = defenderAfter.tokens.burn ?? 0;
-    if (burnAfter > burnBefore) {
-      lines.push(
-        `${defenderBefore.hero.name} gains Burn (${formatStacks(burnAfter)}).`
-      );
-    }
-    const igniteBefore = defenderBefore.tokens.ignite ?? 0;
-    const igniteAfter = defenderAfter.tokens.ignite ?? 0;
-    if (igniteAfter > igniteBefore) {
-      lines.push(
-        `${defenderBefore.hero.name} gains Ignite (${formatStacks(
-          igniteAfter
-        )}).`
-      );
-    }
-    const chiDiff =
-      (attackerAfter.tokens.chi ?? 0) - (attackerBefore.tokens.chi ?? 0);
-    if (chiDiff > 0) {
-      lines.push(`${attackerBefore.hero.name} gains Chi (+${chiDiff}).`);
-    }
-    const evasiveDiff =
-      (attackerAfter.tokens.evasive ?? 0) -
-      (attackerBefore.tokens.evasive ?? 0);
-    if (evasiveDiff > 0) {
-      lines.push(`${attackerBefore.hero.name} gains Evasive (+${evasiveDiff}).`);
-    }
-    return lines;
-  };
-
-  const logPlayerAttackStart = (
-    diceValues: number[],
-    ability: Ability,
-    attackerName: string
-  ) => {
-    pushLog(
-      `[H\u00E1\u010D] ${attackerName} \u00FAto\u010D\u00ED: ${formatDice(
-        diceValues
-      )} -> ${formatAbilityName(ability)}.`,
-      { blankLineBefore: true }
-    );
-  };
-
-  const logAiAttackRoll = (diceValues: number[], ability: Ability) => {
-    pushLog(indent(`AI hod: ${formatDice(diceValues)} -> ${formatAbilityName(ability)}.`));
-  };
-
-  const logAiNoCombo = (diceValues: number[]) => {
-    pushLog(
-      indent(
-        `AI hod: ${formatDice(diceValues)} -> \u017Eiadna kombin\u00E1cia.`
-      )
-    );
-  };
-
-  const buildAttackResolutionLines = ({
-    attackerBefore,
-    attackerAfter,
-    defenderBefore,
-    defenderAfter,
-    incomingDamage,
-    defenseRoll,
-    manualEvasive,
-    reflectedDamage,
-  }: {
-    attackerBefore: PlayerState;
-    attackerAfter: PlayerState;
-    defenderBefore: PlayerState;
-    defenderAfter: PlayerState;
-    incomingDamage: number;
-    defenseRoll?: number;
-    manualEvasive?: { used: boolean; success: boolean; roll: number };
-    reflectedDamage: number;
-  }) => {
-    const lines: string[] = [];
-    const damageDealt = Math.max(0, defenderBefore.hp - defenderAfter.hp);
-    const blocked = Math.max(0, incomingDamage - damageDealt);
-
-    if (manualEvasive?.used) {
-      const evasionResult = manualEvasive.success
-        ? "\u00FAspech"
-        : "ne\u00FAspech";
-      lines.push(
-        indent(
-          `${defenderBefore.hero.name} Evasive (hod: ${manualEvasive.roll}) -> ${evasionResult}.`
-        )
-      );
-      if (manualEvasive.success) {
-        lines.push(
-          indent(
-            `${defenderBefore.hero.name} HP: ${defenderAfter.hp}/${defenderAfter.hero.maxHp}.`
-          )
-        );
-        return lines;
-      }
-    }
-
-    if (defenseRoll !== undefined) {
-      let defenseLine = `${defenderBefore.hero.name} obrana (hod: ${defenseRoll}): Hit for ${damageDealt} dmg (blocked ${blocked}).`;
-      if (reflectedDamage > 0) {
-        defenseLine = defenseLine.replace(/\.$/, `, reflected ${reflectedDamage}.`);
-      }
-      lines.push(indent(defenseLine));
-    } else if (incomingDamage > 0) {
-      let genericLine = `${defenderBefore.hero.name} receives ${damageDealt} dmg (blocked ${blocked}).`;
-      if (reflectedDamage > 0) {
-        genericLine = genericLine.replace(
-          /\.$/,
-          ` Reflected ${reflectedDamage}.`
-        );
-      }
-      lines.push(indent(genericLine));
-    }
-
-    lines.push(
-      indent(
-        `${defenderBefore.hero.name} HP: ${defenderAfter.hp}/${defenderAfter.hero.maxHp}.`
-      )
-    );
-
-    const statusLines = getStatusGainLines(
-      attackerBefore,
-      attackerAfter,
-      defenderBefore,
-      defenderAfter
-    );
-    statusLines.forEach((line) => lines.push(indent(line)));
-
-    if (reflectedDamage > 0) {
-      lines.push(
-        indent(
-          `${attackerBefore.hero.name} HP: ${attackerAfter.hp}/${attackerAfter.hero.maxHp}.`
-        )
-      );
-    }
-
-    return lines;
-  };
 
   const setFloatDamage = (
     side: Side,
@@ -448,7 +300,7 @@ export default function App() {
             parts.push(`Burn ${burnStacks} -> ${burnDamage} dmg`);
           if (igniteDamage > 0) parts.push("Ignite -> 1 dmg");
           upkeepLines.push(
-            indent(
+            indentLog(
               `Upkeep: ${heroName} takes ${totalDamage} dmg (${parts.join(
                 ", "
               )}). HP: ${after.hp}/${after.hero.maxHp}.`
@@ -492,7 +344,7 @@ export default function App() {
             parts.push(`Burn ${burnStacks} -> ${burnDamage} dmg`);
           if (igniteDamage > 0) parts.push("Ignite -> 1 dmg");
           upkeepLines.push(
-            indent(
+            indentLog(
               `Upkeep: ${heroName} takes ${totalDamage} dmg (${parts.join(
                 ", "
               )}). HP: ${after.hp}/${after.hero.maxHp}.`
@@ -694,12 +546,7 @@ export default function App() {
     const ab = ability;
     if (!ab) {
       const diceValues = [...dice];
-      pushLog(
-        `[H\u00E1\u010D] ${you.hero.name} \u00FAto\u010D\u00ED: ${formatDice(
-          diceValues
-        )} -> \u017Eiadna kombin\u00E1cia.`,
-        { blankLineBefore: true }
-      );
+      logPlayerNoCombo(diceValues, you.hero.name);
       setPhase("end");
       setTimeout(() => {
         const cont = tickAndStart("ai", () => {
@@ -990,7 +837,7 @@ export default function App() {
       }
       const heroName = playerState?.hero.name ?? (side === "you" ? "You" : "AI");
       pushLog(
-        indent(
+        indentLog(
           `Upkeep: ${heroName} roll vs Burn: ${roll} ${
             success ? "-> removes Burn" : "-> Burn persists"
           }.`
