@@ -166,11 +166,6 @@ export default function HeroSelectScreen({
                   alt={selectedHeroOption.hero.name}
                   className={styles.detailImage}
                 />
-                <div className={styles.detailInfo}>
-                  <h3 className={styles.heroName}>
-                    {selectedHeroOption.hero.name}
-                  </h3>
-                </div>
               </div>
 
               <div className={styles.abilityPreview}>
