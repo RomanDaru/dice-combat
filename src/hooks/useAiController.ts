@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useRef } from "react";
 import { bestAbility, rollDie } from "../game/combos";
 import type { GameState } from "../game/state";
-import type { Side } from "../game/types";
+import type { Ability, Side } from "../game/types";
 import { useGame } from "../context/GameContext";
 
 type UseAiControllerArgs = {
   logAiNoCombo: (diceValues: number[]) => void;
-  logAiAttackRoll: (
-    diceValues: number[],
-    ability: ReturnType<typeof bestAbility>
-  ) => void;
+  logAiAttackRoll: (diceValues: number[], ability: Ability) => void;
   animatePreviewRoll: (
     targetDice: number[],
     heldMask: boolean[],
@@ -177,4 +174,3 @@ export function useAiController({
     aiPlay,
   };
 }
-
