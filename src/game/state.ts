@@ -134,14 +134,11 @@ export type GameAction =
       type: "SET_PLAYERS";
       players: Record<Side, PlayerState>;
     }
-  | {
-    type: "PATCH_AI_PREVIEW";
-    payload: Partial<AiPreviewState>;
-  }
-  | {
-      type: "PATCH_AI_DEFENSE";
-      payload: Partial<AiDefenseState>;
-    }
+  | { type: "PATCH_AI_PREVIEW"; payload: Partial<AiPreviewState> }
+  | { type: "SET_AI_PREVIEW_DICE"; dice: number[] }
+  | { type: "SET_AI_PREVIEW_ROLLING"; rolling: boolean }
+  | { type: "SET_AI_PREVIEW_HELD"; held: boolean[] }
+  | { type: "PATCH_AI_DEFENSE"; payload: Partial<AiDefenseState> }
   | {
       type: "SET_PENDING_ATTACK";
       attack: PendingAttack | null;
@@ -164,7 +161,6 @@ export type GameAction =
       side: Side;
       value: boolean;
     };
-
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "RESET":
@@ -200,6 +196,21 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         aiPreview: { ...state.aiPreview, ...action.payload },
+      };
+    case "SET_AI_PREVIEW_DICE":
+      return {
+        ...state,
+        aiPreview: { ...state.aiPreview, dice: action.dice },
+      };
+    case "SET_AI_PREVIEW_ROLLING":
+      return {
+        ...state,
+        aiPreview: { ...state.aiPreview, rolling: action.rolling },
+      };
+    case "SET_AI_PREVIEW_HELD":
+      return {
+        ...state,
+        aiPreview: { ...state.aiPreview, held: action.held },
       };
     case "PATCH_AI_DEFENSE":
       return {
