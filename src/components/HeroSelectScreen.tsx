@@ -156,7 +156,11 @@ export default function HeroSelectScreen({
 
   return (
     <div className='welcome-screen phase-select'>
-      <div className='welcome-heading raised'>{headingText}</div>
+      <div className={clsx("welcome-heading", "raised", styles.headingSwapWrapper)}>
+        <span key={headingText} className={styles.headingSwapText}>
+          {headingText}
+        </span>
+      </div>
       {phase === "grid" ? (
         <div className={clsx("welcome-body", styles.phaseBody, styles.gridEnter)}>
           <p className='welcome-subtext'>
