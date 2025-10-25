@@ -16,6 +16,15 @@ type UseTurnControllerArgs = {
   statusResumeRef: MutableRefObject<(() => void) | null>;
 };
 
+type PendingStatusEntry = { side: Side; status: "burn"; stacks: number };
+
+type UpkeepOutcome = {
+  continueBattle: boolean;
+  header: string | null;
+  lines: string[];
+  pendingStatus: PendingStatusEntry | null;
+};
+
 export function useTurnController({
   resetRoll,
   pushLog,
@@ -32,6 +41,10 @@ export function useTurnController({
   const setPlayer = useCallback(
     (side: Side, player: PlayerState) => {
       dispatch({ type: "SET_PLAYER", side, player });
+      stateRef.current = {
+        ...stateRef.current,
+        players: { ...stateRef.current.players, [side]: player },
+      };
     },
     [dispatch]
   );
@@ -66,99 +79,76 @@ export function useTurnController({
     [dispatch]
   );
 
+  const runUpkeepFor = useCallback(
+    (side: Side): UpkeepOutcome => {
+      const opponentSide: Side = side === "you" ? "ai" : "you";
+      const before = stateRef.current.players[side];
+
+      if (!before) {
+        return {
+          continueBattle: false,
+          header: null,
+          lines: [],
+          pendingStatus: null,
+        };
+      }
+
+      const heroName = before.hero.name;
+      const burnStacks = before.tokens.burn;
+      const burnDamage = getBurnDamage(burnStacks);
+
+      const after = tickStatuses(before);
+      setPlayer(side, after);
+
+      const lines: string[] = [];
+      if (burnDamage > 0) {
+        popDamage(side, burnDamage, "hit");
+        lines.push(
+          indentLog(
+            `Upkeep: ${heroName} takes ${burnDamage} dmg (Burn ${burnStacks} -> ${burnDamage} dmg). HP: ${after.hp}/${after.hero.maxHp}.`
+          )
+        );
+      }
+
+      if (after.hp <= 0) {
+        pushLog(`${heroName} fell to status damage.`);
+        return {
+          continueBattle: false,
+          header: side === "ai" ? `[AI] ${heroName} útočí:` : null,
+          lines,
+          pendingStatus: null,
+        };
+      }
+
+      const opponent = stateRef.current.players[opponentSide];
+      if (!opponent || opponent.hp <= 0) {
+        return {
+          continueBattle: false,
+          header: side === "ai" ? `[AI] ${heroName} útočí:` : null,
+          lines,
+          pendingStatus: null,
+        };
+      }
+
+      const pendingStatus =
+        burnDamage > 0 && after.tokens.burn > 0
+          ? { side, status: "burn", stacks: after.tokens.burn }
+          : null;
+
+      return {
+        continueBattle: true,
+        header: side === "ai" ? `[AI] ${heroName} útočí:` : null,
+        lines,
+        pendingStatus,
+      };
+    },
+    [popDamage, pushLog, setPlayer]
+  );
+
   const tickAndStart = useCallback(
     (next: Side, afterReady?: () => void): boolean => {
-      let continueBattle = true;
-      let statusPending = false;
-      let statusEntry: { side: Side; status: "burn"; stacks: number } | null =
-        null;
-      const upkeepLines: string[] = [];
-      let aiHeader: string | null = null;
-
-      if (next === "you") {
-        const before = stateRef.current.players.you;
-        if (before) {
-          const heroName = before.hero.name;
-          const burnStacks = before.tokens.burn;
-          const burnDamage = getBurnDamage(burnStacks);
-          const totalDamage = burnDamage;
-          const after = tickStatuses(before);
-          setPlayer("you", after);
-          if (totalDamage > 0) {
-            popDamage("you", totalDamage, "hit");
-            const parts: string[] = [];
-            if (burnDamage > 0)
-              parts.push(`Burn ${burnStacks} -> ${burnDamage} dmg`);
-            upkeepLines.push(
-              indentLog(
-                `Upkeep: ${heroName} takes ${totalDamage} dmg (${parts.join(
-                  ", "
-                )}). HP: ${after.hp}/${after.hero.maxHp}.`
-              )
-            );
-          }
-          if (after.hp <= 0) {
-            pushLog(`${heroName} fell to status damage.`);
-            continueBattle = false;
-          }
-          const opponent = stateRef.current.players.ai;
-          if (!opponent || opponent.hp <= 0) continueBattle = false;
-          const needsBurnClear =
-            continueBattle && burnDamage > 0 && after.tokens.burn > 0;
-          if (needsBurnClear) {
-            statusPending = true;
-            statusEntry = {
-              side: next,
-              status: "burn",
-              stacks: after.tokens.burn,
-            };
-          }
-        } else {
-          continueBattle = false;
-        }
-      } else {
-        const before = stateRef.current.players.ai;
-        if (before) {
-          const heroName = before.hero.name;
-          aiHeader = `[AI] ${heroName} \u00FAto\u010D\u00ED:`;
-          const burnStacks = before.tokens.burn;
-          const burnDamage = getBurnDamage(burnStacks);
-          const totalDamage = burnDamage;
-          const after = tickStatuses(before);
-          setPlayer("ai", after);
-          if (totalDamage > 0) {
-            popDamage("ai", totalDamage, "hit");
-            const parts: string[] = [];
-            if (burnDamage > 0)
-              parts.push(`Burn ${burnStacks} -> ${burnDamage} dmg`);
-            upkeepLines.push(
-              indentLog(
-                `Upkeep: ${heroName} takes ${totalDamage} dmg (${parts.join(
-                  ", "
-                )}). HP: ${after.hp}/${after.hero.maxHp}.`
-              )
-            );
-          }
-          if (after.hp <= 0) {
-            pushLog(`${heroName} fell to status damage.`);
-            continueBattle = false;
-          }
-          const opponent = stateRef.current.players.you;
-          if (!opponent || opponent.hp <= 0) continueBattle = false;
-          const needsBurnClear =
-            continueBattle && burnDamage > 0 && after.tokens.burn > 0;
-          if (needsBurnClear) {
-            statusPending = true;
-            statusEntry = {
-              side: next,
-              status: "burn",
-              stacks: after.tokens.burn,
-            };
-          }
-        } else {
-          continueBattle = false;
-        }
-      }
+      const { continueBattle, header, lines, pendingStatus } =
+        runUpkeepFor(next);
 
       patchState({ turn: next, phase: "upkeep" });
       dispatch({ type: "SET_PENDING_ATTACK", attack: null });
@@ -176,19 +166,20 @@ export function useTurnController({
         const newRound = stateRef.current.round + 1;
         patchState({ round: newRound });
         pushLog(`--- Kolo ${newRound} ---`, { blankLineBefore: true });
-        if (upkeepLines.length) {
-          pushLog(upkeepLines);
+        if (lines.length) {
+          pushLog(lines);
         }
       } else if (next === "ai") {
-        const lines = [aiHeader ?? "[AI] AI \u00FAto\u010D\u00ED:"];
-        if (upkeepLines.length) lines.push(...upkeepLines);
+        const payload = lines.length
+          ? [header ?? "[AI] AI útočí:", ...lines]
+          : [header ?? "[AI] AI útočí:"];
+        pushLog(payload, { blankLineBefore: true });
+      } else if (lines.length) {
         pushLog(lines, { blankLineBefore: true });
-      } else if (upkeepLines.length) {
-        pushLog(upkeepLines, { blankLineBefore: true });
       }
 
-      if (statusPending && statusEntry) {
-        dispatch({ type: "SET_PENDING_STATUS", status: statusEntry });
+      if (pendingStatus) {
+        dispatch({ type: "SET_PENDING_STATUS", status: pendingStatus });
         statusResumeRef.current = afterReady ?? null;
       } else {
         dispatch({ type: "SET_PENDING_STATUS", status: null });
@@ -201,14 +192,13 @@ export function useTurnController({
     },
     [
       dispatch,
-      popDamage,
-      pushLog,
-      resetRoll,
       patchAiDefense,
       patchAiPreview,
       patchState,
-      setPlayer,
+      resetRoll,
+      runUpkeepFor,
       statusResumeRef,
+      pushLog,
     ]
   );
 
