@@ -3,24 +3,24 @@ import Section from "./Section";
 import HPBar from "./HPBar";
 import TokenChips from "./TokenChips";
 import DamageOverlay from "./DamageOverlay";
-import type { PlayerState, Side } from "../game/types";
-import type { GameState } from "../game/state";
+import { useGame } from "../context/GameContext";
+import type { Side } from "../game/types";
 
 type PlayerPanelProps = {
-  title: string;
-  active: boolean;
-  player: PlayerState;
-  shake: boolean;
-  floatDamage: GameState["fx"]["floatDamage"][Side];
+  side: Side;
 };
 
-export function PlayerPanel({
-  title,
-  active,
-  player,
-  shake,
-  floatDamage,
-}: PlayerPanelProps) {
+export function PlayerPanel({ side }: PlayerPanelProps) {
+  const { state } = useGame();
+  const player = state.players[side];
+  const shake = state.fx.shake[side];
+  const floatDamage = state.fx.floatDamage[side];
+  const active = state.turn === side;
+  const title =
+    side === "you"
+      ? `You - ${player.hero.name}`
+      : `Opponent - ${player.hero.name} (AI)`;
+
   return (
     <Section title={title} active={active}>
       <div
@@ -55,4 +55,3 @@ export function PlayerPanel({
     </Section>
   );
 }
-

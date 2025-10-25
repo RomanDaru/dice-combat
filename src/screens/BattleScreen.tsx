@@ -344,20 +344,8 @@ export function BattleScreen() {
           </div>
 
           <div className='row grid-2'>
-            <PlayerPanel
-              title={`You - ${you.hero.name}`}
-              active={turn === "you"}
-              player={you}
-              shake={fx.shake.you}
-              floatDamage={fx.floatDamage.you}
-            />
-            <PlayerPanel
-              title={`Opponent - ${ai.hero.name} (AI)`}
-              active={turn === "ai"}
-              player={ai}
-              shake={fx.shake.ai}
-              floatDamage={fx.floatDamage.ai}
-            />
+            <PlayerPanel side="you" />
+            <PlayerPanel side="ai" />
           </div>
 
           <Section title={`Kolo: ${turn === "you" ? "Ty to" : "AI hraje"}`}>
