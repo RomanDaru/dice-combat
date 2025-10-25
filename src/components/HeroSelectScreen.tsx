@@ -1,6 +1,54 @@
 import { useMemo, useState } from "react";
-import AbilityList from "./AbilityList";
 import { Hero } from "../game/types";
+
+const AbilityPreviewList = ({ hero }: { hero: Hero }) => {
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      {hero.abilities.map((ability) => {
+        const effects: string[] = [];
+        if (ability.apply?.burn) effects.push(`Burn +${ability.apply.burn}`);
+        if (ability.apply?.ignite)
+          effects.push(`Ignite +${ability.apply.ignite}`);
+        if (ability.apply?.chi) effects.push(`Chi +${ability.apply.chi}`);
+        if (ability.apply?.evasive)
+          effects.push(`Evasive +${ability.apply.evasive}`);
+
+        return (
+          <div
+            key={ability.combo}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "6px 8px",
+              borderRadius: 8,
+              border: "1px solid #27272a",
+              background: "rgba(24,24,27,.4)",
+            }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span
+                className='badge'
+                style={{ background: ability.ultimate ? "#6d28d9" : "#52525b" }}>
+                {ability.ultimate ? "ULT" : "SK"}
+              </span>
+              <span>{ability.label ?? ability.combo}</span>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span className='num' style={{ color: "#e4e4e7" }}>
+                {ability.damage} dmg
+              </span>
+              {effects.length > 0 && (
+                <span style={{ color: "#a1a1aa", fontSize: 12 }}>
+                  {effects.join(", ")}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 export type HeroOption = {
   hero: Hero;
@@ -157,7 +205,7 @@ export default function HeroSelectScreen({
                   padding: 16,
                   background: "rgba(24,24,27,.6)",
                 }}>
-                <AbilityList hero={selectedHeroOption.hero} title='Abilities' />
+                <AbilityPreviewList hero={selectedHeroOption.hero} />
               </div>
 
               <div

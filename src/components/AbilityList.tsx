@@ -1,6 +1,22 @@
-import { Ability, Combo, Hero } from '../game/types';
+import { useGame } from "../context/GameContext";
+import { useGameData } from "../context/GameController";
+import type { Combo } from "../game/types";
 
-export default function AbilityList({ hero, title, showReadyCombos }: { hero: Hero; title: string; showReadyCombos?: Record<Combo, boolean>; }) {
+type AbilityListProps = {
+  side: "you" | "ai";
+};
+
+export default function AbilityList({ side }: AbilityListProps) {
+  const { state } = useGame();
+  const { readyForActing, readyForAI } = useGameData();
+  const hero = state.players[side].hero;
+  const showReadyCombos =
+    (side === "you" ? readyForActing : readyForAI) as Record<Combo, boolean>;
+  const title =
+    side === "you"
+      ? `Tvoje schopnosti (${hero.name})`
+      : `Opponent Abilities (${hero.name})`;
+
   return (
     <div className="card">
       <div className="label">{title}</div>

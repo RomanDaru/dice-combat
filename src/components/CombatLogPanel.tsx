@@ -1,12 +1,11 @@
 import React from "react";
 import Section from "./Section";
-import type { GameState } from "../game/state";
+import { useGame } from "../context/GameContext";
 
-type CombatLogPanelProps = {
-  entries: GameState["log"];
-};
+export function CombatLogPanel() {
+  const { state } = useGame();
+  const { log } = state;
 
-export function CombatLogPanel({ entries }: CombatLogPanelProps) {
   return (
     <Section title='Combat Log'>
       <div
@@ -17,7 +16,7 @@ export function CombatLogPanel({ entries }: CombatLogPanelProps) {
           overflow: "auto",
           paddingRight: 4,
         }}>
-        {entries.map((entry, idx) => (
+        {log.map((entry, idx) => (
           <div
             key={idx}
             style={{
@@ -32,4 +31,3 @@ export function CombatLogPanel({ entries }: CombatLogPanelProps) {
     </Section>
   );
 }
-

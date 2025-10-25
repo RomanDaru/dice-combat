@@ -7,15 +7,14 @@ import { CombatLogPanel } from "../components/CombatLogPanel";
 import { TipsPanel } from "../components/TipsPanel";
 import { TurnIndicator } from "../components/TurnIndicator";
 import Section from "../components/Section";
-import { GameController, useGameController, useGameData } from "../context/GameController";
+import { GameController, useGameController } from "../context/GameController";
 import { useGame } from "../context/GameContext";
 
 const BattleContent = () => {
   const { state } = useGame();
-  const { readyForActing, readyForAI } = useGameData();
   const { handleReset } = useGameController();
 
-  const { players, turn, log, aiPreview } = state;
+  const { players, turn, aiPreview } = state;
   const you = players.you;
   const ai = players.ai;
   const winner = you.hp <= 0 ? ai.hero.id : ai.hp <= 0 ? you.hero.id : null;
@@ -79,11 +78,7 @@ const BattleContent = () => {
                 <TurnIndicator turn={turn} />
 
                 <div className='row grid-2'>
-                  <AbilityList
-                    hero={you.hero}
-                    title={`Tvoje schopnosti (${you.hero.name})`}
-                    showReadyCombos={readyForActing as any}
-                  />
+                  <AbilityList side="you" />
 
                   <PlayerActionPanel />
                 </div>
@@ -100,7 +95,7 @@ const BattleContent = () => {
           </Section>
         </div>
 
-        <CombatLogPanel entries={log} />
+        <CombatLogPanel />
         <TipsPanel />
       </div>
     </div>
