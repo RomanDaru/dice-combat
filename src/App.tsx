@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import HeroSelectScreen, { HeroOption } from "./components/HeroSelectScreen";
 import { BattleScreen } from "./screens/BattleScreen";
+import { IntroScreen } from "./screens/IntroScreen";
 import { AiPreviewPanel } from "./components/AiPreviewPanel";
 import { HEROES } from "./game/heroes";
 import { Phase, PlayerState, Side, Ability, Hero } from "./game/types";
@@ -41,7 +42,7 @@ export default function App() {
   );
 
   const stateRef = useRef<GameState>(state);
-  const [screen, setScreen] = useState<"welcome" | "game">("welcome");
+  const [screen, setScreen] = useState<"intro" | "hero-select" | "game">("intro");
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
@@ -248,6 +249,9 @@ export default function App() {
     startBattle(playerHero, aiHero);
   };
 
+  const handleOpenHeroSelect = () => setScreen("hero-select");
+  const handleBackToIntro = () => setScreen("intro");
+
   function onRoll() {
     if (turn !== "you" || rollsLeft <= 0 || statusActive) return;
     const mask = held.map((h) => !h);
@@ -312,11 +316,16 @@ export default function App() {
     !!pendingAttack && pendingAttack.defender === "you";
   const statusActive = !!pendingStatusClear;
   const defenseAbility = pendingAttack?.ability;
-  if (screen === "welcome") {
+  if (screen === "intro") {
+    return <IntroScreen onBegin={handleOpenHeroSelect} />;
+  }
+
+  if (screen === "hero-select") {
     return (
       <HeroSelectScreen
         heroOptions={heroOptions}
         onConfirm={handleHeroSelection}
+        onClose={handleBackToIntro}
       />
     );
   }

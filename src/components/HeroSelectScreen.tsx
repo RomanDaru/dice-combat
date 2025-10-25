@@ -10,15 +10,17 @@ export type HeroOption = {
 type HeroSelectScreenProps = {
   heroOptions: HeroOption[];
   onConfirm: (playerHero: Hero, aiHero: Hero) => void;
+  onClose: () => void;
 };
 
-type ScreenPhase = "intro" | "select" | "detail";
+type SelectionPhase = "grid" | "detail";
 
 export default function HeroSelectScreen({
   heroOptions,
   onConfirm,
+  onClose,
 }: HeroSelectScreenProps) {
-  const [phase, setPhase] = useState<ScreenPhase>("intro");
+  const [phase, setPhase] = useState<SelectionPhase>("grid");
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(null);
 
   const selectedHeroOption = useMemo(
@@ -27,19 +29,12 @@ export default function HeroSelectScreen({
   );
 
   const aiHeroOption = useMemo(() => {
-    if (!selectedHeroOption) {
-      return heroOptions[0] ?? null;
-    }
+    if (!selectedHeroOption) return heroOptions[0] ?? null;
     const remaining = heroOptions.filter(
       (option) => option.hero.id !== selectedHeroOption.hero.id
     );
     return remaining[0] ?? selectedHeroOption;
   }, [heroOptions, selectedHeroOption]);
-
-  const handleBegin = () => {
-    setPhase("select");
-    setSelectedHeroId(null);
-  };
 
   const handleSelectHero = (heroId: string) => {
     setSelectedHeroId(heroId);
@@ -47,7 +42,7 @@ export default function HeroSelectScreen({
   };
 
   const handleBackToGrid = () => {
-    setPhase("select");
+    setPhase("grid");
     setSelectedHeroId(null);
   };
 
@@ -61,30 +56,23 @@ export default function HeroSelectScreen({
       <div className='welcome-screen phase-select'>
         <div className='welcome-heading raised'>Fantasy Dice Combat</div>
         <p className='welcome-subtext'>No heroes available.</p>
+        <div className='welcome-action'>
+          <button type='button' className='welcome-secondary' onClick={onClose}>
+            Back
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={`welcome-screen phase-${phase}`}>
-      <div className={`welcome-heading ${phase !== "intro" ? "raised" : ""}`}>
-        Fantasy Dice Combat
-      </div>
-      {phase === "intro" ? (
+    <div className='welcome-screen phase-select'>
+      <div className='welcome-heading raised'>Select Your Hero</div>
+      {phase === "grid" ? (
         <div className='welcome-body visible'>
-          <p className='welcome-subtext'>Prepare for battle!</p>
-          <div className='welcome-action'>
-            <button
-              type='button'
-              className='welcome-primary'
-              onClick={handleBegin}>
-              Select Hero
-            </button>
-          </div>
-        </div>
-      ) : phase === "select" ? (
-        <div className='welcome-body visible'>
-          <p className='welcome-subtext'>Choose your hero to begin the battle.</p>
+          <p className='welcome-subtext'>
+            Choose your hero to begin the battle.
+          </p>
           <div
             className='hero-grid'
             style={{
@@ -104,6 +92,14 @@ export default function HeroSelectScreen({
                 <span>{option.hero.name}</span>
               </button>
             ))}
+          </div>
+          <div className='welcome-action'>
+            <button
+              type='button'
+              className='welcome-secondary'
+              onClick={onClose}>
+              Back
+            </button>
           </div>
         </div>
       ) : (
@@ -144,12 +140,13 @@ export default function HeroSelectScreen({
                   <p style={{ margin: 0, color: "#a1a1aa" }}>
                     Max HP: {selectedHeroOption.hero.maxHp}
                   </p>
-                  {aiHeroOption && aiHeroOption.hero.id !== selectedHeroOption.hero.id && (
-                    <p style={{ margin: 0, color: "#d4d4d8" }}>
-                      AI opponent:{" "}
-                      <strong>{aiHeroOption.hero.name}</strong>
-                    </p>
-                  )}
+                  {aiHeroOption &&
+                    aiHeroOption.hero.id !== selectedHeroOption.hero.id && (
+                      <p style={{ margin: 0, color: "#d4d4d8" }}>
+                        AI opponent:{" "}
+                        <strong>{aiHeroOption.hero.name}</strong>
+                      </p>
+                    )}
                 </div>
               </div>
 
