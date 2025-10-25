@@ -130,7 +130,7 @@ export function useTurnController({
         };
       }
 
-      const pendingStatus =
+      const pendingStatus: PendingStatusEntry | null =
         burnDamage > 0 && after.tokens.burn > 0
           ? { side, status: "burn", stacks: after.tokens.burn }
           : null;
