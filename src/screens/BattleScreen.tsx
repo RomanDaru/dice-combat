@@ -14,7 +14,7 @@ const BattleContent = () => {
   const { state } = useGame();
   const { handleReset } = useGameController();
 
-  const { players, turn, aiPreview } = state;
+  const { players, turn } = state;
   const you = players.you;
   const ai = players.ai;
   const winner = you.hp <= 0 ? ai.hero.id : ai.hp <= 0 ? you.hero.id : null;
@@ -83,13 +83,7 @@ const BattleContent = () => {
                   <PlayerActionPanel />
                 </div>
 
-                <AiPreviewPanel
-                  hero={ai.hero}
-                  readyCombos={readyForAI as any}
-                  dice={aiPreview.dice}
-                  rolling={aiPreview.rolling}
-                  held={aiPreview.held}
-                />
+                <AiPreviewPanel />
               </div>
             )}
           </Section>
