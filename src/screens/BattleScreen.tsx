@@ -9,6 +9,7 @@ import { TurnIndicator } from "../components/TurnIndicator";
 import Section from "../components/Section";
 import { GameController, useGameController } from "../context/GameController";
 import { useGame } from "../context/GameContext";
+import styles from "./BattleScreen.module.css";
 
 const BattleContent = () => {
   const { state } = useGame();
@@ -23,32 +24,9 @@ const BattleContent = () => {
     <div className='container'>
       <div className='row'>
         <div className='row'>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}>
-            <h1
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 20,
-                fontWeight: 600,
-              }}>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 32,
-                  height: 32,
-                  borderRadius: 8,
-                  border: "1px solid #059669",
-                  background: "rgba(4,120,87,.3)",
-                  fontWeight: 700,
-                }}>
+          <div className={styles.headerRow}>
+            <h1 className={styles.title}>
+              <span className={styles.brandBadge}>
                 DC
               </span>{" "}
               Fantasy Dice Combat
@@ -65,12 +43,7 @@ const BattleContent = () => {
 
           <Section title={`Kolo: ${turn === "you" ? "Ty to" : "AI hraje"}`}>
             {winner ? (
-              <div
-                style={{
-                  textAlign: "center",
-                  padding: "40px 0",
-                  fontSize: 24,
-                }}>
+              <div className={styles.winnerMessage}>
                 Vaz: <b>{winner}</b>
               </div>
             ) : (

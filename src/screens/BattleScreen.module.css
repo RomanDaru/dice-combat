@@ -1,0 +1,31 @@
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.brandBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #059669;
+  background: rgba(4, 120, 87, 0.3);
+  font-weight: 700;
+}
+
+.winnerMessage {
+  text-align: center;
+  padding: 40px 0;
+  font-size: 24px;
+}
