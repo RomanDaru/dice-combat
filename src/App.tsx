@@ -57,7 +57,9 @@ export default function App() {
       />
     );
   } else {
-    content = <BattleScreen />;
+    content = (
+      <BattleScreen onBackToHeroSelect={handleOpenHeroSelect} />
+    );
   }
 
   return (

@@ -1,0 +1,65 @@
+.logScroll {
+  display: grid;
+  gap: 8px;
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.entry {
+  font-size: 14px;
+  color: #e5e7eb;
+  line-height: 1.45;
+}
+
+.roundHeader {
+  font-weight: 700;
+  color: #facc15;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.separator {
+  height: 1px;
+  margin: 6px 0;
+  background: rgba(148, 163, 184, 0.25);
+}
+
+.line {
+  display: block;
+  white-space: pre-wrap;
+}
+
+.lineIndented {
+  color: #cbd5f5;
+}
+
+.tokenAbility {
+  font-weight: 600;
+  color: #c084fc;
+}
+
+.tokenStatus {
+  font-weight: 600;
+  color: #fb923c;
+}
+
+.tokenResource {
+  font-weight: 600;
+  color: #5eead4;
+}
+
+.tokenResourceChi {
+  font-weight: 700;
+  color: #fde047;
+}
+
+.tokenResourceEvasive {
+  font-weight: 600;
+  color: #60a5fa;
+}
+
+.tokenDefault {
+  font-weight: 600;
+  color: #f3f4f6;
+}

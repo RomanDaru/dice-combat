@@ -11,7 +11,11 @@ import { GameController, useGameController } from "../context/GameController";
 import { useGame } from "../context/GameContext";
 import styles from "./BattleScreen.module.css";
 
-const BattleContent = () => {
+type BattleScreenProps = {
+  onBackToHeroSelect: () => void;
+};
+
+const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
   const { state } = useGame();
   const { handleReset } = useGameController();
 
@@ -44,7 +48,15 @@ const BattleContent = () => {
           <Section title={`Kolo: ${turn === "you" ? "Ty to" : "AI hraje"}`}>
             {winner ? (
               <div className={styles.winnerMessage}>
-                Vaz: <b>{winner}</b>
+                Vitaz: <b>{winner}</b>
+                <div className={styles.winnerActions}>
+                  <button className='btn success' onClick={handleReset}>
+                    Play Again
+                  </button>
+                  <button className='btn' onClick={onBackToHeroSelect}>
+                    Back to Hero Select
+                  </button>
+                </div>
               </div>
             ) : (
               <div className='row'>
@@ -69,10 +81,10 @@ const BattleContent = () => {
   );
 };
 
-export function BattleScreen() {
+export function BattleScreen({ onBackToHeroSelect }: BattleScreenProps) {
   return (
     <GameController>
-      <BattleContent />
+      <BattleContent onBackToHeroSelect={onBackToHeroSelect} />
     </GameController>
   );
 }

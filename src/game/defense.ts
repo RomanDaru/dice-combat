@@ -28,10 +28,11 @@ export function monkDefenseFromRoll({
   roll: number;
   tokens: Tokens;
 }) {
+  const chiBonus = clampChi(tokens.chi ?? 0);
   if (roll >= 5)
-    return { reflect: 0, reduced: 2 + clampChi(tokens.chi ?? 0) };
-  if (roll >= 3) return { reflect: 0, reduced: 1 };
-  return { reflect: 0, reduced: 0 };
+    return { reflect: 0, reduced: 2 + chiBonus };
+  if (roll >= 3) return { reflect: 0, reduced: 1 + chiBonus };
+  return { reflect: 0, reduced: chiBonus };
 }
 
 export function monkDefenseRoll(tokens: Tokens): DefenseRoll {

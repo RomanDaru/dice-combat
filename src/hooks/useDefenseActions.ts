@@ -143,16 +143,34 @@ export function useDefenseActions({
       }
       let manualDefense:
         | undefined
-        | { reduced: number; reflect: number; roll: number; label?: string } =
-        undefined;
+        | {
+            reduced: number;
+            reflect: number;
+            roll: number;
+            label?: string;
+            baseReduced?: number;
+            chiUsed?: number;
+          } = undefined;
       if (!(manualEvasive && manualEvasive.success)) {
         const defenseRoll = defender.hero.defense.roll(defender.tokens);
         patchAiDefense({ defenseRoll: defenseRoll.roll });
+        const isMonkDefender = defender.hero.id === "Shadow Monk";
+        const defenseWithoutChi = isMonkDefender
+          ? defender.hero.defense.fromRoll({
+              roll: defenseRoll.roll,
+              tokens: { ...defender.tokens, chi: 0 },
+            })
+          : null;
+        const baseReduced = defenseWithoutChi?.reduced ?? defenseRoll.reduced;
         manualDefense = {
           reduced: defenseRoll.reduced,
           reflect: defenseRoll.reflect,
           roll: defenseRoll.roll,
           label: defender.hero.name,
+          baseReduced,
+          chiUsed: isMonkDefender
+            ? Math.max(0, defenseRoll.reduced - baseReduced)
+            : undefined,
         };
       }
 
@@ -173,6 +191,7 @@ export function useDefenseActions({
         defenderAfter: nextDefender,
         incomingDamage: ab.damage,
         defenseRoll: manualDefense?.roll,
+        manualDefense,
         manualEvasive,
         reflectedDamage: dmgToYouReflect,
       });
@@ -225,6 +244,24 @@ export function useDefenseActions({
         roll,
         tokens: defender.tokens,
       });
+      const isMonkDefender = defender.hero.id === "Shadow Monk";
+      const defenseWithoutChi = isMonkDefender
+        ? defender.hero.defense.fromRoll({
+            roll,
+            tokens: { ...defender.tokens, chi: 0 },
+          })
+        : null;
+      const baseReduced = defenseWithoutChi?.reduced ?? defense.reduced;
+      const manualDefensePayload = {
+        reduced: defense.reduced,
+        reflect: defense.reflect,
+        roll,
+        label: defender.hero.name,
+        baseReduced,
+        chiUsed: isMonkDefender
+          ? Math.max(0, defense.reduced - baseReduced)
+          : undefined,
+      };
       const incoming = attackPayload.ability.damage;
       const dealt = Math.max(0, incoming - defense.reduced);
       const [nextAttacker, nextDefender] = applyAttack(
@@ -232,12 +269,7 @@ export function useDefenseActions({
         defender,
         attackPayload.ability,
         {
-          manualDefense: {
-            reduced: defense.reduced,
-            reflect: defense.reflect,
-            roll,
-            label: defender.hero.name,
-          },
+          manualDefense: manualDefensePayload,
         }
       );
       if (dealt > 0) popDamage(attackPayload.defender, dealt, "hit");
@@ -253,6 +285,7 @@ export function useDefenseActions({
         defenderAfter: nextDefender,
         incomingDamage: incoming,
         defenseRoll: roll,
+        manualDefense: manualDefensePayload,
         manualEvasive: undefined,
         reflectedDamage: reflected,
       });
@@ -329,27 +362,33 @@ export function useDefenseActions({
             roll: defenseRoll,
             tokens: consumedDefender.tokens,
           });
+          const isMonk = consumedDefender.hero.id === "Shadow Monk";
+          const monkBaseReduced = isMonk
+            ? consumedDefender.hero.defense.fromRoll({
+                roll: defenseRoll,
+                tokens: { ...consumedDefender.tokens, chi: 0 },
+              }).reduced
+            : undefined;
           const incoming = attackPayload.ability.damage;
           const dealt = Math.max(0, incoming - defense.reduced);
+          const manualDefensePayload = {
+            reduced: defense.reduced,
+            reflect: defense.reflect,
+            roll: defenseRoll,
+            label: consumedDefender.hero.name,
+            baseReduced: isMonk
+              ? monkBaseReduced ?? defense.reduced
+              : defense.reduced,
+            chiUsed: isMonk
+              ? Math.max(0, defense.reduced - (monkBaseReduced ?? 0))
+              : undefined,
+          };
           const [nextAttacker, nextDefender] = applyAttack(
             attacker,
             consumedDefender,
             attackPayload.ability,
             {
-              manualDefense: {
-                reduced: defense.reduced,
-                reflect: defense.reflect,
-                roll: defenseRoll,
-                label: consumedDefender.hero.name,
-                baseReduced:
-                  consumedDefender.hero.id === "Shadow Monk"
-                    ? 2
-                    : defense.reduced,
-                chiUsed:
-                  consumedDefender.hero.id === "Shadow Monk"
-                    ? Math.max(0, defense.reduced - 2)
-                    : undefined,
-              },
+              manualDefense: manualDefensePayload,
               manualEvasive: {
                 used: true,
                 success: false,
@@ -372,6 +411,7 @@ export function useDefenseActions({
             defenderAfter: nextDefender,
             incomingDamage: incoming,
             defenseRoll: defenseRoll,
+            manualDefense: manualDefensePayload,
             manualEvasive: {
               used: true,
               success: false,

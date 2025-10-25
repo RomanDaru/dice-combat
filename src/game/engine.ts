@@ -6,7 +6,14 @@ export function applyAttack(
   defender: PlayerState,
   ab: Ability,
   opts?: {
-    manualDefense?: { reduced: number; reflect: number; roll: number; label?: string };
+    manualDefense?: {
+      reduced: number;
+      reflect: number;
+      roll: number;
+      label?: string;
+      baseReduced?: number;
+      chiUsed?: number;
+    };
     manualEvasive?: { used: boolean; success: boolean; roll: number; label?: string };
   }
 ): [PlayerState, PlayerState, string[]] {

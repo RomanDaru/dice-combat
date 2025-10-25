@@ -153,6 +153,7 @@ export function useTurnController({
 
   const tickAndStart = useCallback(
     (next: Side, afterReady?: () => void): boolean => {
+      const prevTurn = stateRef.current.turn;
       const { continueBattle, header, lines, pendingStatus } =
         runUpkeepFor(next);
 
@@ -169,11 +170,31 @@ export function useTurnController({
       }
 
       if (next === "you") {
-        const newRound = stateRef.current.round + 1;
-        patchState({ round: newRound });
-        pushLog(`--- Kolo ${newRound} ---`, { blankLineBefore: true });
+        const currentRound = stateRef.current.round;
+        const logLength = stateRef.current.log?.length ?? 0;
+        let newRound = currentRound;
+        let shouldLogRound = false;
+
+        if (currentRound <= 0) {
+          newRound = 1;
+          shouldLogRound = true;
+        } else if (prevTurn !== "you") {
+          newRound = currentRound + 1;
+          shouldLogRound = true;
+        }
+
+        if (shouldLogRound) {
+          const shouldAddGap = currentRound > 0 || logLength > 1;
+          patchState({ round: newRound });
+          pushLog(`--- Kolo ${newRound} ---`, {
+            blankLineBefore: shouldAddGap,
+          });
+        }
+
         if (lines.length) {
-          pushLog(lines);
+          pushLog(lines, {
+            blankLineBefore: !shouldLogRound && (currentRound > 0 || logLength > 1),
+          });
         }
       } else if (next === "ai") {
         const payload = lines.length

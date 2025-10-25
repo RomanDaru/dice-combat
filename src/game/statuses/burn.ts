@@ -38,8 +38,8 @@ const resolveBurnCleanse = (
       }
     : player;
 
-  const logLine = `${player.hero.name} roll vs Burn: ${roll} ${
-    success ? "-> removes Burn" : "-> Burn persists"
+  const logLine = `${player.hero.name} roll vs <<status:Burn>>: ${roll} ${
+    success ? "-> removes <<status:Burn>>" : "-> <<status:Burn>> persists"
   }.`;
 
   return {
@@ -70,7 +70,9 @@ export const burnDefinition: StatusDefinition = {
       player: updated,
       damage,
       logDetail:
-        damage > 0 ? `Burn ${stacksBefore} -> ${damage} dmg` : undefined,
+        damage > 0
+          ? `<<status:Burn>> ${stacksBefore} -> ${damage} dmg`
+          : undefined,
       promptStacks: damage > 0 && stacksAfter > 0 ? stacksAfter : undefined,
     };
   },
