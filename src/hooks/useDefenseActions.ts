@@ -341,6 +341,14 @@ export function useDefenseActions({
                 reflect: defense.reflect,
                 roll: defenseRoll,
                 label: consumedDefender.hero.name,
+                baseReduced:
+                  consumedDefender.hero.id === "Shadow Monk"
+                    ? 2
+                    : defense.reduced,
+                chiUsed:
+                  consumedDefender.hero.id === "Shadow Monk"
+                    ? Math.max(0, defense.reduced - 2)
+                    : undefined,
               },
               manualEvasive: {
                 used: true,
@@ -401,4 +409,6 @@ export function useDefenseActions({
     onUserEvasiveRoll,
   };
 }
+
+
 

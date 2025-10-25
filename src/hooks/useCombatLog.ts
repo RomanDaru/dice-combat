@@ -1,6 +1,6 @@
-import { useCallback } from 'react';
-import type { Ability, PlayerState } from '../game/types';
-import { useGame } from '../context/GameContext';
+import { useCallback } from "react";
+import type { Ability, PlayerState } from "../game/types";
+import { useGame } from "../context/GameContext";
 
 type LogOptions = { blankLineBefore?: boolean; blankLineAfter?: boolean };
 
@@ -11,6 +11,15 @@ export type ManualEvasiveLog = {
   label?: string;
 };
 
+export type ManualDefenseLog = {
+  roll: number;
+  reduced: number;
+  reflect: number;
+  chiUsed?: number;
+  baseReduced?: number;
+  label?: string;
+};
+
 export type AttackResolutionLogArgs = {
   attackerBefore: PlayerState;
   attackerAfter: PlayerState;
@@ -18,15 +27,16 @@ export type AttackResolutionLogArgs = {
   defenderAfter: PlayerState;
   incomingDamage: number;
   defenseRoll?: number;
+  manualDefense?: ManualDefenseLog;
   manualEvasive?: ManualEvasiveLog;
   reflectedDamage: number;
 };
 
-export const formatDice = (values: number[]) => values.join(' ');
+export const formatDice = (values: number[]) => values.join(" ");
 export const indentLog = (line: string) => ` > ${line}`;
 const formatAbilityName = (ability: Ability) => ability.label ?? ability.combo;
 const formatStacks = (value: number) =>
-  `${value} stack${value === 1 ? '' : 's'}`;
+  `${value} stack${value === 1 ? "" : "s"}`;
 
 const getStatusGainLines = (
   attackerBefore: PlayerState,
@@ -65,6 +75,7 @@ export const buildAttackResolutionLines = ({
   defenderAfter,
   incomingDamage,
   defenseRoll,
+  manualDefense,
   manualEvasive,
   reflectedDamage,
 }: AttackResolutionLogArgs) => {
@@ -73,12 +84,12 @@ export const buildAttackResolutionLines = ({
   const blocked = Math.max(0, incomingDamage - damageDealt);
 
   if (manualEvasive?.used) {
-    const evasionResult = manualEvasive.success
-      ? '\u00FAspech'
-      : 'ne\u00FAspech';
+    const evasionResult = manualEvasive.success ? "success" : "fail";
     lines.push(
       indentLog(
-        `${defenderBefore.hero.name} Evasive (hod: ${manualEvasive.roll}) -> ${evasionResult}.`
+        `${manualEvasive.label ?? defenderBefore.hero.name} Evasive (roll: ${
+          manualEvasive.roll
+        }) -> ${evasionResult}.`
       )
     );
     if (manualEvasive.success) {
@@ -91,8 +102,25 @@ export const buildAttackResolutionLines = ({
     }
   }
 
-  if (defenseRoll !== undefined) {
-    let defenseLine = `${defenderBefore.hero.name} obrana (hod: ${defenseRoll}): Hit for ${damageDealt} dmg (blocked ${blocked}).`;
+  if (manualDefense) {
+    const base = manualDefense.baseReduced ?? manualDefense.reduced;
+    const chiUsed = manualDefense.chiUsed ?? 0;
+    const parts = [
+      `blocked ${base}`,
+      chiUsed > 0 ? `+ Chi ${chiUsed}` : null,
+      `= Total ${manualDefense.reduced}`,
+    ].filter(Boolean);
+    let defenseLine = `${manualDefense.label ?? defenderBefore.hero.name} defense (roll: ${manualDefense.roll}): Hit for ${damageDealt} dmg (${parts.join(
+      " "
+    )})`;
+    if (manualDefense.reflect > 0) {
+      defenseLine += `, reflected ${manualDefense.reflect}.`;
+    } else {
+      defenseLine += ".";
+    }
+    lines.push(indentLog(defenseLine));
+  } else if (defenseRoll !== undefined) {
+    let defenseLine = `${defenderBefore.hero.name} defense (roll: ${defenseRoll}): Hit for ${damageDealt} dmg (blocked ${blocked}).`;
     if (reflectedDamage > 0) {
       defenseLine = defenseLine.replace(
         /\.$/,
@@ -140,12 +168,10 @@ export function useCombatLog() {
   const { dispatch } = useGame();
   const pushLog = useCallback(
     (entry: string | string[], options: LogOptions = {}) => {
-      if (options.blankLineBefore)
-        dispatch({ type: 'PUSH_LOG', entry: '' });
-      const text = Array.isArray(entry) ? entry.join('\n') : entry;
-      dispatch({ type: 'PUSH_LOG', entry: text });
-      if (options.blankLineAfter)
-        dispatch({ type: 'PUSH_LOG', entry: '' });
+      if (options.blankLineBefore) dispatch({ type: "PUSH_LOG", entry: "" });
+      const text = Array.isArray(entry) ? entry.join("\n") : entry;
+      dispatch({ type: "PUSH_LOG", entry: text });
+      if (options.blankLineAfter) dispatch({ type: "PUSH_LOG", entry: "" });
     },
     [dispatch]
   );
@@ -153,9 +179,9 @@ export function useCombatLog() {
   const logPlayerAttackStart = useCallback(
     (diceValues: number[], ability: Ability, attackerName: string) => {
       pushLog(
-        `[H\u00E1\u010D] ${attackerName} \u00FAto\u010D\u00ED: ${formatDice(
-          diceValues
-        )} -> ${formatAbilityName(ability)}.`,
+        `[Hod] ${attackerName} útoèí: ${formatDice(diceValues)} -> ${formatAbilityName(
+          ability
+        )}.`,
         { blankLineBefore: true }
       );
     },
@@ -165,9 +191,7 @@ export function useCombatLog() {
   const logPlayerNoCombo = useCallback(
     (diceValues: number[], attackerName: string) => {
       pushLog(
-        `[H\u00E1\u010D] ${attackerName} \u00FAto\u010D\u00ED: ${formatDice(
-          diceValues
-        )} -> \u017Eiadna kombin\u00E1cia.`,
+        `[Hod] ${attackerName} útoèí: ${formatDice(diceValues)} -> žiadna kombinácia.`,
         { blankLineBefore: true }
       );
     },
@@ -176,24 +200,14 @@ export function useCombatLog() {
 
   const logAiAttackRoll = useCallback(
     (diceValues: number[], ability: Ability) => {
-      pushLog(
-        indentLog(
-          `AI hod: ${formatDice(diceValues)} -> ${formatAbilityName(
-            ability
-          )}.`
-        )
-      );
+      pushLog(indentLog(`AI hod: ${formatDice(diceValues)} -> ${formatAbilityName(ability)}.`));
     },
     [pushLog]
   );
 
   const logAiNoCombo = useCallback(
     (diceValues: number[]) => {
-      pushLog(
-        indentLog(
-          `AI hod: ${formatDice(diceValues)} -> \u017Eiadna kombin\u00E1cia.`
-        )
-      );
+      pushLog(indentLog(`AI hod: ${formatDice(diceValues)} -> žiadna kombinácia.`));
     },
     [pushLog]
   );
@@ -206,11 +220,3 @@ export function useCombatLog() {
     logAiNoCombo,
   };
 }
-
-
-
-
-
-
-
-
