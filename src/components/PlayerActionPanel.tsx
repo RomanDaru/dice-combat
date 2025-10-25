@@ -1,8 +1,10 @@
 import React from "react";
+import clsx from "clsx";
 import TurnProgress from "./TurnProgress";
 import DiceGrid from "./DiceGrid";
 import { useGame } from "../context/GameContext";
 import { useGameController, useGameData } from "../context/GameController";
+import styles from "./PlayerActionPanel.module.css";
 
 export function PlayerActionPanel() {
   const { state } = useGame();
@@ -48,12 +50,7 @@ export function PlayerActionPanel() {
   const renderInfoBanner = () => {
     if (statusActive) {
       return (
-        <div
-          style={{
-            marginLeft: "auto",
-            fontSize: 14,
-            color: "#e4e4e7",
-          }}>
+        <div className={styles.infoHighlight}>
           {pendingStatusClear?.roll !== undefined
             ? `Status roll: ${pendingStatusClear.roll} ${
                 pendingStatusClear.success
@@ -67,14 +64,9 @@ export function PlayerActionPanel() {
 
     if (isDefenseTurn) {
       return (
-        <div
-          style={{
-            marginLeft: "auto",
-            fontSize: 14,
-            color: "#d4d4d8",
-          }}>
+        <div className={styles.infoDefense}>
           {aiEvasiveRoll !== null && (
-            <span className='badge indigo' style={{ marginRight: 8 }}>
+            <span className={clsx("badge", "indigo", styles.badgeSpacing)}>
               AI Evasive roll: <b>{aiEvasiveRoll}</b>
             </span>
           )}
@@ -92,12 +84,7 @@ export function PlayerActionPanel() {
 
     if (rollsLeft === 3) {
       return (
-        <div
-          style={{
-            marginLeft: "auto",
-            fontSize: 14,
-            color: "#a1a1aa",
-          }}>
+        <div className={styles.infoMuted}>
           Suggested ability appears after the first roll.
         </div>
       );
@@ -105,24 +92,14 @@ export function PlayerActionPanel() {
 
     if (ability) {
       return (
-        <div
-          style={{
-            marginLeft: "auto",
-            fontSize: 14,
-            color: "#e4e4e7",
-          }}>
+        <div className={styles.infoHighlight}>
           <b>Best ability:</b> {ability.label ?? ability.combo} ({ability.damage} dmg)
         </div>
       );
     }
 
     return (
-      <div
-        style={{
-          marginLeft: "auto",
-          fontSize: 14,
-          color: "#a1a1aa",
-        }}>
+      <div className={styles.infoMuted}>
         No combo available
       </div>
     );
@@ -131,20 +108,8 @@ export function PlayerActionPanel() {
   const statusCard =
     statusActive &&
     pendingStatusClear && (
-      <div
-        className='card'
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-        }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            fontSize: 14,
-          }}>
+      <div className={clsx("card", styles.statusCard)}>
+        <div className={styles.statusHeader}>
           <span className='badge indigo'>
             {pendingStatusClear.side === "you"
               ? you.hero.name
@@ -152,7 +117,7 @@ export function PlayerActionPanel() {
           </span>
           <span>Burn stacks: {pendingStatusClear.stacks}</span>
         </div>
-        <div style={{ display: "flex", gap: 12 }}>
+        <div className={styles.statusActions}>
           {pendingStatusClear.side === "you" ? (
             <button
               className='btn success'
@@ -160,17 +125,8 @@ export function PlayerActionPanel() {
               Status Roll
             </button>
           ) : (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-              }}>
-              <div
-                style={{
-                  fontSize: 14,
-                  color: "#a1a1aa",
-                }}>
+            <div className={styles.statusInfoColumn}>
+              <div className={styles.statusInfoText}>
                 {pendingStatusClear.rolling
                   ? "AI is rolling..."
                   : "AI will roll automatically."}
@@ -178,7 +134,7 @@ export function PlayerActionPanel() {
             </div>
           )}
           {pendingStatusClear.roll !== undefined && (
-            <div style={{ fontSize: 14, color: "#e4e4e7" }}>
+            <div className={styles.statusRollText}>
               Roll: <b>{pendingStatusClear.roll}</b>{" "}
               {pendingStatusClear.success
                 ? "-> Burn cleared"
@@ -191,14 +147,7 @@ export function PlayerActionPanel() {
 
   const defenseIndicators =
     aiDefenseSim && (
-      <div
-        style={{
-          display: "flex",
-          gap: 12,
-          alignItems: "center",
-          fontSize: 14,
-          color: "#d4d4d8",
-        }}>
+      <div className={styles.defenseIndicators}>
         {aiEvasiveRoll !== null && (
           <div className='badge indigo'>
             AI Evasive: <b>{aiEvasiveRoll}</b>
@@ -239,13 +188,7 @@ export function PlayerActionPanel() {
         isDefensePhase={isDefensePhase}
         statusActive={statusActive}
       />
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}>
+      <div className={styles.actionRow}>
         <button
           className='btn primary'
           onClick={onRoll}
@@ -293,7 +236,7 @@ export function PlayerActionPanel() {
       {statusCard}
       {defenseIndicators}
 
-      <div style={{ fontSize: 12, color: "#a1a1aa" }}>{helperText}</div>
+      <div className={styles.helperText}>{helperText}</div>
     </div>
   );
 }
