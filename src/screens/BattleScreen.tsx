@@ -53,64 +53,9 @@ export function BattleScreen() {
     fx,
   } = state;
 
-  const patchState = useCallback(
-    (partial: Partial<GameState>) => {
-      dispatch({ type: "PATCH_STATE", payload: partial });
-      stateRef.current = { ...stateRef.current, ...partial };
-    },
-    [dispatch]
-  );
-
-  const setDice = useCallback(
-    (value: number[] | ((prev: number[]) => number[])) => {
-      const next =
-        typeof value === "function"
-          ? (value as (prev: number[]) => number[])(stateRef.current.dice)
-          : value;
-      patchState({ dice: next });
-    },
-    [patchState]
-  );
-
-  const setHeld = useCallback(
-    (value: boolean[] | ((prev: boolean[]) => boolean[])) => {
-      const next =
-        typeof value === "function"
-          ? (value as (prev: boolean[]) => boolean[])(stateRef.current.held)
-          : value;
-      patchState({ held: next });
-    },
-    [patchState]
-  );
-
-  const setRolling = useCallback(
-    (value: boolean[]) => {
-      patchState({ rolling: value });
-    },
-    [patchState]
-  );
-
-  const setRollsLeft = useCallback(
-    (value: number | ((prev: number) => number)) => {
-      const next =
-        typeof value === "function"
-          ? (value as (prev: number) => number)(stateRef.current.rollsLeft)
-          : value;
-      patchState({ rollsLeft: next });
-    },
-    [patchState]
-  );
-
   const setFloatDamage = useCallback(
     (side: Side, value: GameState["fx"]["floatDamage"][Side]) => {
       dispatch({ type: "SET_FLOAT_DAMAGE", side, value });
-      stateRef.current = {
-        ...stateRef.current,
-        fx: {
-          ...stateRef.current.fx,
-          floatDamage: { ...stateRef.current.fx.floatDamage, [side]: value },
-        },
-      };
     },
     [dispatch]
   );
@@ -118,13 +63,6 @@ export function BattleScreen() {
   const setShake = useCallback(
     (side: Side, value: boolean) => {
       dispatch({ type: "SET_SHAKE", side, value });
-      stateRef.current = {
-        ...stateRef.current,
-        fx: {
-          ...stateRef.current.fx,
-          shake: { ...stateRef.current.fx.shake, [side]: value },
-        },
-      };
     },
     [dispatch]
   );
