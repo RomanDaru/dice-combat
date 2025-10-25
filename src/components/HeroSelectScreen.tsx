@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
+import clsx from "clsx";
 import { Hero } from "../game/types";
+import styles from "./HeroSelectScreen.module.css";
 
 const AbilityPreviewList = ({ hero }: { hero: Hero }) => {
   return (
-    <div style={{ display: "grid", gap: 6 }}>
+    <div className={styles.abilityList}>
       {hero.abilities.map((ability) => {
         const effects: string[] = [];
         if (ability.apply?.burn) effects.push(`Burn +${ability.apply.burn}`);
@@ -14,31 +16,25 @@ const AbilityPreviewList = ({ hero }: { hero: Hero }) => {
           effects.push(`Evasive +${ability.apply.evasive}`);
 
         return (
-          <div
-            key={ability.combo}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "6px 8px",
-              borderRadius: 8,
-              border: "1px solid #27272a",
-              background: "rgba(24,24,27,.4)",
-            }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div key={ability.combo} className={styles.abilityRow}>
+            <div className={styles.abilityRowContent}>
               <span
-                className='badge'
-                style={{ background: ability.ultimate ? "#6d28d9" : "#52525b" }}>
+                className={clsx(
+                  "badge",
+                  ability.ultimate
+                    ? styles.abilityBadgeUlt
+                    : styles.abilityBadgeSkill
+                )}>
                 {ability.ultimate ? "ULT" : "SK"}
               </span>
               <span>{ability.label ?? ability.combo}</span>
             </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span className='num' style={{ color: "#e4e4e7" }}>
+            <div className={styles.abilityStats}>
+              <span className={clsx("num", styles.damageText)}>
                 {ability.damage} dmg
               </span>
               {effects.length > 0 && (
-                <span style={{ color: "#a1a1aa", fontSize: 12 }}>
+                <span className={styles.effectText}>
                   {effects.join(", ")}
                 </span>
               )}
@@ -121,15 +117,7 @@ export default function HeroSelectScreen({
           <p className='welcome-subtext'>
             Choose your hero to begin the battle.
           </p>
-          <div
-            className='hero-grid'
-            style={{
-              display: "grid",
-              gap: 16,
-              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              marginTop: 24,
-              width: "100%",
-            }}>
+          <div className={clsx("hero-grid", styles.heroGrid)}>
             {heroOptions.map((option) => (
               <button
                 key={option.hero.id}
@@ -156,41 +144,23 @@ export default function HeroSelectScreen({
             <p className='welcome-subtext'>
               Review abilities and confirm your choice.
             </p>
-            <div
-              style={{
-                display: "grid",
-                gap: 24,
-                marginTop: 24,
-                width: "100%",
-              }}>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 24,
-                  flexWrap: "wrap",
-                  alignItems: "flex-start",
-                }}>
+            <div className={styles.detailLayout}>
+              <div className={styles.detailHeader}>
                 <img
                   src={selectedHeroOption.image}
                   alt={selectedHeroOption.hero.name}
-                  style={{
-                    width: 200,
-                    height: 200,
-                    objectFit: "cover",
-                    borderRadius: 12,
-                    border: "1px solid #3f3f46",
-                  }}
+                  className={styles.detailImage}
                 />
-                <div style={{ minWidth: 220, display: "grid", gap: 8 }}>
-                  <h3 style={{ fontSize: 24, margin: 0 }}>
+                <div className={styles.detailInfo}>
+                  <h3 className={styles.heroName}>
                     {selectedHeroOption.hero.name}
                   </h3>
-                  <p style={{ margin: 0, color: "#a1a1aa" }}>
+                  <p className={styles.heroMeta}>
                     Max HP: {selectedHeroOption.hero.maxHp}
                   </p>
                   {aiHeroOption &&
                     aiHeroOption.hero.id !== selectedHeroOption.hero.id && (
-                      <p style={{ margin: 0, color: "#d4d4d8" }}>
+                      <p className={styles.heroOpponent}>
                         AI opponent:{" "}
                         <strong>{aiHeroOption.hero.name}</strong>
                       </p>
@@ -198,22 +168,11 @@ export default function HeroSelectScreen({
                 </div>
               </div>
 
-              <div
-                style={{
-                  border: "1px solid #3f3f46",
-                  borderRadius: 12,
-                  padding: 16,
-                  background: "rgba(24,24,27,.6)",
-                }}>
+              <div className={styles.abilityPreview}>
                 <AbilityPreviewList hero={selectedHeroOption.hero} />
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  justifyContent: "flex-end",
-                }}>
+              <div className={styles.actionRow}>
                 <button
                   type='button'
                   className='welcome-secondary'
