@@ -117,7 +117,7 @@ export default function HeroSelectScreen({
           <p className='welcome-subtext'>
             Choose your hero to begin the battle.
           </p>
-          <div className={clsx("hero-grid", styles.heroGrid)}>
+          <div className={styles.heroGrid}>
             {heroOptions.map((option) => (
               <button
                 key={option.hero.id}
