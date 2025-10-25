@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import Section from "./components/Section";
 import AbilityList from "./components/AbilityList";
-import DiceGrid from "./components/DiceGrid";
+
 import HeroSelectScreen, {
   HeroOption,
 } from "./components/HeroSelectScreen";
 import { PlayerPanel } from "./components/PlayerPanel";
 import { PlayerActionPanel } from "./components/PlayerActionPanel";
+import { AiPreviewPanel } from "./components/AiPreviewPanel";
 import { HEROES } from "./game/heroes";
 import { Phase, PlayerState, Side, Ability, Hero } from "./game/types";
 import { bestAbility, detectCombos, rollDie } from "./game/combos";
@@ -463,32 +464,13 @@ export default function App() {
                   />
                 </div>
 
-                <div className='row grid-2'>
-                  <AbilityList
-                    hero={ai.hero}
-                    title={`Opponent Abilities (${ai.hero.name})`}
-                    showReadyCombos={readyForAI as any}
-                  />
-                  <div className='row'>
-                    <DiceGrid
-                      dice={aiSimDice}
-                      held={[]}
-                      rolling={aiSimRolling}
-                      canInteract={false}
-                      onToggleHold={() => {}}
-                      defIndex={-1}
-                      showDcLogo={false}
-                      isDefensePhase={false}
-                      statusActive={false}
-                      isAi={true}
-                      aiSimHeld={aiSimHeld}
-                    />
-                    <div style={{ fontSize: 12, color: "#9ca3af" }}>
-                      AI abilities highlight according to this preview roll
-                      sequence.
-                    </div>
-                  </div>
-                </div>
+                <AiPreviewPanel
+                  hero={ai.hero}
+                  readyCombos={readyForAI as any}
+                  dice={aiSimDice}
+                  rolling={aiSimRolling}
+                  held={aiSimHeld}
+                />
               </div>
             )}
           </Section>
