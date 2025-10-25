@@ -4,10 +4,9 @@ import HPBar from "./HPBar";
 import TokenChips from "./TokenChips";
 import DamageOverlay from "./DamageOverlay";
 import { useGame } from "../context/GameContext";
-import type { Side } from "../game/types";
 
 type PlayerPanelProps = {
-  side: Side;
+  side: "you" | "ai";
 };
 
 export function PlayerPanel({ side }: PlayerPanelProps) {
