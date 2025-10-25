@@ -29,6 +29,7 @@ import {
 } from "./hooks/useCombatLog";
 import { useGameActions } from "./hooks/useGameActions";
 import { useDiceAnimator } from "./hooks/useDiceAnimator";
+import { useAiDiceAnimator } from "./hooks/useAiDiceAnimator";
 import PyromancerPortrait from "./assets/Pyromancer_Hero.png";
 import ShadowMonkPortrait from "./assets/Shadow_Monk_Hero.png";
 
@@ -181,6 +182,12 @@ export default function App() {
       setRollsLeft,
       defenseDieIndex: DEF_DIE_INDEX,
     });
+  const { animatePreviewRoll } = useAiDiceAnimator({
+    stateRef,
+    setAiSimDice,
+    setAiSimRolling,
+    rollDurationMs: AI_ROLL_ANIM_MS,
+  });
 
   function tickAndStart(next: Side, afterReady?: () => void): boolean {
     let continueBattle = true;
@@ -339,28 +346,6 @@ export default function App() {
     let localDice = Array.from({ length: 5 }, () => rollDie());
     let localHeld = [false, false, false, false, false];
 
-    const animateStep = (
-      targetDice: number[],
-      heldMask: boolean[],
-      onDone: () => void
-    ) => {
-      setAiSimRolling(true);
-      const mask = heldMask.map((h) => !h);
-      let previewDice = [...stateRef.current.aiPreview.dice];
-      const interval = window.setInterval(() => {
-        previewDice = previewDice.map((value, idx) =>
-          mask[idx] ? rollDie() : value
-        );
-        setAiSimDice([...previewDice]);
-      }, 90);
-      window.setTimeout(() => {
-        window.clearInterval(interval);
-        setAiSimRolling(false);
-        setAiSimDice([...targetDice]);
-        onDone();
-      }, AI_ROLL_ANIM_MS);
-    };
-
     const doStep = (step: number) => {
       const latestAi = stateRef.current.players.ai;
       const latestYou = stateRef.current.players.you;
@@ -379,7 +364,7 @@ export default function App() {
       const heldMask = [...localHeld];
       setAiSimHeld(heldMask);
 
-      animateStep(finalDice, heldMask, () => {
+      animatePreviewRoll(finalDice, heldMask, () => {
         const rollsRemaining = Math.max(0, 2 - step);
         const holdDecision =
           latestAi.hero.ai.chooseHeld({
