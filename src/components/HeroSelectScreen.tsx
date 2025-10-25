@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { Hero } from "../game/types";
 import styles from "./HeroSelectScreen.module.css";
 import PyromancerPreview from "../assets/Pyromancer_Animated1.mp4";
+import ShadowMonkPreview from "../assets/Shadow_Monk_Animated.mp4";
 
 const AbilityPreviewList = ({ hero }: { hero: Hero }) => {
   return (
@@ -35,9 +36,7 @@ const AbilityPreviewList = ({ hero }: { hero: Hero }) => {
                 {ability.damage} dmg
               </span>
               {effects.length > 0 && (
-                <span className={styles.effectText}>
-                  {effects.join(", ")}
-                </span>
+                <span className={styles.effectText}>{effects.join(", ")}</span>
               )}
             </div>
           </div>
@@ -49,6 +48,7 @@ const AbilityPreviewList = ({ hero }: { hero: Hero }) => {
 
 const HERO_MEDIA: Partial<Record<string, string>> = {
   Pyromancer: PyromancerPreview,
+  "Shadow Monk": ShadowMonkPreview,
 };
 
 type HeroDetailPanelProps = {
@@ -114,7 +114,8 @@ export default function HeroSelectScreen({
   const confirmVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const selectedHeroOption = useMemo(
-    () => heroOptions.find((option) => option.hero.id === selectedHeroId) ?? null,
+    () =>
+      heroOptions.find((option) => option.hero.id === selectedHeroId) ?? null,
     [heroOptions, selectedHeroId]
   );
 
@@ -201,13 +202,19 @@ export default function HeroSelectScreen({
 
   return (
     <div className='welcome-screen phase-select'>
-      <div className={clsx("welcome-heading", "raised", styles.headingSwapWrapper)}>
+      <div
+        className={clsx(
+          "welcome-heading",
+          "raised",
+          styles.headingSwapWrapper
+        )}>
         <span key={headingText} className={styles.headingSwapText}>
           {headingText}
         </span>
       </div>
       {phase === "grid" ? (
-        <div className={clsx("welcome-body", styles.phaseBody, styles.gridEnter)}>
+        <div
+          className={clsx("welcome-body", styles.phaseBody, styles.gridEnter)}>
           <p className='welcome-subtext'>
             Choose your hero to begin the battle.
           </p>
@@ -236,7 +243,11 @@ export default function HeroSelectScreen({
         selectedHeroOption && (
           <div
             key={selectedHeroOption.hero.id}
-            className={clsx("welcome-body", styles.phaseBody, styles.detailEnter)}>
+            className={clsx(
+              "welcome-body",
+              styles.phaseBody,
+              styles.detailEnter
+            )}>
             <p className='welcome-subtext'>
               Review abilities and confirm your choice.
             </p>
