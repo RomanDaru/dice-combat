@@ -10,6 +10,7 @@ import { PlayerActionPanel } from "./components/PlayerActionPanel";
 import { AiPreviewPanel } from "./components/AiPreviewPanel";
 import { CombatLogPanel } from "./components/CombatLogPanel";
 import { TipsPanel } from "./components/TipsPanel";
+import { TurnIndicator } from "./components/TurnIndicator";
 import { AiPreviewPanel } from "./components/AiPreviewPanel";
 import { HEROES } from "./game/heroes";
 import { Phase, PlayerState, Side, Ability, Hero } from "./game/types";
@@ -404,28 +405,7 @@ export default function App() {
               </div>
             ) : (
               <div className='row'>
-                <div className='row grid-2'>
-                  <div
-                    className='card'
-                    style={{
-                      padding: 12,
-                      borderColor: turn === "you" ? "#059669" : "#27272a",
-                      background:
-                        turn === "you" ? "rgba(6,78,59,.3)" : undefined,
-                    }}>
-                    Tvoje kolo
-                  </div>
-                  <div
-                    className='card'
-                    style={{
-                      padding: 12,
-                      borderColor: turn === "ai" ? "#4338ca" : "#27272a",
-                      background:
-                        turn === "ai" ? "rgba(49,46,129,.3)" : undefined,
-                    }}>
-                    AI kolo
-                  </div>
-                </div>
+                <TurnIndicator turn={turn} />
 
                 <div className='row grid-2'>
                   <AbilityList
@@ -485,5 +465,6 @@ export default function App() {
     </div>
   );
 }
+
 
 
