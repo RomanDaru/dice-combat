@@ -32,6 +32,7 @@ import { useAiController } from "./hooks/useAiController";
 import { useStatusManager } from "./hooks/useStatusManager";
 import { useDefenseActions } from "./hooks/useDefenseActions";
 import { useTurnController } from "./hooks/useTurnController";
+import { PlayerPanel } from "./components/PlayerPanel";
 import PyromancerPortrait from "./assets/Pyromancer_Hero.png";
 import ShadowMonkPortrait from "./assets/Shadow_Monk_Hero.png";
 
@@ -374,78 +375,20 @@ export default function App() {
           </div>
 
           <div className='row grid-2'>
-            <Section
+            <PlayerPanel
               title={`You - ${you.hero.name}`}
-              active={turn === "you"}>
-              <div
-                className={shakeYou ? "shake-card" : ""}
-                style={{ position: "relative" }}>
-                <div className='row'>
-                  <HPBar hp={you.hp} max={you.hero.maxHp} />
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}>
-                    <div className='label'>Statuses</div>
-                    <TokenChips tokens={you.tokens} />
-                  </div>
-                </div>
-                {floatDmgYou && (
-                  <div
-                    style={{
-                      pointerEvents: "none",
-                      position: "absolute",
-                      inset: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}>
-                    <DamageOverlay
-                      val={floatDmgYou.val}
-                      kind={floatDmgYou.kind}
-                    />
-                  </div>
-                )}
-              </div>
-            </Section>
-            <Section
+              active={turn === "you"}
+              player={you}
+              shake={shakeYou}
+              floatDamage={floatDmgYou}
+            />
+            <PlayerPanel
               title={`Opponent - ${ai.hero.name} (AI)`}
-              active={turn === "ai"}>
-              <div
-                className={shakeAi ? "shake-card" : ""}
-                style={{ position: "relative" }}>
-                <div className='row'>
-                  <HPBar hp={ai.hp} max={ai.hero.maxHp} />
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}>
-                    <div className='label'>Statuses</div>
-                    <TokenChips tokens={ai.tokens} />
-                  </div>
-                </div>
-                {floatDmgAi && (
-                  <div
-                    style={{
-                      pointerEvents: "none",
-                      position: "absolute",
-                      inset: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}>
-                    <DamageOverlay
-                      val={floatDmgAi.val}
-                      kind={floatDmgAi.kind}
-                    />
-                  </div>
-                )}
-              </div>
-            </Section>
+              active={turn === "ai"}
+              player={ai}
+              shake={shakeAi}
+              floatDamage={floatDmgAi}
+            />
           </div>
 
           <Section title={`Kolo: ${turn === "you" ? "Ty to" : "AI hraje"}`}>
