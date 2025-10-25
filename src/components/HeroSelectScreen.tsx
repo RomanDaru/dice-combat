@@ -73,11 +73,21 @@ export default function HeroSelectScreen({
   );
 
   const aiHeroOption = useMemo(() => {
-    if (!selectedHeroOption) return heroOptions[0] ?? null;
+    if (!heroOptions.length) {
+      return null;
+    }
+    if (!selectedHeroOption) {
+      const randomIndex = Math.floor(Math.random() * heroOptions.length);
+      return heroOptions[randomIndex];
+    }
     const remaining = heroOptions.filter(
       (option) => option.hero.id !== selectedHeroOption.hero.id
     );
-    return remaining[0] ?? selectedHeroOption;
+    if (!remaining.length) {
+      return selectedHeroOption;
+    }
+    const randomIndex = Math.floor(Math.random() * remaining.length);
+    return remaining[randomIndex];
   }, [heroOptions, selectedHeroOption]);
 
   const handleSelectHero = (heroId: string) => {
@@ -155,16 +165,6 @@ export default function HeroSelectScreen({
                   <h3 className={styles.heroName}>
                     {selectedHeroOption.hero.name}
                   </h3>
-                  <p className={styles.heroMeta}>
-                    Max HP: {selectedHeroOption.hero.maxHp}
-                  </p>
-                  {aiHeroOption &&
-                    aiHeroOption.hero.id !== selectedHeroOption.hero.id && (
-                      <p className={styles.heroOpponent}>
-                        AI opponent:{" "}
-                        <strong>{aiHeroOption.hero.name}</strong>
-                      </p>
-                    )}
                 </div>
               </div>
 

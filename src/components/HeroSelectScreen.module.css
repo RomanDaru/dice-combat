@@ -45,7 +45,7 @@
 .heroGrid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, 180px);
   justify-content: center;
   justify-items: center;
   margin: 24px auto 0;
@@ -87,16 +87,6 @@
 .heroName {
   font-size: 24px;
   margin: 0;
-}
-
-.heroMeta {
-  margin: 0;
-  color: #a1a1aa;
-}
-
-.heroOpponent {
-  margin: 0;
-  color: #d4d4d8;
 }
 
 .abilityPreview {
