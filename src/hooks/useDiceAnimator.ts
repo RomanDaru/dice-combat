@@ -25,7 +25,7 @@ export function useDiceAnimator({ defenseDieIndex }: UseDiceAnimatorArgs) {
         typeof value === "function"
           ? (value as (prev: number[]) => number[])(stateRef.current.dice)
           : value;
-      dispatch({ type: "PATCH_STATE", payload: { dice: next } });
+      dispatch({ type: "SET_DICE", dice: next });
       stateRef.current = { ...stateRef.current, dice: next };
     },
     [dispatch]
@@ -37,7 +37,7 @@ export function useDiceAnimator({ defenseDieIndex }: UseDiceAnimatorArgs) {
         typeof value === "function"
           ? (value as (prev: boolean[]) => boolean[])(stateRef.current.held)
           : value;
-      dispatch({ type: "PATCH_STATE", payload: { held: next } });
+      dispatch({ type: "SET_HELD", held: next });
       stateRef.current = { ...stateRef.current, held: next };
     },
     [dispatch]
@@ -45,7 +45,7 @@ export function useDiceAnimator({ defenseDieIndex }: UseDiceAnimatorArgs) {
 
   const setRolling = useCallback(
     (next: boolean[]) => {
-      dispatch({ type: "PATCH_STATE", payload: { rolling: next } });
+      dispatch({ type: "SET_ROLLING", rolling: next });
       stateRef.current = { ...stateRef.current, rolling: next };
     },
     [dispatch]
@@ -57,7 +57,7 @@ export function useDiceAnimator({ defenseDieIndex }: UseDiceAnimatorArgs) {
         typeof value === "function"
           ? (value as (prev: number) => number)(stateRef.current.rollsLeft)
           : value;
-      dispatch({ type: "PATCH_STATE", payload: { rollsLeft: next } });
+      dispatch({ type: "SET_ROLLS_LEFT", rollsLeft: next });
       stateRef.current = { ...stateRef.current, rollsLeft: next };
     },
     [dispatch]

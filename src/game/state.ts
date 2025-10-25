@@ -120,6 +120,10 @@ export type GameAction =
       payload: { youHero: Hero; aiHero: Hero };
     }
   | { type: "PATCH_STATE"; payload: Partial<GameState> }
+  | { type: "SET_DICE"; dice: number[] }
+  | { type: "SET_HELD"; held: boolean[] }
+  | { type: "SET_ROLLING"; rolling: boolean[] }
+  | { type: "SET_ROLLS_LEFT"; rollsLeft: number }
   | { type: "PUSH_LOG"; entry: string }
   | {
       type: "SET_PLAYER";
@@ -167,6 +171,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return createInitialState(action.payload.youHero, action.payload.aiHero);
     case "PATCH_STATE":
       return { ...state, ...action.payload };
+    case "SET_DICE":
+      return { ...state, dice: action.dice };
+    case "SET_HELD":
+      return { ...state, held: action.held };
+    case "SET_ROLLING":
+      return { ...state, rolling: action.rolling };
+    case "SET_ROLLS_LEFT":
+      return { ...state, rollsLeft: action.rollsLeft };
     case "PUSH_LOG": {
       const next = [...state.log, { t: action.entry }];
       return {
