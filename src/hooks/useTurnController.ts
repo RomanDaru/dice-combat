@@ -2,7 +2,7 @@ import { MutableRefObject, useCallback, useEffect, useRef } from "react";
 import type { GameState } from "../game/state";
 import type { Side } from "../game/types";
 import type { PlayerState } from "../game/types";
-import { tickStatuses } from "../game/defense";
+import { getBurnDamage, tickStatuses } from "../game/defense";
 import { indentLog } from "./useCombatLog";
 import { useGame } from "../context/GameContext";
 
@@ -80,9 +80,8 @@ export function useTurnController({
         if (before) {
           const heroName = before.hero.name;
           const burnStacks = before.tokens.burn;
-          const burnDamage = burnStacks * 2;
-          const igniteDamage = before.tokens.ignite > 0 ? 1 : 0;
-          const totalDamage = burnDamage + igniteDamage;
+          const burnDamage = getBurnDamage(burnStacks);
+          const totalDamage = burnDamage;
           const after = tickStatuses(before);
           setPlayer("you", after);
           if (totalDamage > 0) {
@@ -90,7 +89,6 @@ export function useTurnController({
             const parts: string[] = [];
             if (burnDamage > 0)
               parts.push(`Burn ${burnStacks} -> ${burnDamage} dmg`);
-            if (igniteDamage > 0) parts.push("Ignite -> 1 dmg");
             upkeepLines.push(
               indentLog(
                 `Upkeep: ${heroName} takes ${totalDamage} dmg (${parts.join(
@@ -125,8 +123,7 @@ export function useTurnController({
           aiHeader = `[AI] ${heroName} \u00FAto\u010D\u00ED:`;
           const burnStacks = before.tokens.burn;
           const burnDamage = burnStacks * 2;
-          const igniteDamage = before.tokens.ignite > 0 ? 1 : 0;
-          const totalDamage = burnDamage + igniteDamage;
+          const totalDamage = burnDamage;
           const after = tickStatuses(before);
           setPlayer("ai", after);
           if (totalDamage > 0) {
@@ -134,7 +131,6 @@ export function useTurnController({
             const parts: string[] = [];
             if (burnDamage > 0)
               parts.push(`Burn ${burnStacks} -> ${burnDamage} dmg`);
-            if (igniteDamage > 0) parts.push("Ignite -> 1 dmg");
             upkeepLines.push(
               indentLog(
                 `Upkeep: ${heroName} takes ${totalDamage} dmg (${parts.join(

@@ -42,15 +42,6 @@ const getStatusGainLines = (
       `${defenderBefore.hero.name} gains Burn (${formatStacks(burnAfter)}).`
     );
   }
-  const igniteBefore = defenderBefore.tokens.ignite ?? 0;
-  const igniteAfter = defenderAfter.tokens.ignite ?? 0;
-  if (igniteAfter > igniteBefore) {
-    lines.push(
-      `${defenderBefore.hero.name} gains Ignite (${formatStacks(
-        igniteAfter
-      )}).`
-    );
-  }
   const chiDiff =
     (attackerAfter.tokens.chi ?? 0) - (attackerBefore.tokens.chi ?? 0);
   if (chiDiff > 0) {

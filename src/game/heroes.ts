@@ -15,7 +15,7 @@ export const HEROES: Record<HeroId, Hero> = {
     abilities: [
       { combo: "FULL_HOUSE", damage: 8, label: "Full House" },
       { combo: "4OAK", damage: 7, apply: { burn: 1 }, label: "Four of a kind + Burn" },
-      { combo: "SMALL_STRAIGHT", damage: 6, apply: { ignite: 1 }, label: "Small straight + Ignite" },
+      { combo: "SMALL_STRAIGHT", damage: 6, apply: { burn: 1 }, label: "Small straight + Burn" },
       { combo: "3OAK", damage: 5, label: "Three of a kind" },
       { combo: "PAIR_PAIR", damage: 4, label: "Two pairs" },
       { combo: "LARGE_STRAIGHT", damage: 12, ultimate: true, apply: { burn: 2 }, label: "ULT: Inferno" },

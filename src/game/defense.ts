@@ -39,9 +39,22 @@ export function monkDefenseRoll(tokens: Tokens): DefenseRoll {
   return { roll, ...monkDefenseFromRoll({ roll, tokens }) };
 }
 
+export const getBurnDamage = (stacks: number) =>
+  stacks > 0 ? 2 + Math.min(stacks - 1, 2) : 0;
+
 export function tickStatuses(state: PlayerState): PlayerState {
   let hp = state.hp;
-  if (state.tokens.burn > 0) hp -= state.tokens.burn * 2;
-  if (state.tokens.ignite > 0) hp -= 1; // ignite vyhorí
-  return { ...state, hp, tokens: { ...state.tokens, ignite: 0 } };
+  const burnStacks = state.tokens.burn ?? 0;
+  const burnDamage = getBurnDamage(burnStacks);
+  if (burnDamage > 0) {
+    hp -= burnDamage;
+  }
+  return {
+    ...state,
+    hp,
+    tokens: {
+      ...state.tokens,
+      burn: burnStacks > 0 ? Math.max(0, burnStacks - 1) : burnStacks,
+    },
+  };
 }

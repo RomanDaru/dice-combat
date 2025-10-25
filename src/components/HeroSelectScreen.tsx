@@ -11,8 +11,6 @@ const AbilityPreviewList = ({ hero }: { hero: Hero }) => {
       {hero.abilities.map((ability) => {
         const effects: string[] = [];
         if (ability.apply?.burn) effects.push(`Burn +${ability.apply.burn}`);
-        if (ability.apply?.ignite)
-          effects.push(`Ignite +${ability.apply.ignite}`);
         if (ability.apply?.chi) effects.push(`Chi +${ability.apply.chi}`);
         if (ability.apply?.evasive)
           effects.push(`Evasive +${ability.apply.evasive}`);

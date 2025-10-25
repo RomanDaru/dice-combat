@@ -1,5 +1,7 @@
 import { Ability, PlayerState } from './types';
 
+const MAX_BURN_STACKS = 3;
+
 export function applyAttack(
   attacker: PlayerState,
   defender: PlayerState,
@@ -56,17 +58,17 @@ export function applyAttack(
   const blocked = Math.min(incoming, Math.max(0, reduced));
 
   const currentBurn = defender.tokens.burn ?? 0;
-  let nextBurn = currentBurn;
-  if (apply.burn !== undefined) {
-    nextBurn = Math.min(1, Math.max(currentBurn, apply.burn));
-  }
+  const burnGain = apply.burn ?? 0;
+  const nextBurn = Math.max(
+    0,
+    Math.min(MAX_BURN_STACKS, currentBurn + burnGain)
+  );
 
   const nextDef: PlayerState = {
     ...defender,
     hp: defender.hp - dealt,
     tokens: {
       ...defender.tokens,
-      ignite: apply.ignite ? 1 : defender.tokens.ignite,
       burn: nextBurn,
     },
   };
@@ -96,16 +98,6 @@ export function applyAttack(
   );
   if (evasiveGain > 0) {
     notes.push(`${attacker.hero.id} gains Evasive (+${evasiveGain}).`);
-  }
-
-  const igniteBefore = defenderStart.tokens.ignite ?? 0;
-  const igniteAfter = nextDef.tokens.ignite ?? 0;
-  if (igniteAfter > igniteBefore) {
-    notes.push(
-      `${defender.hero.id} gains Ignite (${igniteAfter} stack${
-        igniteAfter > 1 ? 's' : ''
-      }).`,
-    );
   }
 
   const burnBefore = defenderStart.tokens.burn ?? 0;

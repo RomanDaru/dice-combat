@@ -5,7 +5,7 @@ export type Ability = {
   combo: Combo;
   damage: number;
   ultimate?: boolean;
-  apply?: Partial<{ burn: number; ignite: number; chi: number; evasive: number }>;
+  apply?: Partial<{ burn: number; chi: number; evasive: number }>;
   label?: string;
 };
 
@@ -42,6 +42,6 @@ export interface Hero {
 export type Side = "you" | "ai";
 export type Phase = "upkeep" | "roll" | "attack" | "defense" | "end";
 
-export type Tokens = { burn: number; ignite: number; chi: number; evasive: number };
+export type Tokens = { burn: number; chi: number; evasive: number };
 export type PlayerState = { hero: Hero; hp: number; tokens: Tokens };
 export type TestResult = { name: string; pass: boolean; details?: string };
