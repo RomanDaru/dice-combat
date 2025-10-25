@@ -1,35 +1,93 @@
-import { MutableRefObject, useCallback } from 'react';
-import { bestAbility, rollDie } from '../game/combos';
-import type { GameState } from '../game/state';
-import type { Side } from '../game/types';
+import { useCallback, useEffect, useRef } from "react";
+import { bestAbility, rollDie } from "../game/combos";
+import type { GameState } from "../game/state";
+import type { Side } from "../game/types";
+import { useGame } from "../context/GameContext";
 
 type UseAiControllerArgs = {
-  stateRef: MutableRefObject<GameState>;
-  setAiSimActive: (value: boolean) => void;
-  setAiSimRolling: (value: boolean) => void;
-  setAiSimHeld: (value: boolean[]) => void;
-  setPendingAttack: (attack: GameState['pendingAttack']) => void;
-  setPhase: (phase: GameState['phase']) => void;
   logAiNoCombo: (diceValues: number[]) => void;
-  logAiAttackRoll: (diceValues: number[], ability: ReturnType<typeof bestAbility>) => void;
-  animatePreviewRoll: (targetDice: number[], heldMask: boolean[], onDone: () => void) => void;
+  logAiAttackRoll: (
+    diceValues: number[],
+    ability: ReturnType<typeof bestAbility>
+  ) => void;
+  animatePreviewRoll: (
+    targetDice: number[],
+    heldMask: boolean[],
+    onDone: () => void
+  ) => void;
   tickAndStart: (next: Side, afterReady?: () => void) => boolean;
   aiStepDelay: number;
 };
 
 export function useAiController({
-  stateRef,
-  setAiSimActive,
-  setAiSimRolling,
-  setAiSimHeld,
-  setPendingAttack,
-  setPhase,
   logAiNoCombo,
   logAiAttackRoll,
   animatePreviewRoll,
   tickAndStart,
   aiStepDelay,
 }: UseAiControllerArgs) {
+  const { state, dispatch } = useGame();
+  const stateRef = useRef<GameState>(state);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  const patchState = useCallback(
+    (partial: Partial<GameState>) => {
+      dispatch({ type: "PATCH_STATE", payload: partial });
+      stateRef.current = { ...stateRef.current, ...partial };
+    },
+    [dispatch]
+  );
+
+  const patchAiPreview = useCallback(
+    (partial: Partial<GameState["aiPreview"]>) => {
+      dispatch({ type: "PATCH_AI_PREVIEW", payload: partial });
+      stateRef.current = {
+        ...stateRef.current,
+        aiPreview: { ...stateRef.current.aiPreview, ...partial },
+      };
+    },
+    [dispatch]
+  );
+
+  const setAiSimActive = useCallback(
+    (value: boolean) => {
+      patchAiPreview({ active: value });
+    },
+    [patchAiPreview]
+  );
+
+  const setAiSimRolling = useCallback(
+    (value: boolean) => {
+      patchAiPreview({ rolling: value });
+    },
+    [patchAiPreview]
+  );
+
+  const setAiSimHeld = useCallback(
+    (value: boolean[]) => {
+      patchAiPreview({ held: value });
+    },
+    [patchAiPreview]
+  );
+
+  const setPendingAttack = useCallback(
+    (attack: GameState["pendingAttack"]) => {
+      dispatch({ type: "SET_PENDING_ATTACK", attack });
+      stateRef.current = { ...stateRef.current, pendingAttack: attack };
+    },
+    [dispatch]
+  );
+
+  const setPhase = useCallback(
+    (phase: GameState["phase"]) => {
+      patchState({ phase });
+    },
+    [patchState]
+  );
+
   const aiPlay = useCallback(() => {
     const curAi = stateRef.current.players.ai;
     const curYou = stateRef.current.players.you;
@@ -83,19 +141,19 @@ export function useAiController({
           if (!ab) {
             setAiSimActive(false);
             logAiNoCombo(finalDice);
-            setPhase('end');
+            setPhase("end");
             window.setTimeout(() => {
-              tickAndStart('you');
+              tickAndStart("you");
             }, 600);
             return;
           }
           setPendingAttack({
-            attacker: 'ai',
-            defender: 'you',
+            attacker: "ai",
+            defender: "you",
             dice: [...finalDice],
             ability: ab,
           });
-          setPhase('defense');
+          setPhase("defense");
           logAiAttackRoll(finalDice, ab);
         }
       });
@@ -112,7 +170,6 @@ export function useAiController({
     setAiSimRolling,
     setPendingAttack,
     setPhase,
-    stateRef,
     tickAndStart,
   ]);
 

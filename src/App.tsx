@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import HeroSelectScreen, { HeroOption } from "./components/HeroSelectScreen";
 import { BattleScreen } from "./screens/BattleScreen";
 import { IntroScreen } from "./screens/IntroScreen";
-import { AiPreviewPanel } from "./components/AiPreviewPanel";
 import { HEROES } from "./game/heroes";
 import { Phase, PlayerState, Side, Ability, Hero } from "./game/types";
 import { bestAbility, detectCombos, rollDie } from "./game/combos";
@@ -14,12 +13,12 @@ import {
   createInitialState,
   gameReducer,
 } from "./game/state";
+import { GameContext } from "./context/GameContext";
 import {
   buildAttackResolutionLines,
   indentLog,
   useCombatLog,
 } from "./hooks/useCombatLog";
-import { useGameActions } from "./hooks/useGameActions";
 import { useDiceAnimator } from "./hooks/useDiceAnimator";
 import { useAiDiceAnimator } from "./hooks/useAiDiceAnimator";
 import { useAiController } from "./hooks/useAiController";
@@ -60,7 +59,6 @@ export default function App() {
     aiDefense,
     pendingAttack,
     pendingStatusClear,
-    savedDefenseDice,
     fx,
   } = state;
 
@@ -79,32 +77,7 @@ export default function App() {
     logPlayerNoCombo,
     logAiAttackRoll,
     logAiNoCombo,
-  } = useCombatLog(dispatch);
-
-  const {
-    setPlayer,
-    setYou,
-    setAi,
-    setPendingStatusClear,
-    setPendingAttack,
-    setSavedDiceForDefense,
-    setTurn,
-    setPhase,
-    setRound,
-    setDice,
-    setHeld,
-    setRolling,
-    setRollsLeft,
-    setAiSimActive,
-    setAiSimRolling,
-    setAiSimDice,
-    setAiSimHeld,
-    setAiDefenseSim,
-    setAiDefenseRoll,
-    setAiEvasiveRoll,
-    setFloatDamage,
-    setShake,
-  } = useGameActions(dispatch, stateRef);
+  } = useCombatLog();
 
   const DEF_DIE_INDEX = 2;
   const ROLL_ANIM_MS = 1300;
@@ -134,7 +107,6 @@ export default function App() {
   const aiDefenseSim = aiDefense.inProgress;
   const aiDefenseRoll = aiDefense.defenseRoll;
   const aiEvasiveRoll = aiDefense.evasiveRoll;
-  const savedDiceForDefense = savedDefenseDice;
   const floatDmgYou = fx.floatDamage.you;
   const floatDmgAi = fx.floatDamage.ai;
   const shakeYou = fx.shake.you;
@@ -145,31 +117,91 @@ export default function App() {
   );
   const readyForActing = useMemo(() => detectCombos(dice), [dice]);
   const readyForAI = useMemo(() => detectCombos(aiSimDice), [aiSimDice]);
+
+  const patchState = useCallback(
+    (partial: Partial<GameState>) => {
+      dispatch({ type: "PATCH_STATE", payload: partial });
+      stateRef.current = { ...stateRef.current, ...partial };
+    },
+    [dispatch]
+  );
+
+  const setDice = useCallback(
+    (value: number[] | ((prev: number[]) => number[])) => {
+      const next =
+        typeof value === "function"
+          ? (value as (prev: number[]) => number[])(stateRef.current.dice)
+          : value;
+      patchState({ dice: next });
+    },
+    [patchState]
+  );
+
+  const setHeld = useCallback(
+    (value: boolean[] | ((prev: boolean[]) => boolean[])) => {
+      const next =
+        typeof value === "function"
+          ? (value as (prev: boolean[]) => boolean[])(stateRef.current.held)
+          : value;
+      patchState({ held: next });
+    },
+    [patchState]
+  );
+
+  const setRolling = useCallback(
+    (value: boolean[]) => {
+      patchState({ rolling: value });
+    },
+    [patchState]
+  );
+
+  const setRollsLeft = useCallback(
+    (value: number | ((prev: number) => number)) => {
+      const next =
+        typeof value === "function"
+          ? (value as (prev: number) => number)(stateRef.current.rollsLeft)
+          : value;
+      patchState({ rollsLeft: next });
+    },
+    [patchState]
+  );
+
+  const setFloatDamage = useCallback(
+    (side: Side, value: GameState["fx"]["floatDamage"][Side]) => {
+      dispatch({ type: "SET_FLOAT_DAMAGE", side, value });
+      stateRef.current = {
+        ...stateRef.current,
+        fx: {
+          ...stateRef.current.fx,
+          floatDamage: { ...stateRef.current.fx.floatDamage, [side]: value },
+        },
+      };
+    },
+    [dispatch]
+  );
+
+  const setShake = useCallback(
+    (side: Side, value: boolean) => {
+      dispatch({ type: "SET_SHAKE", side, value });
+      stateRef.current = {
+        ...stateRef.current,
+        fx: {
+          ...stateRef.current.fx,
+          shake: { ...stateRef.current.fx.shake, [side]: value },
+        },
+      };
+    },
+    [dispatch]
+  );
   const { resetRoll, animateDefenseDie, restoreDiceAfterDefense } =
-    useDiceAnimator({
-      stateRef,
-      savedDiceForDefense,
-      setSavedDiceForDefense,
-      setDice,
-      setHeld,
-      setRolling,
-      setRollsLeft,
-      defenseDieIndex: DEF_DIE_INDEX,
-    });
+    useDiceAnimator({ defenseDieIndex: DEF_DIE_INDEX });
   const { animatePreviewRoll } = useAiDiceAnimator({
-    stateRef,
-    setAiSimDice,
-    setAiSimRolling,
     rollDurationMs: AI_ROLL_ANIM_MS,
   });
   const { statusResumeRef, performStatusClearRoll } = useStatusManager({
-    stateRef,
-    setPlayer,
-    setPendingStatusClear,
     pushLog,
     animateDefenseDie,
     restoreDiceAfterDefense,
-    setPhase,
   });
   const { tickAndStart } = useTurnController({
     resetRoll,
@@ -195,12 +227,6 @@ export default function App() {
   };
 
   const { aiPlay } = useAiController({
-    stateRef,
-    setAiSimActive,
-    setAiSimRolling,
-    setAiSimHeld,
-    setPendingAttack,
-    setPhase,
     logAiNoCombo,
     logAiAttackRoll,
     animatePreviewRoll,
@@ -209,19 +235,12 @@ export default function App() {
   });
   const { onConfirmAttack, onUserDefenseRoll, onUserEvasiveRoll } =
     useDefenseActions({
-      stateRef,
       turn,
       rolling,
       ability,
       dice,
       you: players.you,
       pendingAttack,
-      setPhase,
-      setAiDefenseSim,
-      setAiDefenseRoll,
-      setAiEvasiveRoll,
-      setPendingAttack,
-      setPlayer,
       logPlayerNoCombo,
       logPlayerAttackStart,
       pushLog,
@@ -232,6 +251,11 @@ export default function App() {
       aiPlay,
       aiStepDelay: AI_STEP_MS,
     });
+
+  const isDefenseTurn =
+    !!pendingAttack && pendingAttack.defender === "you";
+  const statusActive = !!pendingStatusClear;
+
   const handleHeroSelection = (playerHero: Hero, aiHero: Hero) => {
     startBattle(playerHero, aiHero);
   };
@@ -299,24 +323,6 @@ export default function App() {
     startBattle(players.you.hero, players.ai.hero);
   };
 
-  const isDefenseTurn =
-    !!pendingAttack && pendingAttack.defender === "you";
-  const statusActive = !!pendingStatusClear;
-  const defenseAbility = pendingAttack?.ability;
-  if (screen === "intro") {
-    return <IntroScreen onBegin={handleOpenHeroSelect} />;
-  }
-
-  if (screen === "hero-select") {
-    return (
-      <HeroSelectScreen
-        heroOptions={heroOptions}
-        onConfirm={handleHeroSelection}
-        onClose={handleBackToIntro}
-      />
-    );
-  }
-
   const you = players.you;
   const ai = players.ai;
   const winner = you.hp <= 0 ? ai.hero.id : ai.hp <= 0 ? you.hero.id : null;
@@ -362,12 +368,28 @@ export default function App() {
     log,
   };
 
+  let content;
+  if (screen === "intro") {
+    content = <IntroScreen onBegin={handleOpenHeroSelect} />;
+  } else if (screen === "hero-select") {
+    content = (
+      <HeroSelectScreen
+        heroOptions={heroOptions}
+        onConfirm={handleHeroSelection}
+        onClose={handleBackToIntro}
+      />
+    );
+  } else {
+    content = <BattleScreen {...battleProps} />;
+  }
+
   return (
     <GameContext.Provider value={{ state, dispatch }}>
-      <BattleScreen {...battleProps} />
+      {content}
     </GameContext.Provider>
   );
 }
+
 
 
 

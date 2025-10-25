@@ -1,32 +1,76 @@
-import { MutableRefObject, useCallback } from 'react';
-import { rollDie } from '../game/combos';
-import type { GameState } from '../game/state';
+import { useCallback, useEffect, useRef } from "react";
+import { rollDie } from "../game/combos";
+import type { GameState } from "../game/state";
+import { useGame } from "../context/GameContext";
 
 type DiceUpdater = number[] | ((prev: number[]) => number[]);
 type HeldUpdater = boolean[] | ((prev: boolean[]) => boolean[]);
 type RollsUpdater = number | ((prev: number) => number);
 
 type UseDiceAnimatorArgs = {
-  stateRef: MutableRefObject<GameState>;
-  savedDiceForDefense: GameState['savedDefenseDice'];
-  setSavedDiceForDefense: (dice: number[] | null) => void;
-  setDice: (value: DiceUpdater) => void;
-  setHeld: (value: HeldUpdater) => void;
-  setRolling: (value: boolean[]) => void;
-  setRollsLeft: (value: RollsUpdater) => void;
   defenseDieIndex: number;
 };
 
-export function useDiceAnimator({
-  stateRef,
-  savedDiceForDefense,
-  setSavedDiceForDefense,
-  setDice,
-  setHeld,
-  setRolling,
-  setRollsLeft,
-  defenseDieIndex,
-}: UseDiceAnimatorArgs) {
+export function useDiceAnimator({ defenseDieIndex }: UseDiceAnimatorArgs) {
+  const { state, dispatch } = useGame();
+  const stateRef = useRef<GameState>(state);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  const setDice = useCallback(
+    (value: DiceUpdater) => {
+      const next =
+        typeof value === "function"
+          ? (value as (prev: number[]) => number[])(stateRef.current.dice)
+          : value;
+      dispatch({ type: "PATCH_STATE", payload: { dice: next } });
+      stateRef.current = { ...stateRef.current, dice: next };
+    },
+    [dispatch]
+  );
+
+  const setHeld = useCallback(
+    (value: HeldUpdater) => {
+      const next =
+        typeof value === "function"
+          ? (value as (prev: boolean[]) => boolean[])(stateRef.current.held)
+          : value;
+      dispatch({ type: "PATCH_STATE", payload: { held: next } });
+      stateRef.current = { ...stateRef.current, held: next };
+    },
+    [dispatch]
+  );
+
+  const setRolling = useCallback(
+    (next: boolean[]) => {
+      dispatch({ type: "PATCH_STATE", payload: { rolling: next } });
+      stateRef.current = { ...stateRef.current, rolling: next };
+    },
+    [dispatch]
+  );
+
+  const setRollsLeft = useCallback(
+    (value: RollsUpdater) => {
+      const next =
+        typeof value === "function"
+          ? (value as (prev: number) => number)(stateRef.current.rollsLeft)
+          : value;
+      dispatch({ type: "PATCH_STATE", payload: { rollsLeft: next } });
+      stateRef.current = { ...stateRef.current, rollsLeft: next };
+    },
+    [dispatch]
+  );
+
+  const setSavedDiceForDefense = useCallback(
+    (dice: number[] | null) => {
+      dispatch({ type: "SET_SAVED_DEFENSE_DICE", dice });
+      stateRef.current = { ...stateRef.current, savedDefenseDice: dice };
+    },
+    [dispatch]
+  );
+
   const resetRoll = useCallback(() => {
     setDice([2, 2, 3, 4, 6]);
     setHeld([false, false, false, false, false]);
@@ -36,7 +80,7 @@ export function useDiceAnimator({
 
   const animateDefenseDie = useCallback(
     (onDone: (roll: number) => void, duration = 700) => {
-      if (!savedDiceForDefense) {
+      if (!stateRef.current.savedDefenseDice) {
         setSavedDiceForDefense([...stateRef.current.dice]);
       }
       const mask = [false, false, false, false, false];
@@ -61,25 +105,18 @@ export function useDiceAnimator({
         }
       }, 90);
     },
-    [
-      defenseDieIndex,
-      savedDiceForDefense,
-      setDice,
-      setRolling,
-      setSavedDiceForDefense,
-      stateRef,
-    ]
+    [defenseDieIndex, setDice, setRolling, setSavedDiceForDefense]
   );
 
   const restoreDiceAfterDefense = useCallback(() => {
-    if (savedDiceForDefense) {
-      const vals = savedDiceForDefense;
+    const savedDice = stateRef.current.savedDefenseDice;
+    if (savedDice) {
       window.setTimeout(() => {
-        setDice(vals);
+        setDice(savedDice);
         setSavedDiceForDefense(null);
       }, 300);
     }
-  }, [savedDiceForDefense, setDice, setSavedDiceForDefense]);
+  }, [setDice, setSavedDiceForDefense]);
 
   return {
     resetRoll,
@@ -87,4 +124,3 @@ export function useDiceAnimator({
     restoreDiceAfterDefense,
   };
 }
-

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { Ability, PlayerState } from '../game/types';
-import type { GameDispatch } from '../game/state';
+import { useGame } from '../context/GameContext';
 
 type LogOptions = { blankLineBefore?: boolean; blankLineAfter?: boolean };
 
@@ -145,7 +145,7 @@ export const buildAttackResolutionLines = ({
   return lines;
 };
 
-export function useCombatLog(dispatch: GameDispatch) {
+export function useCombatLog() {\n  const { dispatch } = useGame();
   const pushLog = useCallback(
     (entry: string | string[], options: LogOptions = {}) => {
       if (options.blankLineBefore)
@@ -214,4 +214,11 @@ export function useCombatLog(dispatch: GameDispatch) {
     logAiNoCombo,
   };
 }
+
+
+
+
+
+
+
 
