@@ -1,16 +1,6 @@
 import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
-import Section from "./components/Section";
-import AbilityList from "./components/AbilityList";
-
-import HeroSelectScreen, {
-  HeroOption,
-} from "./components/HeroSelectScreen";
-import { PlayerPanel } from "./components/PlayerPanel";
-import { PlayerActionPanel } from "./components/PlayerActionPanel";
-import { AiPreviewPanel } from "./components/AiPreviewPanel";
-import { CombatLogPanel } from "./components/CombatLogPanel";
-import { TipsPanel } from "./components/TipsPanel";
-import { TurnIndicator } from "./components/TurnIndicator";
+import HeroSelectScreen, { HeroOption } from "./components/HeroSelectScreen";
+import { BattleScreen } from "./screens/BattleScreen";
 import { AiPreviewPanel } from "./components/AiPreviewPanel";
 import { HEROES } from "./game/heroes";
 import { Phase, PlayerState, Side, Ability, Hero } from "./game/types";
@@ -337,133 +327,46 @@ export default function App() {
   const showDcLogo =
     turn === "you" && rollsLeft === 3 && !pendingAttack && !statusActive; // pred prvm rollom a ak nie je status
 
-  return (
-    <div className='container'>
-      <div className='row'>
-        <div className='row'>
-            <div
-              style={{
-                display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}>
-            <h1
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 20,
-                fontWeight: 600,
-              }}>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 32,
-                  height: 32,
-                  borderRadius: 8,
-                  border: "1px solid #059669",
-                  background: "rgba(4,120,87,.3)",
-                  fontWeight: 700,
-                }}>
-                DC
-              </span>{" "}
-              Fantasy Dice Combat
-            </h1>
-            <button className='btn' onClick={onReset}>
-              Reset
-            </button>
-          </div>
+  const battleProps = {
+    onReset,
+    you,
+    ai,
+    turn,
+    winner,
+    showDcLogo,
+    phase,
+    dice,
+    held,
+    rolling,
+    onToggleHold,
+    defDieIndex: DEF_DIE_INDEX,
+    onRoll,
+    onConfirmAttack,
+    onEndTurnNoAttack,
+    onUserDefenseRoll,
+    onUserEvasiveRoll,
+    rollsLeft,
+    isDefenseTurn,
+    statusActive,
+    pendingStatusClear,
+    performStatusClearRoll,
+    ability,
+    readyForActing,
+    readyForAI,
+    aiSimDice,
+    aiSimRolling,
+    aiSimHeld,
+    aiDefenseSim,
+    aiDefenseRoll,
+    aiEvasiveRoll,
+    floatDmgYou,
+    floatDmgAi,
+    shakeYou,
+    shakeAi,
+    log,
+  };
 
-          <div className='row grid-2'>
-            <PlayerPanel
-              title={`You - ${you.hero.name}`}
-              active={turn === "you"}
-              player={you}
-              shake={shakeYou}
-              floatDamage={floatDmgYou}
-            />
-            <PlayerPanel
-              title={`Opponent - ${ai.hero.name} (AI)`}
-              active={turn === "ai"}
-              player={ai}
-              shake={shakeAi}
-              floatDamage={floatDmgAi}
-            />
-          </div>
-
-          <Section title={`Kolo: ${turn === "you" ? "Ty to" : "AI hraje"}`}>
-            {winner ? (
-              <div
-                style={{
-                  textAlign: "center",
-                  padding: "40px 0",
-                  fontSize: 24,
-                }}>
-                Vaz: <b>{winner}</b>
-              </div>
-            ) : (
-              <div className='row'>
-                <TurnIndicator turn={turn} />
-
-                <div className='row grid-2'>
-                  <AbilityList
-                    hero={you.hero}
-                    title={`Tvoje schopnosti (${you.hero.name})`}
-                    showReadyCombos={readyForActing as any}
-                  />
-
-                  <PlayerActionPanel
-                    phase={phase}
-                    dice={dice}
-                    held={held}
-                    rolling={rolling}
-                    canInteract={turn === "you" && !isDefenseTurn && !statusActive}
-                    onToggleHold={onToggleHold}
-                    defIndex={DEF_DIE_INDEX}
-                    showDcLogo={showDcLogo}
-                    isDefensePhase={
-                      isDefenseTurn || statusActive || phase === "defense"
-                    }
-                    statusActive={statusActive}
-                    onRoll={onRoll}
-                    onConfirmAttack={onConfirmAttack}
-                    onEndTurnNoAttack={onEndTurnNoAttack}
-                    onUserDefenseRoll={onUserDefenseRoll}
-                    onUserEvasiveRoll={onUserEvasiveRoll}
-                    rollsLeft={rollsLeft}
-                    turn={turn}
-                    isDefenseTurn={isDefenseTurn}
-                    youHasEvasive={you.tokens.evasive > 0}
-                    pendingStatusClear={pendingStatusClear}
-                    performStatusClearRoll={performStatusClearRoll}
-                    youHeroName={you.hero.name}
-                    aiHeroName={ai.hero.name}
-                    aiEvasiveRoll={aiEvasiveRoll}
-                    aiDefenseRoll={aiDefenseRoll}
-                    aiDefenseSim={aiDefenseSim}
-                    ability={ability}
-                  />
-                </div>
-
-                <AiPreviewPanel
-                  hero={ai.hero}
-                  readyCombos={readyForAI as any}
-                  dice={aiSimDice}
-                  rolling={aiSimRolling}
-                  held={aiSimHeld}
-                />
-              </div>
-            )}
-          </Section>
-        </div>
-
-        <CombatLogPanel entries={log} />
-        <TipsPanel />
-      </div>
-    </div>
-  );
+  return <BattleScreen {...battleProps} />;
 }
 
 
