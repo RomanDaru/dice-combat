@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { Hero } from "../game/types";
 import styles from "./HeroSelectScreen.module.css";
@@ -105,6 +105,13 @@ export default function HeroSelectScreen({
 }: HeroSelectScreenProps) {
   const [phase, setPhase] = useState<SelectionPhase>("grid");
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [confirmingHero, setConfirmingHero] = useState<{
+    hero: Hero;
+    image: string;
+  } | null>(null);
+  const confirmTimeoutRef = useRef<number | null>(null);
+  const confirmVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const selectedHeroOption = useMemo(
     () => heroOptions.find((option) => option.hero.id === selectedHeroId) ?? null,
@@ -139,9 +146,38 @@ export default function HeroSelectScreen({
     setSelectedHeroId(null);
   };
 
+  useEffect(() => {
+    return () => {
+      if (confirmTimeoutRef.current) {
+        window.clearTimeout(confirmTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (confirmingHero && confirmVideoRef.current) {
+      confirmVideoRef.current.currentTime = 0;
+      confirmVideoRef.current.play().catch(() => undefined);
+    }
+  }, [confirmingHero]);
+
   const handleConfirm = () => {
-    if (!selectedHeroOption || !aiHeroOption) return;
-    onConfirm(selectedHeroOption.hero, aiHeroOption.hero);
+    if (!selectedHeroOption || !aiHeroOption || isConfirming) return;
+    const hero = selectedHeroOption.hero;
+    const image = selectedHeroOption.image;
+    const media = HERO_MEDIA[hero.id];
+
+    if (media) {
+      setIsConfirming(true);
+      setConfirmingHero({ hero, image });
+      confirmTimeoutRef.current = window.setTimeout(() => {
+        onConfirm(hero, aiHeroOption.hero);
+        setConfirmingHero(null);
+        setIsConfirming(false);
+      }, 1400);
+    } else {
+      onConfirm(hero, aiHeroOption.hero);
+    }
   };
 
   if (!heroOptions.length) {
@@ -212,20 +248,43 @@ export default function HeroSelectScreen({
               <button
                 type='button'
                 className='welcome-secondary'
-                onClick={handleBackToGrid}>
+                onClick={handleBackToGrid}
+                disabled={isConfirming}>
                 Back to heroes
               </button>
               <button
                 type='button'
                 className='welcome-primary'
-                onClick={handleConfirm}>
+                onClick={handleConfirm}
+                disabled={isConfirming}>
                 Confirm {selectedHeroOption.hero.name}
               </button>
             </div>
           </div>
         )
       )}
+      {confirmingHero && (
+        <div className={styles.confirmOverlay}>
+          {HERO_MEDIA[confirmingHero.hero.id] ? (
+            <video
+              ref={confirmVideoRef}
+              className={styles.confirmMedia}
+              muted
+              playsInline>
+              <source
+                src={HERO_MEDIA[confirmingHero.hero.id]!}
+                type='video/mp4'
+              />
+            </video>
+          ) : (
+            <img
+              src={confirmingHero.image}
+              alt={confirmingHero.hero.name}
+              className={styles.confirmMedia}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
-

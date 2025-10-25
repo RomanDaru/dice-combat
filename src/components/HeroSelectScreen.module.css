@@ -162,7 +162,7 @@
   flex-direction: column;
   max-width: 520px;
   justify-self: center;
-  align-self: stretch;
+  align-self: center;
 }
 
 .actionRow {
@@ -171,6 +171,28 @@
   justify-content: center;
   flex-wrap: wrap;
   grid-column: 1 / -1;
+}
+
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(12, 10, 24, 0.1), rgba(2, 2, 8, 0.92));
+  z-index: 60;
+  pointer-events: none;
+  animation: overlayFade 1.4s ease forwards;
+}
+
+.confirmMedia {
+  width: min(100%, 1200px);
+  height: min(100%, 90vh);
+  object-fit: cover;
+  border-radius: 24px;
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.55);
+  animation: confirmZoom 1.4s ease forwards;
+  background: #000;
 }
 
 @media (min-width: 900px) {
@@ -184,5 +206,38 @@
   .abilityPreview {
     max-width: 520px;
     margin: 0 auto;
+  }
+}
+
+@keyframes overlayFade {
+  from {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes confirmZoom {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.08);
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirmOverlay,
+  .confirmMedia {
+    animation: none;
   }
 }
