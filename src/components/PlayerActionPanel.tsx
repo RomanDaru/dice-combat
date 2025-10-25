@@ -1,68 +1,50 @@
 import React from "react";
 import TurnProgress from "./TurnProgress";
 import DiceGrid from "./DiceGrid";
-import type { Ability, Phase, Side } from "../game/types";
-import type { PendingStatusClear } from "../game/state";
+import { useGame } from "../context/GameContext";
+import { useGameController, useGameData } from "../context/GameController";
 
-type PlayerActionPanelProps = {
-  phase: Phase;
-  dice: number[];
-  held: boolean[];
-  rolling: boolean[];
-  canInteract: boolean;
-  onToggleHold: (index: number) => void;
-  defIndex: number;
-  showDcLogo: boolean;
-  isDefensePhase: boolean;
-  statusActive: boolean;
-  onRoll: () => void;
-  onConfirmAttack: () => void;
-  onEndTurnNoAttack: () => void;
-  onUserDefenseRoll: () => void;
-  onUserEvasiveRoll: () => void;
-  rollsLeft: number;
-  turn: Side;
-  isDefenseTurn: boolean;
-  youHasEvasive: boolean;
-  pendingStatusClear: PendingStatusClear;
-  performStatusClearRoll: (side: Side) => void;
-  youHeroName: string;
-  aiHeroName: string;
-  aiEvasiveRoll: number | null;
-  aiDefenseRoll: number | null;
-  aiDefenseSim: boolean;
-  ability: Ability | null;
-};
+export function PlayerActionPanel() {
+  const { state } = useGame();
+  const {
+    onRoll,
+    onToggleHold,
+    onConfirmAttack,
+    onEndTurnNoAttack,
+    onUserDefenseRoll,
+    onUserEvasiveRoll,
+    performStatusClearRoll,
+  } = useGameController();
+  const {
+    statusActive,
+    isDefenseTurn,
+    showDcLogo,
+    ability,
+    defenseDieIndex,
+  } = useGameData();
 
-export function PlayerActionPanel({
-  phase,
-  dice,
-  held,
-  rolling,
-  canInteract,
-  onToggleHold,
-  defIndex,
-  showDcLogo,
-  isDefensePhase,
-  statusActive,
-  onRoll,
-  onConfirmAttack,
-  onEndTurnNoAttack,
-  onUserDefenseRoll,
-  onUserEvasiveRoll,
-  rollsLeft,
-  turn,
-  isDefenseTurn,
-  youHasEvasive,
-  pendingStatusClear,
-  performStatusClearRoll,
-  youHeroName,
-  aiHeroName,
-  aiEvasiveRoll,
-  aiDefenseRoll,
-  aiDefenseSim,
-  ability,
-}: PlayerActionPanelProps) {
+  const {
+    phase,
+    dice,
+    held,
+    rolling,
+    rollsLeft,
+    turn,
+    pendingStatusClear,
+    aiDefense,
+  } = state;
+
+  const you = state.players.you;
+  const ai = state.players.ai;
+
+  const canInteract = turn === "you" && !isDefenseTurn && !statusActive;
+  const youHasEvasive = you.tokens.evasive > 0;
+  const aiEvasiveRoll = aiDefense.evasiveRoll;
+  const aiDefenseRoll = aiDefense.defenseRoll;
+  const aiDefenseSim = aiDefense.inProgress;
+  const isDefensePhase =
+    isDefenseTurn || statusActive || phase === "defense";
+
   const renderInfoBanner = () => {
     if (statusActive) {
       return (
@@ -147,41 +129,52 @@ export function PlayerActionPanel({
   };
 
   const statusCard =
+    statusActive &&
     pendingStatusClear && (
       <div
         className='card'
         style={{
-          borderColor: "#f97316",
-          background: "rgba(249,115,22,.12)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
         }}>
-        <div style={{ fontSize: 14, marginBottom: 8 }}>
-          Burn on{" "}
-          <b>
-            {pendingStatusClear.side === "you" ? youHeroName : aiHeroName}
-          </b>{" "}
-          - stacks: <b>{pendingStatusClear.stacks}</b>
-        </div>
         <div
           style={{
             display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
             alignItems: "center",
+            gap: 8,
+            fontSize: 14,
           }}>
+          <span className='badge indigo'>
+            {pendingStatusClear.side === "you"
+              ? you.hero.name
+              : ai.hero.name}
+          </span>
+          <span>Burn stacks: {pendingStatusClear.stacks}</span>
+        </div>
+        <div style={{ display: "flex", gap: 12 }}>
           {pendingStatusClear.side === "you" ? (
             <button
               className='btn success'
-              onClick={() => performStatusClearRoll("you")}
-              disabled={pendingStatusClear.rolling}>
-              {pendingStatusClear.rolling ? "Rolling..." : "Status Roll (Burn)"}
+              onClick={() => performStatusClearRoll("you")}>
+              Status Roll
             </button>
           ) : (
-            <div style={{ fontSize: 14, color: "#d4d4d8" }}>
-              {pendingStatusClear.roll === undefined
-                ? pendingStatusClear.rolling
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+              }}>
+              <div
+                style={{
+                  fontSize: 14,
+                  color: "#a1a1aa",
+                }}>
+                {pendingStatusClear.rolling
                   ? "AI is rolling..."
-                  : "AI will roll automatically."
-                : ""}
+                  : "AI will roll automatically."}
+              </div>
             </div>
           )}
           {pendingStatusClear.roll !== undefined && (
@@ -241,7 +234,7 @@ export function PlayerActionPanel({
         rolling={rolling}
         canInteract={canInteract}
         onToggleHold={onToggleHold}
-        defIndex={defIndex}
+        defIndex={defenseDieIndex}
         showDcLogo={showDcLogo}
         isDefensePhase={isDefensePhase}
         statusActive={statusActive}
@@ -304,4 +297,3 @@ export function PlayerActionPanel({
     </div>
   );
 }
-
