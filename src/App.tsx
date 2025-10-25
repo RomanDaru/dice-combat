@@ -31,6 +31,7 @@ import { useGameActions } from "./hooks/useGameActions";
 import { useDiceAnimator } from "./hooks/useDiceAnimator";
 import { useAiDiceAnimator } from "./hooks/useAiDiceAnimator";
 import { useStatusManager } from "./hooks/useStatusManager";
+import { useTurnController } from "./hooks/useTurnController";
 import PyromancerPortrait from "./assets/Pyromancer_Hero.png";
 import ShadowMonkPortrait from "./assets/Shadow_Monk_Hero.png";
 
@@ -56,7 +57,6 @@ export default function App() {
     players,
     turn,
     phase,
-    round,
     dice,
     held,
     rolling,
@@ -177,6 +177,25 @@ export default function App() {
     restoreDiceAfterDefense,
     setPhase,
   });
+  const { tickAndStart } = useTurnController({
+    stateRef,
+    setYou,
+    setAi,
+    setTurn,
+    setPhase,
+    setRound,
+    setPendingAttack,
+    setPendingStatusClear,
+    setAiSimActive,
+    setAiSimRolling,
+    setAiDefenseSim,
+    setAiDefenseRoll,
+    setAiEvasiveRoll,
+    resetRoll,
+    pushLog,
+    popDamage,
+    statusResumeRef,
+  });
 
   const startBattle = (playerHero: Hero, aiHero: Hero) => {
     if (timersRef.current) {
@@ -197,148 +216,6 @@ export default function App() {
   const handleHeroSelection = (playerHero: Hero, aiHero: Hero) => {
     startBattle(playerHero, aiHero);
   };
-
-  function tickAndStart(next: Side, afterReady?: () => void): boolean {
-    let continueBattle = true;
-    let statusPending = false;
-    let statusEntry: { side: Side; status: "burn"; stacks: number } | null =
-      null;
-    const upkeepLines: string[] = [];
-    let aiHeader: string | null = null;
-
-    if (next === "you") {
-      const before = stateRef.current.players.you;
-      if (before) {
-        const heroName = before.hero.name;
-        const burnStacks = before.tokens.burn;
-        const burnDamage = burnStacks * 2;
-        const igniteDamage = before.tokens.ignite > 0 ? 1 : 0;
-        const totalDamage = burnDamage + igniteDamage;
-        const after = tickStatuses(before);
-        setYou(after);
-        if (totalDamage > 0) {
-          popDamage("you", totalDamage, "hit");
-          const parts: string[] = [];
-          if (burnDamage > 0)
-            parts.push(`Burn ${burnStacks} -> ${burnDamage} dmg`);
-          if (igniteDamage > 0) parts.push("Ignite -> 1 dmg");
-          upkeepLines.push(
-            indentLog(
-              `Upkeep: ${heroName} takes ${totalDamage} dmg (${parts.join(
-                ", "
-              )}). HP: ${after.hp}/${after.hero.maxHp}.`
-            )
-          );
-        }
-        if (after.hp <= 0) {
-          pushLog(`${heroName} fell to status damage.`);
-          continueBattle = false;
-        }
-        const opponent = stateRef.current.players.ai;
-        if (!opponent || opponent.hp <= 0) continueBattle = false;
-        const needsBurnClear =
-          continueBattle && burnDamage > 0 && after.tokens.burn > 0;
-        if (needsBurnClear) {
-          statusPending = true;
-          statusEntry = {
-            side: next,
-            status: "burn",
-            stacks: after.tokens.burn,
-          };
-        }
-      } else {
-        continueBattle = false;
-      }
-    } else {
-      const before = stateRef.current.players.ai;
-      if (before) {
-        const heroName = before.hero.name;
-        aiHeader = `[AI] ${heroName} \u00FAto\u010D\u00ED:`;
-        const burnStacks = before.tokens.burn;
-        const burnDamage = burnStacks * 2;
-        const igniteDamage = before.tokens.ignite > 0 ? 1 : 0;
-        const totalDamage = burnDamage + igniteDamage;
-        const after = tickStatuses(before);
-        setAi(after);
-        if (totalDamage > 0) {
-          popDamage("ai", totalDamage, "hit");
-          const parts: string[] = [];
-          if (burnDamage > 0)
-            parts.push(`Burn ${burnStacks} -> ${burnDamage} dmg`);
-          if (igniteDamage > 0) parts.push("Ignite -> 1 dmg");
-          upkeepLines.push(
-            indentLog(
-              `Upkeep: ${heroName} takes ${totalDamage} dmg (${parts.join(
-                ", "
-              )}). HP: ${after.hp}/${after.hero.maxHp}.`
-            )
-          );
-        }
-        if (after.hp <= 0) {
-          pushLog(`${heroName} fell to status damage.`);
-          continueBattle = false;
-        }
-        const opponent = stateRef.current.players.you;
-        if (!opponent || opponent.hp <= 0) continueBattle = false;
-        const needsBurnClear =
-          continueBattle && burnDamage > 0 && after.tokens.burn > 0;
-        if (needsBurnClear) {
-          statusPending = true;
-          statusEntry = {
-            side: next,
-            status: "burn",
-            stacks: after.tokens.burn,
-          };
-        }
-      } else {
-        continueBattle = false;
-      }
-    }
-
-    setTurn(next);
-    setPhase("upkeep");
-    setPendingAttack(null);
-    setAiSimActive(false);
-    setAiSimRolling(false);
-    setAiDefenseSim(false);
-    setAiDefenseRoll(null);
-    setAiEvasiveRoll(null);
-    resetRoll();
-
-    if (!continueBattle) {
-      setPendingStatusClear(null);
-      statusResumeRef.current = null;
-      return false;
-    }
-
-    if (next === "you") {
-      const newRound = round + 1;
-      setRound(newRound);
-      stateRef.current = { ...stateRef.current, round: newRound };
-      pushLog(`--- Kolo ${newRound} ---`, { blankLineBefore: true });
-      if (upkeepLines.length) {
-        pushLog(upkeepLines);
-      }
-    } else if (next === "ai") {
-      const lines = [aiHeader ?? "[AI] AI \u00FAto\u010D\u00ED:"];
-      if (upkeepLines.length) lines.push(...upkeepLines);
-      pushLog(lines, { blankLineBefore: true });
-    } else if (upkeepLines.length) {
-      pushLog(upkeepLines, { blankLineBefore: true });
-    }
-
-    if (statusPending && statusEntry) {
-      setPendingStatusClear(statusEntry);
-      statusResumeRef.current = afterReady ?? null;
-    } else {
-      setPendingStatusClear(null);
-      statusResumeRef.current = null;
-      setTimeout(() => setPhase("roll"), 600);
-      afterReady?.();
-    }
-
-    return true;
-  }
 
   function aiPlay() {
     const curAi = stateRef.current.players.ai;
