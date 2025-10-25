@@ -30,6 +30,7 @@ import {
 import { useGameActions } from "./hooks/useGameActions";
 import { useDiceAnimator } from "./hooks/useDiceAnimator";
 import { useAiDiceAnimator } from "./hooks/useAiDiceAnimator";
+import { useStatusManager } from "./hooks/useStatusManager";
 import PyromancerPortrait from "./assets/Pyromancer_Hero.png";
 import ShadowMonkPortrait from "./assets/Shadow_Monk_Hero.png";
 
@@ -78,26 +79,6 @@ export default function App() {
     []
   );
 
-  const startBattle = (playerHero: Hero, aiHero: Hero) => {
-    if (timersRef.current) {
-      window.clearInterval(timersRef.current);
-      timersRef.current = null;
-    }
-    statusResumeRef.current = null;
-    const resetState = createInitialState(playerHero, aiHero);
-    stateRef.current = resetState;
-    dispatch({
-      type: "RESET",
-      payload: { youHero: playerHero, aiHero },
-    });
-    setScreen("game");
-    window.setTimeout(() => tickAndStart("you"), 0);
-  };
-
-  const handleHeroSelection = (playerHero: Hero, aiHero: Hero) => {
-    startBattle(playerHero, aiHero);
-  };
-
   const {
     pushLog,
     logPlayerAttackStart,
@@ -136,7 +117,6 @@ export default function App() {
   const AI_ROLL_ANIM_MS = 900;
   const AI_STEP_MS = 2000;
   const timersRef = useRef<number | null>(null);
-  const statusResumeRef = useRef<(() => void) | null>(null);
 
   function popDamage(
     side: Side,
@@ -188,6 +168,35 @@ export default function App() {
     setAiSimRolling,
     rollDurationMs: AI_ROLL_ANIM_MS,
   });
+  const { statusResumeRef, performStatusClearRoll } = useStatusManager({
+    stateRef,
+    setPlayer,
+    setPendingStatusClear,
+    pushLog,
+    animateDefenseDie,
+    restoreDiceAfterDefense,
+    setPhase,
+  });
+
+  const startBattle = (playerHero: Hero, aiHero: Hero) => {
+    if (timersRef.current) {
+      window.clearInterval(timersRef.current);
+      timersRef.current = null;
+    }
+    statusResumeRef.current = null;
+    const resetState = createInitialState(playerHero, aiHero);
+    stateRef.current = resetState;
+    dispatch({
+      type: "RESET",
+      payload: { youHero: playerHero, aiHero },
+    });
+    setScreen("game");
+    window.setTimeout(() => tickAndStart("you"), 0);
+  };
+
+  const handleHeroSelection = (playerHero: Hero, aiHero: Hero) => {
+    startBattle(playerHero, aiHero);
+  };
 
   function tickAndStart(next: Side, afterReady?: () => void): boolean {
     let continueBattle = true;
@@ -708,50 +717,6 @@ export default function App() {
         },
         650
       );
-    }, 650);
-  }
-
-  function performStatusClearRoll(side: Side) {
-    const currentStatus = stateRef.current.pendingStatusClear;
-    if (!currentStatus || currentStatus.side !== side || currentStatus.rolling)
-      return;
-    setPendingStatusClear({ ...currentStatus, rolling: true });
-    animateDefenseDie((roll) => {
-      const success = roll >= 5;
-      const snapshot = stateRef.current;
-      const playerState = snapshot.players[side];
-      if (success && playerState) {
-        const updatedPlayer: PlayerState = {
-          ...playerState,
-          tokens: { ...playerState.tokens, burn: 0 },
-        };
-        setPlayer(side, updatedPlayer);
-      }
-      const heroName = playerState?.hero.name ?? (side === "you" ? "You" : "AI");
-      pushLog(
-        indentLog(
-          `Upkeep: ${heroName} roll vs Burn: ${roll} ${
-            success ? "-> removes Burn" : "-> Burn persists"
-          }.`
-        )
-      );
-      setPendingStatusClear({
-        ...currentStatus,
-        stacks: success ? 0 : currentStatus.stacks,
-        rolling: false,
-        roll,
-        success,
-      });
-      setTimeout(() => {
-        restoreDiceAfterDefense();
-        setTimeout(() => {
-          setPendingStatusClear(null);
-          setPhase("roll");
-          const resume = statusResumeRef.current;
-          statusResumeRef.current = null;
-          resume?.();
-        }, 400);
-      }, 600);
     }, 650);
   }
 
