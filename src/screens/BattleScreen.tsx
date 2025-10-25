@@ -454,4 +454,3 @@ export function BattleScreen() {
     </div>
   );
 }
-*** End Patch
