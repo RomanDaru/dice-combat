@@ -375,8 +375,13 @@ export default function App() {
     log,
   };
 
-  return <BattleScreen {...battleProps} />;
+  return (
+    <GameContext.Provider value={{ state, dispatch }}>
+      <BattleScreen {...battleProps} />
+    </GameContext.Provider>
+  );
 }
+
 
 
 
