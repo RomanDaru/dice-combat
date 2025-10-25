@@ -28,6 +28,7 @@ import {
   useCombatLog,
 } from "./hooks/useCombatLog";
 import { useGameActions } from "./hooks/useGameActions";
+import { useDiceAnimator } from "./hooks/useDiceAnimator";
 import PyromancerPortrait from "./assets/Pyromancer_Hero.png";
 import ShadowMonkPortrait from "./assets/Shadow_Monk_Hero.png";
 
@@ -169,47 +170,17 @@ export default function App() {
   );
   const readyForActing = useMemo(() => detectCombos(dice), [dice]);
   const readyForAI = useMemo(() => detectCombos(aiSimDice), [aiSimDice]);
-
-  const resetRoll = () => {
-    setDice([2, 2, 3, 4, 6]);
-    setHeld([false, false, false, false, false]);
-    setRolling([false, false, false, false, false]);
-    setRollsLeft(3);
-  };
-
-  function animateDefenseDie(onDone: (r: number) => void, duration = 700) {
-    if (!savedDiceForDefense) setSavedDiceForDefense([...dice]);
-    const mask = [false, false, false, false, false];
-    mask[DEF_DIE_INDEX] = true;
-    setRolling(mask);
-    const start = Date.now();
-    let workingDice = [...stateRef.current.dice];
-    const timer = window.setInterval(() => {
-      workingDice = workingDice.map((value, index) =>
-        index === DEF_DIE_INDEX ? 1 + Math.floor(Math.random() * 6) : value
-      );
-      setDice([...workingDice]);
-      if (Date.now() - start > duration) {
-        clearInterval(timer);
-        const result = rollDie();
-        workingDice = workingDice.map((value, index) =>
-          index === DEF_DIE_INDEX ? result : value
-        );
-        setDice([...workingDice]);
-        setRolling([false, false, false, false, false]);
-        setTimeout(() => onDone(result), 50);
-      }
-    }, 90);
-  }
-  function restoreDiceAfterDefense() {
-    if (savedDiceForDefense) {
-      const vals = savedDiceForDefense;
-      setTimeout(() => {
-        setDice(vals);
-        setSavedDiceForDefense(null);
-      }, 300);
-    }
-  }
+  const { resetRoll, animateDefenseDie, restoreDiceAfterDefense } =
+    useDiceAnimator({
+      stateRef,
+      savedDiceForDefense,
+      setSavedDiceForDefense,
+      setDice,
+      setHeld,
+      setRolling,
+      setRollsLeft,
+      defenseDieIndex: DEF_DIE_INDEX,
+    });
 
   function tickAndStart(next: Side, afterReady?: () => void): boolean {
     let continueBattle = true;
