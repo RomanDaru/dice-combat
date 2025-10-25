@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { BURN_STATUS_ID } from "../game/statuses";
+import { getStatusDefinition } from "../game/statuses";
 import type { PendingStatusClear } from "../game/state";
 import type { Side, PlayerState, Phase } from "../game/types";
 import { indentLog } from "./useCombatLog";
@@ -65,38 +65,42 @@ export function useStatusManager({
         return;
       }
 
-      if (currentStatus.status !== BURN_STATUS_ID) {
+      const definition = getStatusDefinition(currentStatus.status);
+      const cleanse = definition?.cleanse;
+      if (!cleanse || cleanse.type !== "roll") {
+        setPendingStatus(null);
+        statusResumeRef.current?.();
         return;
       }
 
       setPendingStatus({ ...currentStatus, rolling: true });
+      const animationDuration = cleanse.animationDuration ?? 650;
+
       animateDefenseDie((roll) => {
-        const success = roll >= 5;
         const snapshot = stateRef.current;
         const playerState = snapshot.players[side];
-        if (success && playerState) {
-          const updatedPlayer: PlayerState = {
-            ...playerState,
-            tokens: { ...playerState.tokens, burn: 0 },
-          };
-          setPlayer(side, updatedPlayer);
+        if (!playerState) {
+          setPendingStatus(null);
+          statusResumeRef.current?.();
+          return;
         }
-        const heroName = playerState?.hero.name ?? (side === "you" ? "You" : "AI");
-        const statusLabel = "Burn";
-        pushLog(
-          indentLog(
-            `Upkeep: ${heroName} roll vs ${statusLabel}: ${roll} ${
-              success ? `-> removes ${statusLabel}` : `-> ${statusLabel} persists`
-            }.`
-          )
-        );
+
+        const result = cleanse.resolve(playerState, roll);
+        setPlayer(side, result.updated);
+        pushLog(indentLog(result.logLine));
+
+        const updatedStacks = (result.updated.tokens as Record<string, number | undefined>)[
+          currentStatus.status
+        ] ?? 0;
+
         setPendingStatus({
           ...currentStatus,
-          stacks: success ? 0 : currentStatus.stacks,
+          stacks: updatedStacks,
           rolling: false,
           roll,
-          success,
+          success: result.success,
         });
+
         window.setTimeout(() => {
           restoreDiceAfterDefense();
           window.setTimeout(() => {
@@ -107,9 +111,16 @@ export function useStatusManager({
             resume?.();
           }, 400);
         }, 600);
-      }, 650);
+      }, animationDuration);
     },
-    [animateDefenseDie, pushLog, restoreDiceAfterDefense, setPendingStatus, setPhase, setPlayer]
+    [
+      animateDefenseDie,
+      pushLog,
+      restoreDiceAfterDefense,
+      setPendingStatus,
+      setPhase,
+      setPlayer,
+    ]
   );
 
   return {
@@ -117,4 +128,3 @@ export function useStatusManager({
     performStatusClearRoll,
   };
 }
-

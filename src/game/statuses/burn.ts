@@ -1,4 +1,8 @@
 import type { PlayerState } from "../types";
+import type {
+  StatusCleanseRollResult,
+  StatusDefinition,
+} from "./types";
 
 export const BURN_STATUS_ID = "burn" as const;
 export const MAX_BURN_STACKS = 3;
@@ -19,29 +23,60 @@ export const applyBurnStacks = (
   return Math.min(MAX_BURN_STACKS, Math.max(0, current) + stacksToAdd);
 };
 
-export const tickBurn = (player: PlayerState) => {
-  const stacksBefore = Math.max(0, player.tokens.burn ?? 0);
-  const damage = getBurnDamage(stacksBefore);
-  const stacksAfter = stacksBefore > 0 ? stacksBefore - 1 : stacksBefore;
+const resolveBurnCleanse = (
+  player: PlayerState,
+  roll: number
+): StatusCleanseRollResult => {
+  const success = roll >= 5;
+  const updated: PlayerState = success
+    ? {
+        ...player,
+        tokens: {
+          ...player.tokens,
+          burn: 0,
+        },
+      }
+    : player;
 
-  const updated: PlayerState = {
-    ...player,
-    hp: player.hp - damage,
-    tokens: {
-      ...player.tokens,
-      burn: stacksAfter,
-    },
-  };
+  const logLine = `${player.hero.name} roll vs Burn: ${roll} ${
+    success ? "-> removes Burn" : "-> Burn persists"
+  }.`;
 
   return {
     updated,
-    damage,
-    stacksBefore,
-    stacksAfter,
+    success,
+    logLine,
   };
 };
 
-export const shouldPromptBurnCleanse = (
-  stacksAfterTick: number,
-  damage: number
-) => damage > 0 && stacksAfterTick > 0;
+export const burnDefinition: StatusDefinition = {
+  id: BURN_STATUS_ID,
+  label: "Burn",
+  tick: (player) => {
+    const stacksBefore = Math.max(0, player.tokens.burn ?? 0);
+    const damage = getBurnDamage(stacksBefore);
+    const stacksAfter = stacksBefore > 0 ? stacksBefore - 1 : stacksBefore;
+
+    const updated: PlayerState = {
+      ...player,
+      hp: player.hp - damage,
+      tokens: {
+        ...player.tokens,
+        burn: stacksAfter,
+      },
+    };
+
+    return {
+      player: updated,
+      damage,
+      logDetail:
+        damage > 0 ? `Burn ${stacksBefore} -> ${damage} dmg` : undefined,
+      promptStacks: damage > 0 && stacksAfter > 0 ? stacksAfter : undefined,
+    };
+  },
+  cleanse: {
+    type: "roll",
+    threshold: 5,
+    resolve: resolveBurnCleanse,
+  },
+};
