@@ -1,32 +1,22 @@
 import React from "react";
 import AbilityList from "./AbilityList";
 import DiceGrid from "./DiceGrid";
-import type { Hero } from "../game/types";
+import { useGame } from "../context/GameContext";
+import { useGameData } from "../context/GameController";
 import type { Combo } from "../game/types";
 
-type ReadyCombos = Record<Combo, boolean> | Record<string, boolean>;
+export function AiPreviewPanel() {
+  const { state } = useGame();
+  const { readyForAI } = useGameData();
+  const hero = state.players.ai.hero;
+  const { dice, rolling, held } = state.aiPreview;
 
-type AiPreviewPanelProps = {
-  hero: Hero;
-  readyCombos: ReadyCombos;
-  dice: number[];
-  rolling: boolean;
-  held: boolean[];
-};
-
-export function AiPreviewPanel({
-  hero,
-  readyCombos,
-  dice,
-  rolling,
-  held,
-}: AiPreviewPanelProps) {
   return (
     <div className='row grid-2'>
       <AbilityList
         hero={hero}
         title={`Opponent Abilities (${hero.name})`}
-        showReadyCombos={readyCombos as Record<Combo, boolean>}
+        showReadyCombos={readyForAI as Record<Combo, boolean>}
       />
       <div className='row'>
         <DiceGrid
@@ -49,4 +39,3 @@ export function AiPreviewPanel({
     </div>
   );
 }
-
