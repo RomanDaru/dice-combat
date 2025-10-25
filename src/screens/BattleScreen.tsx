@@ -53,6 +53,46 @@ export function BattleScreen() {
     fx,
   } = state;
 
+  const setDice = useCallback(
+    (value: number[] | ((prev: number[]) => number[])) => {
+      const next =
+        typeof value === "function"
+          ? (value as (prev: number[]) => number[])(stateRef.current.dice)
+          : value;
+      dispatch({ type: "SET_DICE", dice: next });
+    },
+    [dispatch]
+  );
+
+  const setHeld = useCallback(
+    (value: boolean[] | ((prev: boolean[]) => boolean[])) => {
+      const next =
+        typeof value === "function"
+          ? (value as (prev: boolean[]) => boolean[])(stateRef.current.held)
+          : value;
+      dispatch({ type: "SET_HELD", held: next });
+    },
+    [dispatch]
+  );
+
+  const setRolling = useCallback(
+    (value: boolean[]) => {
+      dispatch({ type: "SET_ROLLING", rolling: value });
+    },
+    [dispatch]
+  );
+
+  const setRollsLeft = useCallback(
+    (value: number | ((prev: number) => number)) => {
+      const next =
+        typeof value === "function"
+          ? (value as (prev: number) => number)(stateRef.current.rollsLeft)
+          : value;
+      dispatch({ type: "SET_ROLLS_LEFT", rollsLeft: next });
+    },
+    [dispatch]
+  );
+
   const setFloatDamage = useCallback(
     (side: Side, value: GameState["fx"]["floatDamage"][Side]) => {
       dispatch({ type: "SET_FLOAT_DAMAGE", side, value });
