@@ -1,14 +1,12 @@
 import React, { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import Section from "./components/Section";
-import HPBar from "./components/HPBar";
-import TokenChips from "./components/TokenChips";
 import AbilityList from "./components/AbilityList";
 import DiceGrid from "./components/DiceGrid";
-import TurnProgress from "./components/TurnProgress";
-import DamageOverlay from "./components/DamageOverlay";
 import HeroSelectScreen, {
   HeroOption,
 } from "./components/HeroSelectScreen";
+import { PlayerPanel } from "./components/PlayerPanel";
+import { PlayerActionPanel } from "./components/PlayerActionPanel";
 import { HEROES } from "./game/heroes";
 import { Phase, PlayerState, Side, Ability, Hero } from "./game/types";
 import { bestAbility, detectCombos, rollDie } from "./game/combos";
@@ -32,7 +30,6 @@ import { useAiController } from "./hooks/useAiController";
 import { useStatusManager } from "./hooks/useStatusManager";
 import { useDefenseActions } from "./hooks/useDefenseActions";
 import { useTurnController } from "./hooks/useTurnController";
-import { PlayerPanel } from "./components/PlayerPanel";
 import PyromancerPortrait from "./assets/Pyromancer_Hero.png";
 import ShadowMonkPortrait from "./assets/Shadow_Monk_Hero.png";
 
@@ -433,247 +430,37 @@ export default function App() {
                     showReadyCombos={readyForActing as any}
                   />
 
-                  <div className='row'>
-                    <TurnProgress phase={phase} />
-                    <DiceGrid
-                      dice={dice}
-                      held={held}
-                      rolling={rolling}
-                      canInteract={
-                        turn === "you" && !isDefenseTurn && !statusActive
-                      }
-                      onToggleHold={onToggleHold}
-                      defIndex={DEF_DIE_INDEX}
-                      showDcLogo={showDcLogo}
-                      isDefensePhase={
-                        isDefenseTurn || statusActive || phase === "defense"
-                      }
-                      statusActive={statusActive}
-                    />
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 8,
-                        flexWrap: "wrap",
-                        alignItems: "center",
-                      }}>
-                      <button
-                        className='btn primary'
-                        onClick={onRoll}
-                        disabled={
-                          turn !== "you" ||
-                          rollsLeft <= 0 ||
-                          isDefenseTurn ||
-                          statusActive
-                        }>
-                        Roll ({rollsLeft})
-                      </button>
-                      {!statusActive &&
-                        (isDefenseTurn ? (
-                          <>
-                            <button
-                              className='btn success'
-                              onClick={onUserDefenseRoll}>
-                              Defense Roll
-                            </button>
-                            {you.tokens.evasive > 0 && (
-                              <button
-                                className='btn'
-                                onClick={onUserEvasiveRoll}>
-                                Use Evasive
-                              </button>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              className='btn success'
-                              onClick={onConfirmAttack}
-                              disabled={turn !== "you" || rollsLeft === 3}
-                              title={
-                                rollsLeft === 3
-                                  ? "Roll at least once before attacking"
-                                  : "Confirm attack"
-                              }>
-                              Confirm Attack
-                            </button>
-                            <button
-                              className='btn'
-                              onClick={onEndTurnNoAttack}
-                              disabled={turn !== "you"}>
-                              Pass Turn
-                            </button>
-                          </>
-                        ))}
-                      {statusActive ? (
-                        <div
-                          style={{
-                            marginLeft: "auto",
-                            fontSize: 14,
-                            color: "#e4e4e7",
-                          }}>
-                          {pendingStatusClear?.roll !== undefined
-                            ? `Status roll: ${pendingStatusClear.roll} ${
-                                pendingStatusClear.success
-                                  ? "-> Burn cleared"
-                                  : "-> Burn stays"
-                              }`
-                            : `Burn ${
-                                pendingStatusClear?.stacks ?? 0
-                              } stack(s) - roll 5-6 to clear.`}
-                        </div>
-                      ) : isDefenseTurn ? (
-                        <div
-                          style={{
-                            marginLeft: "auto",
-                            fontSize: 14,
-                            color: "#d4d4d8",
-                          }}>
-                          {aiEvasiveRoll !== null && (
-                            <span
-                              className='badge indigo'
-                              style={{ marginRight: 8 }}>
-                              AI Evasive roll: <b>{aiEvasiveRoll}</b>
-                            </span>
-                          )}
-                          {aiDefenseRoll !== null && (
-                            <span className='badge indigo'>
-                              AI Defense roll: <b>{aiDefenseRoll}</b>
-                            </span>
-                          )}
-                          {aiEvasiveRoll === null && aiDefenseRoll === null && (
-                            <span>AI defense resolving...</span>
-                          )}
-                        </div>
-                      ) : rollsLeft === 3 ? (
-                        <div
-                          style={{
-                            marginLeft: "auto",
-                            fontSize: 14,
-                            color: "#a1a1aa",
-                          }}>
-                          Suggested ability appears after the first roll.
-                        </div>
-                      ) : ability ? (
-                        <div
-                          style={{
-                            marginLeft: "auto",
-                            fontSize: 14,
-                            color: "#e4e4e7",
-                          }}>
-                          <b>Best ability:</b> {ability.label ?? ability.combo}{" "}
-                          ({ability.damage} dmg)
-                        </div>
-                      ) : (
-                        <div
-                          style={{
-                            marginLeft: "auto",
-                            fontSize: 14,
-                            color: "#a1a1aa",
-                          }}>
-                          No combo available
-                        </div>
-                      )}
-                    </div>
-
-                    {pendingStatusClear && (
-                      <div
-                        className='card'
-                        style={{
-                          borderColor: "#f97316",
-                          background: "rgba(249,115,22,.12)",
-                        }}>
-                        <div style={{ fontSize: 14, marginBottom: 8 }}>
-                          Burn on{" "}
-                          <b>
-                            {pendingStatusClear.side === "you"
-                              ? you.hero.name
-                              : ai.hero.name}
-                          </b>{" "}
-                          - stacks: <b>{pendingStatusClear.stacks}</b>
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: 8,
-                            flexWrap: "wrap",
-                            alignItems: "center",
-                          }}>
-                          {pendingStatusClear.side === "you" ? (
-                            <button
-                              className='btn success'
-                              onClick={() => performStatusClearRoll("you")}
-                              disabled={pendingStatusClear.rolling}>
-                              {pendingStatusClear.rolling
-                                ? "Rolling..."
-                                : "Status Roll (Burn)"}
-                            </button>
-                          ) : (
-                            <div style={{ fontSize: 14, color: "#d4d4d8" }}>
-                              {pendingStatusClear.roll === undefined
-                                ? pendingStatusClear.rolling
-                                  ? "AI is rolling..."
-                                  : "AI will roll automatically."
-                                : ""}
-                            </div>
-                          )}
-                          {pendingStatusClear.roll !== undefined && (
-                            <div style={{ fontSize: 14, color: "#e4e4e7" }}>
-                              Roll: <b>{pendingStatusClear.roll}</b>{" "}
-                              {pendingStatusClear.success
-                                ? "-> Burn cleared"
-                                : "-> Burn sticks"}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {aiDefenseSim && (
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 12,
-                          alignItems: "center",
-                          fontSize: 14,
-                          color: "#d4d4d8",
-                        }}>
-                        {aiEvasiveRoll !== null && (
-                          <div className='badge indigo'>
-                            AI Evasive: <b>{aiEvasiveRoll}</b>
-                          </div>
-                        )}
-                        {aiDefenseRoll !== null && (
-                          <div className='badge indigo'>
-                            AI Defense: <b>{aiDefenseRoll}</b>
-                          </div>
-                        )}
-                        {aiEvasiveRoll === null && aiDefenseRoll === null && (
-                          <div>AI defense in progress...</div>
-                        )}
-                      </div>
-                    )}
-
-                    {statusActive ? (
-                      <div style={{ fontSize: 12, color: "#a1a1aa" }}>
-                        Upkeep burn check: roll 5-6 to clear Burn (
-                        {pendingStatusClear?.side === "you"
-                          ? "click Status Roll"
-                          : "AI rolls automatically"}
-                        ).
-                      </div>
-                    ) : isDefenseTurn ? (
-                      <div style={{ fontSize: 12, color: "#a1a1aa" }}>
-                        Click Defense Roll (or use Evasive) to respond to the
-                        attack.
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 12, color: "#a1a1aa" }}>
-                        Tip: Confirm attack becomes available after the first{" "}
-                        <b>Roll</b>.
-                      </div>
-                    )}
-                  </div>
+                  <PlayerActionPanel
+                    phase={phase}
+                    dice={dice}
+                    held={held}
+                    rolling={rolling}
+                    canInteract={turn === "you" && !isDefenseTurn && !statusActive}
+                    onToggleHold={onToggleHold}
+                    defIndex={DEF_DIE_INDEX}
+                    showDcLogo={showDcLogo}
+                    isDefensePhase={
+                      isDefenseTurn || statusActive || phase === "defense"
+                    }
+                    statusActive={statusActive}
+                    onRoll={onRoll}
+                    onConfirmAttack={onConfirmAttack}
+                    onEndTurnNoAttack={onEndTurnNoAttack}
+                    onUserDefenseRoll={onUserDefenseRoll}
+                    onUserEvasiveRoll={onUserEvasiveRoll}
+                    rollsLeft={rollsLeft}
+                    turn={turn}
+                    isDefenseTurn={isDefenseTurn}
+                    youHasEvasive={you.tokens.evasive > 0}
+                    pendingStatusClear={pendingStatusClear}
+                    performStatusClearRoll={performStatusClearRoll}
+                    youHeroName={you.hero.name}
+                    aiHeroName={ai.hero.name}
+                    aiEvasiveRoll={aiEvasiveRoll}
+                    aiDefenseRoll={aiDefenseRoll}
+                    aiDefenseSim={aiDefenseSim}
+                    ability={ability}
+                  />
                 </div>
 
                 <div className='row grid-2'>
