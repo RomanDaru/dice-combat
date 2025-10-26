@@ -30,6 +30,11 @@ export type StatusCleanseRoll = {
 export type StatusDefinition = {
   id: StatusId;
   label: string;
+  description: {
+    name: string;
+    icon: string;
+    text: string;
+  };
   tick: (player: PlayerState) => StatusTickResult;
   cleanse?: StatusCleanseRoll;
 };

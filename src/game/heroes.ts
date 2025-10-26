@@ -1,11 +1,12 @@
-import { Hero, HeroId } from './types';
+import { Hero, HeroId } from "./types";
+import { StatusId } from "./statuses";
 import {
   monkDefenseFromRoll,
   monkDefenseRoll,
   pyroDefenseFromRoll,
   pyroDefenseRoll,
-} from './defense';
-import { monkAiStrategy, pyroAiStrategy } from './ai';
+} from "./defense";
+import { monkAiStrategy, pyroAiStrategy } from "./ai";
 
 export const HEROES: Record<HeroId, Hero> = {
   Pyromancer: {
@@ -14,11 +15,27 @@ export const HEROES: Record<HeroId, Hero> = {
     maxHp: 30,
     abilities: [
       { combo: "FULL_HOUSE", damage: 8, label: "Full House" },
-      { combo: "4OAK", damage: 7, apply: { burn: 1 }, label: "Four of a kind + Burn" },
-      { combo: "SMALL_STRAIGHT", damage: 6, apply: { burn: 1 }, label: "Small straight + Burn" },
+      {
+        combo: "4OAK",
+        damage: 7,
+        apply: { burn: 1 },
+        label: "Four of a kind + Burn",
+      },
+      {
+        combo: "SMALL_STRAIGHT",
+        damage: 6,
+        apply: { burn: 1 },
+        label: "Small straight + Burn",
+      },
       { combo: "3OAK", damage: 5, label: "Three of a kind" },
       { combo: "PAIR_PAIR", damage: 4, label: "Two pairs" },
-      { combo: "LARGE_STRAIGHT", damage: 12, ultimate: true, apply: { burn: 2 }, label: "ULT: Inferno" },
+      {
+        combo: "LARGE_STRAIGHT",
+        damage: 12,
+        ultimate: true,
+        apply: { burn: 2 },
+        label: "ULT: Inferno",
+      },
       { combo: "5OAK", damage: 13, ultimate: true, label: "ULT: Supernova" },
     ],
     defense: {
@@ -34,12 +51,38 @@ export const HEROES: Record<HeroId, Hero> = {
     name: "Shadow Monk",
     maxHp: 30,
     abilities: [
-      { combo: "FULL_HOUSE", damage: 7, apply: { chi: 1 }, label: "Full House + Chi" },
-      { combo: "4OAK", damage: 6, apply: { chi: 1 }, label: "Four of a kind + Chi" },
-      { combo: "SMALL_STRAIGHT", damage: 5, apply: { evasive: 1 }, label: "Small straight + Evasive" },
+      {
+        combo: "FULL_HOUSE",
+        damage: 7,
+        apply: { chi: 1 },
+        label: "Full House + Chi",
+      },
+      {
+        combo: "4OAK",
+        damage: 6,
+        apply: { chi: 1 },
+        label: "Four of a kind + Chi",
+      },
+      {
+        combo: "SMALL_STRAIGHT",
+        damage: 5,
+        apply: { evasive: 1 },
+        label: "Small straight + Evasive",
+      },
       { combo: "3OAK", damage: 4, label: "Three of a kind" },
-      { combo: "PAIR_PAIR", damage: 3, apply: { chi: 1 }, label: "Two pairs + Chi" },
-      { combo: "LARGE_STRAIGHT", damage: 10, ultimate: true, apply: { evasive: 1 }, label: "ULT: Palm of Night" },
+      {
+        combo: "PAIR_PAIR",
+        damage: 3,
+        apply: { chi: 1 },
+        label: "Two pairs + Chi",
+      },
+      {
+        combo: "LARGE_STRAIGHT",
+        damage: 10,
+        ultimate: true,
+        apply: { evasive: 1 },
+        label: "ULT: Palm of Night",
+      },
       { combo: "5OAK", damage: 11, ultimate: true, label: "ULT: Silent Fist" },
     ],
     defense: {
@@ -50,4 +93,22 @@ export const HEROES: Record<HeroId, Hero> = {
       chooseHeld: monkAiStrategy,
     },
   },
+};
+
+export const getHeroStatusIds = (hero: Hero): StatusId[] => {
+  const statusIds = new Set<StatusId>();
+  hero.abilities.forEach((ability) => {
+    const applyData = ability.apply;
+
+    if (applyData) {
+      // Použijeme Object.keys a pretypujeme pole kľúčov na StatusId[]
+      (Object.keys(applyData) as StatusId[]).forEach((key) => {
+        const value = applyData[key];
+        if (value && value > 0) {
+          statusIds.add(key);
+        }
+      });
+    }
+  });
+  return Array.from(statusIds);
 };

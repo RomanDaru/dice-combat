@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { Hero } from "../game/types";
+import { getStatusDefinition, StatusId } from "../game/statuses";
 import styles from "./HeroSelectScreen.module.css";
 import PyromancerPreview from "../assets/Pyromancer_Animated1.mp4";
 import ShadowMonkPreview from "../assets/Shadow_Monk_Animated.mp4";
+import { getHeroStatusIds } from "../game/heroes";
 
 const AbilityPreviewList = ({ hero }: { hero: Hero }) => {
   return (
@@ -57,6 +59,10 @@ type HeroDetailPanelProps = {
 const HeroDetailPanel = ({ hero, image }: HeroDetailPanelProps) => {
   const mediaSource = HERO_MEDIA[hero.id] ?? null;
 
+  const relevantStatusIds = useMemo(() => {
+    return getHeroStatusIds(hero);
+  }, [hero]);
+
   return (
     <div className={styles.detailLayout}>
       <div className={styles.detailVisual}>
@@ -78,6 +84,37 @@ const HeroDetailPanel = ({ hero, image }: HeroDetailPanelProps) => {
 
       <div className={styles.abilityPreview}>
         <AbilityPreviewList hero={hero} />
+        {relevantStatusIds.length > 0 && (
+          <div className={styles.statusExplanationSection}>
+            <h3 className={styles.statusExplanationHeading}>
+              Špeciálne Efekty:
+            </h3>
+
+            {/* Prejdi slučkou cez IDčka relevantných statusov */}
+            {relevantStatusIds.map((statusId) => {
+              const statusDef = getStatusDefinition(statusId);
+
+              // Poistka: Ak definícia alebo popis neexistuje, nič nezobrazuj
+              if (!statusDef || !statusDef.description) {
+                console.warn(
+                  `Missing definition or description for status: ${statusId}`
+                );
+                return null;
+              }
+
+              // Ak všetko existuje, zobraz popis z definície
+              return (
+                <div key={statusId} className={styles.statusItem}>
+                  <strong>
+                    {statusDef.description.name} {statusDef.description.icon}:
+                  </strong>{" "}
+                  {/* Medzera */}
+                  {statusDef.description.text}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

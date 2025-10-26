@@ -1,8 +1,5 @@
 import type { PlayerState } from "../types";
-import type {
-  StatusCleanseRollResult,
-  StatusDefinition,
-} from "./types";
+import type { StatusCleanseRollResult, StatusDefinition } from "./types";
 
 export const BURN_STATUS_ID = "burn" as const;
 export const MAX_BURN_STACKS = 3;
@@ -52,6 +49,11 @@ const resolveBurnCleanse = (
 export const burnDefinition: StatusDefinition = {
   id: BURN_STATUS_ID,
   label: "Burn",
+  description: {
+    name: "Burn",
+    icon: "🔥",
+    text: "Poškodenie na začiatku kola (2/3/4 podľa stackov), potom stack klesne o 1. Dá sa očistiť hodom kocky 5 alebo 6.",
+  },
   tick: (player) => {
     const stacksBefore = Math.max(0, player.tokens.burn ?? 0);
     const damage = getBurnDamage(stacksBefore);
