@@ -2,22 +2,23 @@ import type { ActiveAbility } from "../types";
 
 type ActiveAbilityRegistry = Record<string, ActiveAbility[]>;
 
+const SHADOW_MONK_EVASIVE_ID = "shadow_monk.use_evasive";
+
 const ShadowMonkActiveAbilities: ActiveAbility[] = [
   {
-    id: "shadow_monk.use_evasive",
+    id: SHADOW_MONK_EVASIVE_ID,
     label: "Use Evasive",
     description: "Spend an Evasive token to roll defensively instead of taking the hit.",
-    phase: "defense",
+    phase: ["attack", "defense"],
     cost: {
       tokens: { evasive: 1 },
     },
-    canUse: ({ phase, actingPlayer, state, turn, side }) => {
-      if (turn !== side) return false;
-      if (side !== "you") return false;
-      if (phase !== "defense") return false;
-      if ((actingPlayer.tokens.evasive ?? 0) <= 0) return false;
+    canUse: ({ phase, actingPlayer, state, side }) => {
       const pending = state.pendingAttack;
-      return Boolean(pending && pending.defender === side);
+      if (!pending || pending.defender !== side) return false;
+      if (!["attack", "defense"].includes(phase)) return false;
+      if ((actingPlayer.tokens.evasive ?? 0) <= 0) return false;
+      return true;
     },
     execute: () => ({
       controllerAction: { type: "USE_EVASIVE" },
@@ -31,3 +32,7 @@ export const ActiveAbilities: ActiveAbilityRegistry = {
 
 export const getActiveAbilitiesForHero = (heroId: string): ActiveAbility[] =>
   ActiveAbilities[heroId] ?? [];
+
+export const ActiveAbilityIds = {
+  SHADOW_MONK_EVASIVE_ID,
+} as const;

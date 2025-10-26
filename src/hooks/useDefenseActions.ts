@@ -5,6 +5,8 @@ import type { GameState } from "../game/state";
 import type { Ability, PlayerState, Side } from "../game/types";
 import { buildAttackResolutionLines } from "./useCombatLog";
 import { useGame } from "../context/GameContext";
+import { useActiveAbilities } from "./useActiveAbilities";
+import { ActiveAbilityIds } from "../game/activeAbilities";
 
 type UseDefenseActionsArgs = {
   turn: Side;
@@ -50,6 +52,21 @@ export function useDefenseActions({
 }: UseDefenseActionsArgs) {
   const { state, dispatch } = useGame();
   const stateRef = useRef<GameState>(state);
+
+  const handleAiAbilityControllerAction = useCallback(
+    () => {},
+    []
+  );
+
+  const {
+    abilities: aiActiveAbilities,
+    performAbility: performAiActiveAbility,
+  } = useActiveAbilities({
+    side: "ai",
+    pushLog,
+    popDamage,
+    handleControllerAction: handleAiAbilityControllerAction,
+  });
 
   useEffect(() => {
     stateRef.current = state;
@@ -131,7 +148,19 @@ export function useDefenseActions({
         | undefined
         | { used: boolean; success: boolean; roll: number; label?: string } =
         undefined;
-      if (defender.tokens.evasive > 0) {
+
+      const aiEvasiveAbility = aiActiveAbilities.find(
+        (ability) => ability.id === ActiveAbilityIds.SHADOW_MONK_EVASIVE_ID
+      );
+
+      let aiShouldAttemptEvasive = false;
+      if (aiEvasiveAbility) {
+        aiShouldAttemptEvasive = performAiActiveAbility(aiEvasiveAbility.id);
+      } else if (defender.tokens.evasive > 0) {
+        aiShouldAttemptEvasive = true;
+      }
+
+      if (aiShouldAttemptEvasive && defender.tokens.evasive > 0) {
         const roll = rollDie();
         patchAiDefense({ evasiveRoll: roll });
         manualEvasive = {
@@ -219,11 +248,13 @@ export function useDefenseActions({
         });
         if (!cont) return;
       }, 700);
-    }, 900);
+  }, 900);
   }, [
     ability,
     aiPlay,
     aiStepDelay,
+    aiActiveAbilities,
+    performAiActiveAbility,
     dice,
     logPlayerAttackStart,
     logPlayerNoCombo,
