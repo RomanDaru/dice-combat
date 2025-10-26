@@ -21,6 +21,7 @@ export function PlayerActionPanel() {
     defenseChiSpend,
     setAttackChiSpend,
     setDefenseChiSpend,
+    turnChiAvailable,
   } = useGameController();
   const {
     statusActive,
@@ -44,9 +45,13 @@ export function PlayerActionPanel() {
 
   const you = state.players.you;
   const ai = state.players.ai;
-  const availableChi = you.tokens.chi ?? 0;
-  const attackChiValue = Math.max(0, Math.min(attackChiSpend, availableChi));
-  const defenseChiValue = Math.max(0, Math.min(defenseChiSpend, availableChi));
+  const availableChiTokens = you.tokens.chi ?? 0;
+  const spendableChi = Math.max(
+    0,
+    Math.min(availableChiTokens, turnChiAvailable.you ?? 0)
+  );
+  const attackChiValue = Math.max(0, Math.min(attackChiSpend, spendableChi));
+  const defenseChiValue = Math.max(0, Math.min(defenseChiSpend, spendableChi));
 
   const canInteract = turn === "you" && !isDefenseTurn && !statusActive;
   const aiEvasiveRoll = aiDefense.evasiveRoll;
@@ -63,20 +68,20 @@ export function PlayerActionPanel() {
       ? state.players[incomingAttack.attacker].hero
       : null;
   const canAdjustAttackChi =
-    canInteract && availableChi > 0 && turn === "you";
-  const canAdjustDefenseChi = isDefenseTurn && availableChi > 0;
+    canInteract && spendableChi > 0 && turn === "you";
+  const canAdjustDefenseChi = isDefenseTurn && spendableChi > 0;
 
   const adjustAttackChi = (delta: number) => {
     setAttackChiSpend((prev) => {
       const next = prev + delta;
-      return Math.max(0, Math.min(next, availableChi));
+      return Math.max(0, Math.min(next, spendableChi));
     });
   };
 
   const adjustDefenseChi = (delta: number) => {
     setDefenseChiSpend((prev) => {
       const next = prev + delta;
-      return Math.max(0, Math.min(next, availableChi));
+      return Math.max(0, Math.min(next, spendableChi));
     });
   };
 
@@ -243,10 +248,10 @@ export function PlayerActionPanel() {
                 type='button'
                 className={styles.chiStepperBtn}
                 onClick={() => adjustAttackChi(1)}
-                disabled={attackChiValue >= availableChi}>
+                disabled={attackChiValue >= spendableChi}>
                 +
               </button>
-              <span className={styles.chiMax}>/ {availableChi}</span>
+              <span className={styles.chiMax}>/ {spendableChi}</span>
             </div>
           </div>
         )}
@@ -294,10 +299,10 @@ export function PlayerActionPanel() {
                 type='button'
                 className={styles.chiStepperBtn}
                 onClick={() => adjustDefenseChi(1)}
-                disabled={defenseChiValue >= availableChi}>
+                disabled={defenseChiValue >= spendableChi}>
                 +
               </button>
-              <span className={styles.chiMax}>/ {availableChi}</span>
+              <span className={styles.chiMax}>/ {spendableChi}</span>
             </div>
           </div>
         )}

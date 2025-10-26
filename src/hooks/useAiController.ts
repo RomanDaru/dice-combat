@@ -14,6 +14,8 @@ type UseAiControllerArgs = {
   ) => void;
   tickAndStart: (next: Side, afterReady?: () => void) => boolean;
   aiStepDelay: number;
+  turnChiAvailable: Record<Side, number>;
+  consumeTurnChi: (side: Side, amount: number) => void;
 };
 
 export function useAiController({
@@ -22,6 +24,8 @@ export function useAiController({
   animatePreviewRoll,
   tickAndStart,
   aiStepDelay,
+  turnChiAvailable,
+  consumeTurnChi,
 }: UseAiControllerArgs) {
   const { state, dispatch } = useGame();
   const stateRef = useRef<GameState>(state);
@@ -157,7 +161,12 @@ export function useAiController({
           }
           let chiAttackSpend = 0;
           if (latestAi.hero.id === "Shadow Monk") {
-            chiAttackSpend = chooseAiAttackChiSpend(latestAi, latestYou, ab);
+            const desired = chooseAiAttackChiSpend(latestAi, latestYou, ab);
+            chiAttackSpend = Math.min(
+              desired,
+              turnChiAvailable.ai ?? 0,
+              latestAi.tokens.chi ?? 0
+            );
           }
           let effectiveAbility = ab;
           if (chiAttackSpend > 0) {
@@ -176,6 +185,7 @@ export function useAiController({
               ...stateRef.current,
               players: { ...stateRef.current.players, ai: updatedAi },
             };
+            consumeTurnChi("ai", chiAttackSpend);
             effectiveAbility = {
               ...ab,
               damage: ab.damage + chiAttackSpend,
@@ -204,6 +214,7 @@ export function useAiController({
     aiStepDelay,
     animatePreviewRoll,
     chooseAiAttackChiSpend,
+    consumeTurnChi,
     logAiAttackRoll,
     logAiNoCombo,
     setAiSimActive,
@@ -212,6 +223,7 @@ export function useAiController({
     setPendingAttack,
     setPhase,
     tickAndStart,
+    turnChiAvailable.ai,
   ]);
 
   return {

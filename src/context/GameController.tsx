@@ -47,6 +47,8 @@ type ControllerContext = {
   defenseChiSpend: number;
   setAttackChiSpend: (value: number | ((prev: number) => number)) => void;
   setDefenseChiSpend: (value: number | ((prev: number) => number)) => void;
+  turnChiAvailable: Record<Side, number>;
+  consumeTurnChi: (side: Side, amount: number) => void;
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
   onRoll: () => void;
   onToggleHold: (index: number) => void;
@@ -68,6 +70,12 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const stateRef = useRef<GameState>(state);
   const [attackChiSpend, setAttackChiSpend] = useState(0);
   const [defenseChiSpend, setDefenseChiSpend] = useState(0);
+  const [turnChiAvailable, setTurnChiAvailable] = useState<
+    Record<Side, number>
+  >({
+    you: state.players.you.tokens.chi ?? 0,
+    ai: state.players.ai.tokens.chi ?? 0,
+  });
 
   useEffect(() => {
     stateRef.current = state;
@@ -80,11 +88,12 @@ export const GameController = ({ children }: { children: ReactNode }) => {
           typeof value === "function"
             ? (value as (prev: number) => number)(prev)
             : value;
-        const max = stateRef.current.players.you.tokens.chi ?? 0;
-        return Math.max(0, Math.min(next, max));
+        const maxTokens = stateRef.current.players.you.tokens.chi ?? 0;
+        const turnLimit = turnChiAvailable.you ?? 0;
+        return Math.max(0, Math.min(next, maxTokens, turnLimit));
       });
     },
-    []
+    [turnChiAvailable.you]
   );
 
   const updateDefenseChiSpend = useCallback(
@@ -94,12 +103,22 @@ export const GameController = ({ children }: { children: ReactNode }) => {
           typeof value === "function"
             ? (value as (prev: number) => number)(prev)
             : value;
-        const max = stateRef.current.players.you.tokens.chi ?? 0;
-        return Math.max(0, Math.min(next, max));
+        const maxTokens = stateRef.current.players.you.tokens.chi ?? 0;
+        const turnLimit = turnChiAvailable.you ?? 0;
+        return Math.max(0, Math.min(next, maxTokens, turnLimit));
       });
     },
-    []
+    [turnChiAvailable.you]
   );
+
+  useEffect(() => {
+    setAttackChiSpend((prev) =>
+      Math.min(prev, turnChiAvailable.you ?? 0)
+    );
+    setDefenseChiSpend((prev) =>
+      Math.min(prev, turnChiAvailable.you ?? 0)
+    );
+  }, [turnChiAvailable.you]);
 
   const clearAttackChiSpend = useCallback(() => setAttackChiSpend(0), []);
   const clearDefenseChiSpend = useCallback(() => setDefenseChiSpend(0), []);
@@ -202,6 +221,25 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     [aiPreview.dice]
   );
   const isDefenseTurn = !!pendingAttack && pendingAttack.defender === "you";
+
+  useEffect(() => {
+    const currentChi =
+      turn === "you"
+        ? players.you.tokens.chi ?? 0
+        : players.ai.tokens.chi ?? 0;
+    setTurnChiAvailable((prev) => ({
+      ...prev,
+      [turn]: currentChi,
+    }));
+  }, [turn, players.you.tokens.chi, players.ai.tokens.chi]);
+
+  const consumeTurnChi = useCallback((side: Side, amount: number) => {
+    if (amount <= 0) return;
+    setTurnChiAvailable((prev) => ({
+      ...prev,
+      [side]: Math.max(0, (prev[side] ?? 0) - amount),
+    }));
+  }, []);
   const statusActive = !!pendingStatusClear;
   const showDcLogo =
     turn === "you" && rollsLeft === 3 && !pendingAttack && !statusActive;
@@ -255,6 +293,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     animatePreviewRoll,
     tickAndStart,
     aiStepDelay: AI_STEP_MS,
+    turnChiAvailable,
+    consumeTurnChi,
   });
   const { onConfirmAttack, onUserDefenseRoll, onUserEvasiveRoll } =
     useDefenseActions({
@@ -277,6 +317,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       defenseChiSpend,
       clearAttackChiSpend,
       clearDefenseChiSpend,
+      turnChiAvailable,
+      consumeTurnChi,
     });
 
   const handleAbilityControllerAction = useCallback(
@@ -438,6 +480,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       defenseChiSpend,
       setAttackChiSpend: updateAttackChiSpend,
       setDefenseChiSpend: updateDefenseChiSpend,
+      turnChiAvailable,
+      consumeTurnChi,
       popDamage,
       onRoll,
       onToggleHold,
@@ -462,6 +506,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       onPerformActiveAbility,
       onRoll,
       onToggleHold,
+      turnChiAvailable,
+      consumeTurnChi,
       onUserDefenseRoll,
       onUserEvasiveRoll,
       performStatusClearRoll,
