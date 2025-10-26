@@ -11,6 +11,9 @@ export type PendingAttack = {
   defender: Side;
   dice: number[];
   ability: Ability;
+  modifiers?: {
+    chiAttackSpend?: number;
+  };
 };
 
 export type PendingStatusClear = {

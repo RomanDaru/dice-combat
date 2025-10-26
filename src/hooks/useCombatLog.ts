@@ -13,6 +13,7 @@ export type ManualEvasiveLog = {
   success: boolean;
   roll: number;
   label?: string;
+  alreadySpent?: boolean;
 };
 
 export type ManualDefenseLog = {
@@ -35,6 +36,8 @@ export type AttackResolutionLogArgs = {
   manualEvasive?: ManualEvasiveLog;
   reflectedDamage: number;
   defenseOutcome?: DefenseCalculationResult;
+  attackChiSpent?: number;
+  defenseChiSpent?: number;
 };
 
 export const formatDice = (values: number[]) => values.join(" ");
@@ -92,8 +95,31 @@ export const buildAttackResolutionLines = ({
   manualEvasive,
   reflectedDamage,
   defenseOutcome,
+  attackChiSpent,
+  defenseChiSpent,
 }: AttackResolutionLogArgs) => {
   const lines: string[] = [];
+  lines.push(
+    indentLog(
+      `Threatened damage: ${incomingDamage}${
+        manualEvasive?.used ? " (pre-evasion)" : ""
+      }.`
+    )
+  );
+  if (attackChiSpent && attackChiSpent > 0) {
+    lines.push(
+      indentLog(
+        `${attackerBefore.hero.name} spends ${resourceTag("Chi")} x${attackChiSpent} for +${attackChiSpent} dmg.`
+      )
+    );
+  }
+  if (defenseChiSpent && defenseChiSpent > 0) {
+    lines.push(
+      indentLog(
+        `${defenderBefore.hero.name} spends ${resourceTag("Chi")} x${defenseChiSpent} for +${defenseChiSpent} block.`
+      )
+    );
+  }
   const damageDealt = Math.max(0, defenderBefore.hp - defenderAfter.hp);
   const blocked = Math.max(0, incomingDamage - damageDealt);
   let addedDefenderHpLine = false;

@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
 import { bestAbility, rollDie } from "../game/combos";
 import type { GameState } from "../game/state";
-import type { Ability, ActiveAbility, Side } from "../game/types";
+import type { Ability, PlayerState, Side } from "../game/types";
 import { useGame } from "../context/GameContext";
-import { ActiveAbilityIds } from "../game/activeAbilities";
 
 type UseAiControllerArgs = {
   logAiNoCombo: (diceValues: number[]) => void;
@@ -15,8 +14,6 @@ type UseAiControllerArgs = {
   ) => void;
   tickAndStart: (next: Side, afterReady?: () => void) => boolean;
   aiStepDelay: number;
-  aiActiveAbilities: ActiveAbility[];
-  performActiveAbility?: (abilityId: string) => boolean;
 };
 
 export function useAiController({
@@ -25,8 +22,6 @@ export function useAiController({
   animatePreviewRoll,
   tickAndStart,
   aiStepDelay,
-  aiActiveAbilities,
-  performActiveAbility,
 }: UseAiControllerArgs) {
   const { state, dispatch } = useGame();
   const stateRef = useRef<GameState>(state);
@@ -90,6 +85,17 @@ export function useAiController({
     [patchState]
   );
 
+  const chooseAiAttackChiSpend = useCallback(
+    (attacker: PlayerState, defender: PlayerState, ability: Ability) => {
+      const available = attacker.tokens.chi ?? 0;
+      if (available <= 0) return 0;
+      const requiredForLethal = Math.max(0, defender.hp - ability.damage);
+      if (requiredForLethal <= 0) return 0;
+      return Math.min(available, requiredForLethal);
+    },
+    []
+  );
+
   const aiPlay = useCallback(() => {
     const curAi = stateRef.current.players.ai;
     const curYou = stateRef.current.players.you;
@@ -139,7 +145,7 @@ export function useAiController({
         if (step < 2) {
           window.setTimeout(() => doStep(step + 1), aiStepDelay);
         } else {
-          const ab = bestAbility(curAi.hero, finalDice);
+          const ab = bestAbility(latestAi.hero, finalDice);
           if (!ab) {
             setAiSimActive(false);
             logAiNoCombo(finalDice);
@@ -149,27 +155,46 @@ export function useAiController({
             }, 600);
             return;
           }
+          let chiAttackSpend = 0;
+          if (latestAi.hero.id === "Shadow Monk") {
+            chiAttackSpend = chooseAiAttackChiSpend(latestAi, latestYou, ab);
+          }
+          let effectiveAbility = ab;
+          if (chiAttackSpend > 0) {
+            const updatedAi = {
+              ...latestAi,
+              tokens: {
+                ...latestAi.tokens,
+                chi: Math.max(
+                  0,
+                  (latestAi.tokens.chi ?? 0) - chiAttackSpend
+                ),
+              },
+            };
+            dispatch({ type: "SET_PLAYER", side: "ai", player: updatedAi });
+            stateRef.current = {
+              ...stateRef.current,
+              players: { ...stateRef.current.players, ai: updatedAi },
+            };
+            effectiveAbility = {
+              ...ab,
+              damage: ab.damage + chiAttackSpend,
+            };
+          }
           setPendingAttack({
             attacker: "ai",
             defender: "you",
             dice: [...finalDice],
-            ability: ab,
+            ability: effectiveAbility,
+            modifiers:
+              chiAttackSpend > 0
+                ? {
+                    chiAttackSpend,
+                  }
+                : undefined,
           });
-          if (
-            performActiveAbility &&
-            aiActiveAbilities.some(
-              (ability) =>
-                ability.id === ActiveAbilityIds.SHADOW_MONK_SPEND_CHI_ID
-            ) &&
-            latestAi.hero.id === "Shadow Monk" &&
-            (latestAi.tokens.chi ?? 0) > 0
-          ) {
-            window.setTimeout(() => {
-              performActiveAbility(ActiveAbilityIds.SHADOW_MONK_SPEND_CHI_ID);
-            }, 0);
-          }
           setPhase("defense");
-          logAiAttackRoll(finalDice, ab);
+          logAiAttackRoll(finalDice, effectiveAbility);
         }
       });
     };
@@ -178,10 +203,9 @@ export function useAiController({
   }, [
     aiStepDelay,
     animatePreviewRoll,
-    aiActiveAbilities,
+    chooseAiAttackChiSpend,
     logAiAttackRoll,
     logAiNoCombo,
-    performActiveAbility,
     setAiSimActive,
     setAiSimHeld,
     setAiSimRolling,

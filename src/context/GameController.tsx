@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
 import { useGame } from "./GameContext";
@@ -42,6 +43,10 @@ type ComputedData = {
 };
 
 type ControllerContext = {
+  attackChiSpend: number;
+  defenseChiSpend: number;
+  setAttackChiSpend: (value: number | ((prev: number) => number)) => void;
+  setDefenseChiSpend: (value: number | ((prev: number) => number)) => void;
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
   onRoll: () => void;
   onToggleHold: (index: number) => void;
@@ -61,10 +66,43 @@ const GameControllerContext = createContext<ControllerContext | null>(null);
 export const GameController = ({ children }: { children: ReactNode }) => {
   const { state, dispatch } = useGame();
   const stateRef = useRef<GameState>(state);
+  const [attackChiSpend, setAttackChiSpend] = useState(0);
+  const [defenseChiSpend, setDefenseChiSpend] = useState(0);
 
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  const updateAttackChiSpend = useCallback(
+    (value: number | ((prev: number) => number)) => {
+      setAttackChiSpend((prev) => {
+        const next =
+          typeof value === "function"
+            ? (value as (prev: number) => number)(prev)
+            : value;
+        const max = stateRef.current.players.you.tokens.chi ?? 0;
+        return Math.max(0, Math.min(next, max));
+      });
+    },
+    []
+  );
+
+  const updateDefenseChiSpend = useCallback(
+    (value: number | ((prev: number) => number)) => {
+      setDefenseChiSpend((prev) => {
+        const next =
+          typeof value === "function"
+            ? (value as (prev: number) => number)(prev)
+            : value;
+        const max = stateRef.current.players.you.tokens.chi ?? 0;
+        return Math.max(0, Math.min(next, max));
+      });
+    },
+    []
+  );
+
+  const clearAttackChiSpend = useCallback(() => setAttackChiSpend(0), []);
+  const clearDefenseChiSpend = useCallback(() => setDefenseChiSpend(0), []);
 
   const {
     players,
@@ -168,6 +206,24 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const showDcLogo =
     turn === "you" && rollsLeft === 3 && !pendingAttack && !statusActive;
 
+  useEffect(() => {
+    const maxChi = state.players.you.tokens.chi ?? 0;
+    setAttackChiSpend((prev) => Math.min(prev, maxChi));
+    setDefenseChiSpend((prev) => Math.min(prev, maxChi));
+  }, [state.players.you.tokens.chi]);
+
+  useEffect(() => {
+    if (turn !== "you") {
+      setAttackChiSpend(0);
+    }
+  }, [turn]);
+
+  useEffect(() => {
+    if (!isDefenseTurn) {
+      setDefenseChiSpend(0);
+    }
+  }, [isDefenseTurn]);
+
   const timersRef = useRef<number | null>(null);
   useEffect(() => {
     return () => {
@@ -193,25 +249,12 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     popDamage,
     statusResumeRef,
   });
-  const handleAiAbilityControllerAction = useCallback(() => {}, []);
-
-  const {
-    abilities: aiActiveAbilities,
-    performAbility: onPerformAiActiveAbility,
-  } = useActiveAbilities({
-    side: "ai",
-    pushLog,
-    popDamage,
-    handleControllerAction: handleAiAbilityControllerAction,
-  });
   const { aiPlay } = useAiController({
     logAiNoCombo,
     logAiAttackRoll,
     animatePreviewRoll,
     tickAndStart,
     aiStepDelay: AI_STEP_MS,
-    aiActiveAbilities,
-    performActiveAbility: onPerformAiActiveAbility,
   });
   const { onConfirmAttack, onUserDefenseRoll, onUserEvasiveRoll } =
     useDefenseActions({
@@ -230,6 +273,10 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       tickAndStart,
       aiPlay,
       aiStepDelay: AI_STEP_MS,
+      attackChiSpend,
+      defenseChiSpend,
+      clearAttackChiSpend,
+      clearDefenseChiSpend,
     });
 
   const handleAbilityControllerAction = useCallback(
@@ -387,6 +434,10 @@ export const GameController = ({ children }: { children: ReactNode }) => {
 
   const controllerValue: ControllerContext = useMemo(
     () => ({
+      attackChiSpend,
+      defenseChiSpend,
+      setAttackChiSpend: updateAttackChiSpend,
+      setDefenseChiSpend: updateDefenseChiSpend,
       popDamage,
       onRoll,
       onToggleHold,
@@ -400,7 +451,11 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       onPerformActiveAbility,
     }),
     [
+      attackChiSpend,
+      defenseChiSpend,
       activeAbilities,
+      updateAttackChiSpend,
+      updateDefenseChiSpend,
       handleReset,
       onConfirmAttack,
       onEndTurnNoAttack,

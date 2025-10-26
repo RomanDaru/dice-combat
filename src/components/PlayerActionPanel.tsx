@@ -17,6 +17,10 @@ export function PlayerActionPanel() {
     performStatusClearRoll,
     activeAbilities,
     onPerformActiveAbility,
+    attackChiSpend,
+    defenseChiSpend,
+    setAttackChiSpend,
+    setDefenseChiSpend,
   } = useGameController();
   const {
     statusActive,
@@ -33,12 +37,16 @@ export function PlayerActionPanel() {
     rolling,
     rollsLeft,
     turn,
+    pendingAttack,
     pendingStatusClear,
     aiDefense,
   } = state;
 
   const you = state.players.you;
   const ai = state.players.ai;
+  const availableChi = you.tokens.chi ?? 0;
+  const attackChiValue = Math.max(0, Math.min(attackChiSpend, availableChi));
+  const defenseChiValue = Math.max(0, Math.min(defenseChiSpend, availableChi));
 
   const canInteract = turn === "you" && !isDefenseTurn && !statusActive;
   const aiEvasiveRoll = aiDefense.evasiveRoll;
@@ -46,6 +54,31 @@ export function PlayerActionPanel() {
   const aiDefenseSim = aiDefense.inProgress;
   const isDefensePhase =
     isDefenseTurn || statusActive || phase === "defense";
+  const incomingAttack = isDefenseTurn && pendingAttack ? pendingAttack : null;
+  const incomingAbility = incomingAttack?.ability;
+  const threatenedDamage = incomingAbility?.damage ?? null;
+  const attackChiBonus = incomingAttack?.modifiers?.chiAttackSpend ?? 0;
+  const attackerHero =
+    incomingAttack && state.players[incomingAttack.attacker]
+      ? state.players[incomingAttack.attacker].hero
+      : null;
+  const canAdjustAttackChi =
+    canInteract && availableChi > 0 && turn === "you";
+  const canAdjustDefenseChi = isDefenseTurn && availableChi > 0;
+
+  const adjustAttackChi = (delta: number) => {
+    setAttackChiSpend((prev) => {
+      const next = prev + delta;
+      return Math.max(0, Math.min(next, availableChi));
+    });
+  };
+
+  const adjustDefenseChi = (delta: number) => {
+    setDefenseChiSpend((prev) => {
+      const next = prev + delta;
+      return Math.max(0, Math.min(next, availableChi));
+    });
+  };
 
   const renderInfoBanner = () => {
     if (statusActive) {
@@ -62,22 +95,16 @@ export function PlayerActionPanel() {
       );
     }
 
-    if (isDefenseTurn) {
+    if (incomingAttack && incomingAbility) {
+      const abilityName = incomingAbility.label ?? incomingAbility.combo;
+      const attackerName = attackerHero?.name ?? "Opponent";
       return (
         <div className={styles.infoDefense}>
-          {aiEvasiveRoll !== null && (
-            <span className={clsx("badge", "indigo", styles.badgeSpacing)}>
-              AI Evasive roll: <b>{aiEvasiveRoll}</b>
-            </span>
-          )}
-          {aiDefenseRoll !== null && (
-            <span className='badge indigo'>
-              AI Defense roll: <b>{aiDefenseRoll}</b>
-            </span>
-          )}
-          {aiEvasiveRoll === null && aiDefenseRoll === null && (
-            <span>AI defense resolving...</span>
-          )}
+          <span className={clsx("badge", "indigo", styles.badgeSpacing)}>
+            {attackerName} threatens <b>{threatenedDamage ?? 0}</b> dmg (
+            {abilityName}
+            {attackChiBonus ? `, Chi x${attackChiBonus}` : ""})
+          </span>
         </div>
       );
     }
@@ -171,8 +198,11 @@ export function PlayerActionPanel() {
           : "AI rolls automatically"
       }).`
     : isDefenseTurn
-    ? "Click Defense Roll or an active ability to respond to the attack."
+    ? "Adjust Chi spend if needed, then click Defense Roll or an active ability to respond."
     : "Tip: Confirm attack becomes available after the first Roll.";
+  const showRollButton = !isDefenseTurn;
+  const rollDisabled =
+    turn !== "you" || statusActive || rollsLeft <= 0 || rolling.some(Boolean);
 
   return (
     <div className='row'>
@@ -189,14 +219,37 @@ export function PlayerActionPanel() {
         statusActive={statusActive}
       />
       <div className={styles.actionRow}>
-        <button
-          className='btn primary'
-          onClick={onRoll}
-          disabled={
-            turn !== "you" || rollsLeft <= 0 || isDefenseTurn || statusActive
-          }>
-          Roll ({rollsLeft})
-        </button>
+        {showRollButton && (
+          <button
+            className='btn primary'
+            onClick={onRoll}
+            disabled={rollDisabled}>
+            Roll ({rollsLeft})
+          </button>
+        )}
+        {canAdjustAttackChi && (
+          <div className={styles.chiSpendControl}>
+            <span className={styles.chiSpendLabel}>Chi for attack</span>
+            <div className={styles.chiStepper}>
+              <button
+                type='button'
+                className={styles.chiStepperBtn}
+                onClick={() => adjustAttackChi(-1)}
+                disabled={attackChiValue <= 0}>
+                -
+              </button>
+              <span className={styles.chiValue}>{attackChiValue}</span>
+              <button
+                type='button'
+                className={styles.chiStepperBtn}
+                onClick={() => adjustAttackChi(1)}
+                disabled={attackChiValue >= availableChi}>
+                +
+              </button>
+              <span className={styles.chiMax}>/ {availableChi}</span>
+            </div>
+          </div>
+        )}
         {!statusActive &&
           (isDefenseTurn ? (
             <>
@@ -225,6 +278,29 @@ export function PlayerActionPanel() {
               </button>
             </>
           ))}
+        {canAdjustDefenseChi && (
+          <div className={styles.chiSpendControl}>
+            <span className={styles.chiSpendLabel}>Chi for block</span>
+            <div className={styles.chiStepper}>
+              <button
+                type='button'
+                className={styles.chiStepperBtn}
+                onClick={() => adjustDefenseChi(-1)}
+                disabled={defenseChiValue <= 0}>
+                -
+              </button>
+              <span className={styles.chiValue}>{defenseChiValue}</span>
+              <button
+                type='button'
+                className={styles.chiStepperBtn}
+                onClick={() => adjustDefenseChi(1)}
+                disabled={defenseChiValue >= availableChi}>
+                +
+              </button>
+              <span className={styles.chiMax}>/ {availableChi}</span>
+            </div>
+          </div>
+        )}
         {renderInfoBanner()}
         {!statusActive && activeAbilities.length > 0 && (
           <div className={styles.activeAbilityRow}>

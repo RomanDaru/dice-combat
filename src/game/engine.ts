@@ -71,7 +71,13 @@ export function applyAttack(
       baseReduced?: number;
       chiUsed?: number;
     };
-    manualEvasive?: { used: boolean; success: boolean; roll: number; label?: string };
+    manualEvasive?: {
+      used: boolean;
+      success: boolean;
+      roll: number;
+      label?: string;
+      alreadySpent?: boolean;
+    };
   }
 ): [PlayerState, PlayerState, string[]] {
   const notes: string[] = [];
@@ -84,7 +90,7 @@ export function applyAttack(
   if (incoming > 0 && opts?.manualEvasive && opts.manualEvasive.used) {
     const ev = opts.manualEvasive;
     const label = ev.label ?? 'Def';
-    if (defender.tokens.evasive > 0) {
+    if (!ev.alreadySpent && defender.tokens.evasive > 0) {
       defender = {
         ...defender,
         tokens: {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useGame } from "../context/GameContext";
+import type { GameState } from "../game/state";
 import { getActiveAbilitiesForHero } from "../game/activeAbilities";
 import type {
   ActiveAbility,
@@ -21,12 +22,16 @@ type UseActiveAbilitiesArgs = {
   ) => void;
 };
 
-const matchesPhase = (abilityPhase: ActiveAbilityPhase | ActiveAbilityPhase[], phase: Phase) => {
+const matchesPhase = (
+  abilityPhase: ActiveAbilityPhase | ActiveAbilityPhase[],
+  phase: Phase
+) => {
   const phases = Array.isArray(abilityPhase) ? abilityPhase : [abilityPhase];
   return phases.includes(phase);
 };
 
-const hasTokenCost = (tokens: Tokens, cost: Partial<Tokens>) => {
+const hasTokenCost = (tokens: Tokens, cost?: Partial<Tokens>) => {
+  if (!cost) return true;
   return Object.entries(cost).every(([tokenKey, amount]) => {
     const current = tokens[tokenKey as keyof Tokens] ?? 0;
     return current >= (amount ?? 0);
@@ -59,16 +64,18 @@ export const useActiveAbilities = ({
     stateRef.current = state;
   }, [state]);
 
+  const heroId = state.players[side]?.hero.id;
   const abilities = useMemo<ActiveAbility[]>(() => {
-    const current = stateRef.current;
-    const player = current.players[side];
-    if (!player) return [];
-    return getActiveAbilitiesForHero(player.hero.id);
-  }, [side]);
+    if (!heroId) return [];
+    return getActiveAbilitiesForHero(heroId);
+  }, [heroId]);
 
   const buildContext = useCallback(
-    (ability: ActiveAbility): ActiveAbilityContext | null => {
-      const current = stateRef.current;
+    (
+      ability: ActiveAbility,
+      baseState?: GameState
+    ): ActiveAbilityContext | null => {
+      const current = baseState ?? stateRef.current;
       const actingPlayer = current.players[side];
       const opposingPlayer = current.players[side === "you" ? "ai" : "you"];
       if (!actingPlayer || !opposingPlayer) return null;
@@ -90,8 +97,8 @@ export const useActiveAbilities = ({
   );
 
   const canPayCost = useCallback(
-    (ability: ActiveAbility) => {
-      const current = stateRef.current;
+    (ability: ActiveAbility, baseState?: GameState) => {
+      const current = baseState ?? stateRef.current;
       const actingPlayer = current.players[side];
       if (!actingPlayer) return false;
       if (!ability.cost?.tokens) return true;
@@ -102,13 +109,14 @@ export const useActiveAbilities = ({
 
   const availableAbilities = useMemo(() => {
     return abilities.filter((ability) => {
-      const context = buildContext(ability);
+      const current = state;
+      const context = buildContext(ability, current);
       if (!context) return false;
       if (!matchesPhase(ability.phase, context.phase)) return false;
-      if (!canPayCost(ability)) return false;
+      if (!canPayCost(ability, current)) return false;
       return ability.canUse(context);
     });
-  }, [abilities, buildContext, canPayCost]);
+  }, [abilities, buildContext, canPayCost, state]);
 
   const performAbility = useCallback(
     (abilityId: string) => {
