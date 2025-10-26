@@ -1,5 +1,6 @@
 import { useGame } from "../context/GameContext";
 import { useGameData } from "../context/GameController";
+import { getEffectDefinition } from "../game/effects";
 import type { Combo } from "../game/types";
 
 type AbilityListProps = {
@@ -7,7 +8,7 @@ type AbilityListProps = {
 };
 
 const formatEffects = (effects: string[]) =>
-  effects.length ? effects.join(" Â· ") : null;
+  effects.length ? effects.join(" · ") : null;
 
 export default function AbilityList({ side }: AbilityListProps) {
   const { state } = useGame();
@@ -27,10 +28,30 @@ export default function AbilityList({ side }: AbilityListProps) {
         {hero.abilities.map((ability) => {
           const ready = readyCombos ? readyCombos[ability.combo] : false;
           const effects: string[] = [];
-          if (ability.apply?.burn) effects.push(`Burn +${ability.apply.burn}`);
-          if (ability.apply?.chi) effects.push(`Chi +${ability.apply.chi}`);
-          if (ability.apply?.evasive)
-            effects.push(`Evasive +${ability.apply.evasive}`);
+          if (ability.apply?.burn) {
+            const effect = getEffectDefinition("burn");
+            effects.push(
+              `${effect?.icon ?? "??"} ${effect?.name ?? "Burn"} +${
+                ability.apply.burn
+              }`
+            );
+          }
+          if (ability.apply?.chi) {
+            const effect = getEffectDefinition("chi");
+            effects.push(
+              `${effect?.icon ?? "?"} ${effect?.name ?? "Chi"} +${
+                ability.apply.chi
+              }`
+            );
+          }
+          if (ability.apply?.evasive) {
+            const effect = getEffectDefinition("evasive");
+            effects.push(
+              `${effect?.icon ?? "?"} ${effect?.name ?? "Evasive"} +${
+                ability.apply.evasive
+              }`
+            );
+          }
 
           return (
             <div

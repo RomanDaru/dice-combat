@@ -193,12 +193,25 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     popDamage,
     statusResumeRef,
   });
+  const handleAiAbilityControllerAction = useCallback(() => {}, []);
+
+  const {
+    abilities: aiActiveAbilities,
+    performAbility: onPerformAiActiveAbility,
+  } = useActiveAbilities({
+    side: "ai",
+    pushLog,
+    popDamage,
+    handleControllerAction: handleAiAbilityControllerAction,
+  });
   const { aiPlay } = useAiController({
     logAiNoCombo,
     logAiAttackRoll,
     animatePreviewRoll,
     tickAndStart,
     aiStepDelay: AI_STEP_MS,
+    aiActiveAbilities,
+    performActiveAbility: onPerformAiActiveAbility,
   });
   const { onConfirmAttack, onUserDefenseRoll, onUserEvasiveRoll } =
     useDefenseActions({

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useGame } from "../context/GameContext";
 import { getActiveAbilitiesForHero } from "../game/activeAbilities";
 import type {
@@ -54,41 +54,50 @@ export const useActiveAbilities = ({
 }: UseActiveAbilitiesArgs) => {
   const { state, dispatch } = useGame();
 
-  const actingPlayer = state.players[side];
-  const opposingPlayer = state.players[side === "you" ? "ai" : "you"];
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const abilities = useMemo<ActiveAbility[]>(() => {
-    if (!actingPlayer) return [];
-    return getActiveAbilitiesForHero(actingPlayer.hero.id);
-  }, [actingPlayer?.hero.id]);
+    const current = stateRef.current;
+    const player = current.players[side];
+    if (!player) return [];
+    return getActiveAbilitiesForHero(player.hero.id);
+  }, [side]);
 
   const buildContext = useCallback(
     (ability: ActiveAbility): ActiveAbilityContext | null => {
+      const current = stateRef.current;
+      const actingPlayer = current.players[side];
+      const opposingPlayer = current.players[side === "you" ? "ai" : "you"];
       if (!actingPlayer || !opposingPlayer) return null;
       return {
-        state,
+        state: current,
         dispatch,
-        phase: state.phase as Phase,
-        turn: state.turn,
+        phase: current.phase as Phase,
+        turn: current.turn,
         side,
         actingPlayer,
         opposingPlayer,
-        pendingAttack: state.pendingAttack,
+        pendingAttack: current.pendingAttack,
         abilityId: ability.id,
         pushLog,
         popDamage,
       };
     },
-    [actingPlayer, opposingPlayer, dispatch, popDamage, pushLog, state, side]
+    [dispatch, popDamage, pushLog, side]
   );
 
   const canPayCost = useCallback(
     (ability: ActiveAbility) => {
+      const current = stateRef.current;
+      const actingPlayer = current.players[side];
       if (!actingPlayer) return false;
       if (!ability.cost?.tokens) return true;
       return hasTokenCost(actingPlayer.tokens, ability.cost.tokens);
     },
-    [actingPlayer]
+    [side]
   );
 
   const availableAbilities = useMemo(() => {

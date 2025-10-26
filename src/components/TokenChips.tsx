@@ -1,4 +1,5 @@
 import { Tokens } from "../game/types";
+import { getEffectDefinition } from "../game/effects";
 
 const chipStyle = {
   display: "inline-flex",
@@ -30,6 +31,10 @@ function DotRow({ count, max = 3 }: { count: number; max?: number }) {
 }
 
 export default function TokenChips({ tokens }: { tokens: Tokens }) {
+  const burnEffect = getEffectDefinition("burn");
+  const chiEffect = getEffectDefinition("chi");
+  const evasiveEffect = getEffectDefinition("evasive");
+
   return (
     <div
       style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
@@ -41,9 +46,9 @@ export default function TokenChips({ tokens }: { tokens: Tokens }) {
             background: "rgba(127,29,29,.4)",
             border: "1px solid #b91c1c",
           }}
-          data-tip="Burn deals 2 damage, plus +1 for each extra stack (max 4), then decays by 1."
-          aria-label={`Burn ${tokens.burn}`}>
-          Burn Ã—{tokens.burn}
+          data-tip={burnEffect?.summary ?? "Burn deals damage each upkeep and then decays by 1."}
+          aria-label={`${burnEffect?.name ?? "Burn"} ${tokens.burn}`}>
+          {burnEffect?.icon ?? "??"} {burnEffect?.name ?? "Burn"} ×{tokens.burn}
         </div>
       )}
       {tokens.chi > 0 && (
@@ -54,9 +59,10 @@ export default function TokenChips({ tokens }: { tokens: Tokens }) {
             background: "rgba(19,78,74,.35)",
             border: "1px solid #0f766e",
           }}
-          data-tip="Chi upgrades Monk defense rolls (max 3)."
-          aria-label={`Chi ${tokens.chi}`}>
-          Chi <DotRow count={Math.min(tokens.chi, 3)} />
+          data-tip={chiEffect?.summary ?? "Chi adds block to defense rolls."}
+          aria-label={`${chiEffect?.name ?? "Chi"} ${tokens.chi}`}>
+          {chiEffect?.icon ?? "?"} {chiEffect?.name ?? "Chi"}
+          <DotRow count={Math.min(tokens.chi, 3)} />
         </div>
       )}
       {tokens.evasive > 0 && (
@@ -67,9 +73,12 @@ export default function TokenChips({ tokens }: { tokens: Tokens }) {
             background: "rgba(49,46,129,.35)",
             border: "1px solid #4338ca",
           }}
-          data-tip="Evasive: spend to roll 5+ and dodge the attack."
-          aria-label={`Evasive ${tokens.evasive}`}>
-          Evasive Ã—{tokens.evasive}
+          data-tip={
+            evasiveEffect?.summary ?? "Spend to roll 5+ and dodge an incoming attack."
+          }
+          aria-label={`${evasiveEffect?.name ?? "Evasive"} ${tokens.evasive}`}>
+          {evasiveEffect?.icon ?? "?"} {evasiveEffect?.name ?? "Evasive"} ×
+          {tokens.evasive}
         </div>
       )}
     </div>

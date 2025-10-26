@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef } from "react";
 import { bestAbility, rollDie } from "../game/combos";
 import type { GameState } from "../game/state";
-import type { Ability, Side } from "../game/types";
+import type { Ability, ActiveAbility, Side } from "../game/types";
 import { useGame } from "../context/GameContext";
+import { ActiveAbilityIds } from "../game/activeAbilities";
 
 type UseAiControllerArgs = {
   logAiNoCombo: (diceValues: number[]) => void;
@@ -14,6 +15,8 @@ type UseAiControllerArgs = {
   ) => void;
   tickAndStart: (next: Side, afterReady?: () => void) => boolean;
   aiStepDelay: number;
+  aiActiveAbilities: ActiveAbility[];
+  performActiveAbility?: (abilityId: string) => boolean;
 };
 
 export function useAiController({
@@ -22,6 +25,8 @@ export function useAiController({
   animatePreviewRoll,
   tickAndStart,
   aiStepDelay,
+  aiActiveAbilities,
+  performActiveAbility,
 }: UseAiControllerArgs) {
   const { state, dispatch } = useGame();
   const stateRef = useRef<GameState>(state);
@@ -150,6 +155,19 @@ export function useAiController({
             dice: [...finalDice],
             ability: ab,
           });
+          if (
+            performActiveAbility &&
+            aiActiveAbilities.some(
+              (ability) =>
+                ability.id === ActiveAbilityIds.SHADOW_MONK_SPEND_CHI_ID
+            ) &&
+            latestAi.hero.id === "Shadow Monk" &&
+            (latestAi.tokens.chi ?? 0) > 0
+          ) {
+            window.setTimeout(() => {
+              performActiveAbility(ActiveAbilityIds.SHADOW_MONK_SPEND_CHI_ID);
+            }, 0);
+          }
           setPhase("defense");
           logAiAttackRoll(finalDice, ab);
         }
@@ -160,8 +178,10 @@ export function useAiController({
   }, [
     aiStepDelay,
     animatePreviewRoll,
+    aiActiveAbilities,
     logAiAttackRoll,
     logAiNoCombo,
+    performActiveAbility,
     setAiSimActive,
     setAiSimHeld,
     setAiSimRolling,
