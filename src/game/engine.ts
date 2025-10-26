@@ -1,5 +1,62 @@
-import { Ability, PlayerState } from './types';
-import { applyBurnStacks, MAX_BURN_STACKS } from './statuses/burn';
+import {
+  Ability,
+  DefenseCalculationResult,
+  DefenseModifierInfo,
+  PlayerState,
+} from "./types";
+import { DefenseModifierRegistry } from "./defenseModifiers";
+import { applyBurnStacks, MAX_BURN_STACKS } from "./statuses/burn";
+
+export function calculateDefenseOutcome(
+  attacker: PlayerState,
+  defender: PlayerState,
+  ability: Ability,
+  defenseRoll: number
+): DefenseCalculationResult {
+  const threatenedDamage = ability.damage;
+  const baseDefense = defender.hero.defense.fromRoll({
+    roll: defenseRoll,
+    tokens: defender.tokens,
+  });
+  const baseBlock = baseDefense.reduced;
+  const baseReflect = baseDefense.reflect;
+  const modifiersApplied: DefenseModifierInfo[] = [];
+
+  let totalBlock = baseBlock;
+  let totalReflect = baseReflect;
+
+  DefenseModifierRegistry.forEach((modifier) => {
+    if (!modifier.shouldApply(defender, defenseRoll)) return;
+    const bonus = modifier.calculateBonus(defender, defenseRoll);
+    if (!bonus) return;
+    totalBlock += bonus.blockBonus;
+    totalReflect += bonus.reflectBonus;
+    modifiersApplied.push(bonus);
+  });
+
+  const clampedBlock = Math.max(0, totalBlock);
+  const clampedReflect = Math.max(0, totalReflect);
+  const damageDealt = Math.max(0, threatenedDamage - clampedBlock);
+  const finalAttackerHp = Math.max(0, attacker.hp - clampedReflect);
+  const finalDefenderHp = Math.max(0, defender.hp - damageDealt);
+
+  return {
+    threatenedDamage,
+    defenseRoll,
+    baseBlock,
+    baseBlockLog: `Base Block ${baseBlock}`,
+    modifiersApplied,
+    totalBlock: clampedBlock,
+    totalReflect: clampedReflect,
+    damageDealt,
+    finalAttackerHp,
+    finalDefenderHp,
+    maxAttackerHp: attacker.hero.maxHp,
+    maxDefenderHp: defender.hero.maxHp,
+    attackerName: attacker.hero.name,
+    defenderName: defender.hero.name,
+  };
+}
 
 export function applyAttack(
   attacker: PlayerState,

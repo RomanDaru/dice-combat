@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { rollDie } from "../game/combos";
-import { applyAttack } from "../game/engine";
+import { applyAttack, calculateDefenseOutcome } from "../game/engine";
 import type { GameState } from "../game/state";
 import type { Ability, PlayerState, Side } from "../game/types";
 import { buildAttackResolutionLines } from "./useCombatLog";
@@ -148,29 +148,24 @@ export function useDefenseActions({
             reflect: number;
             roll: number;
             label?: string;
-            baseReduced?: number;
-            chiUsed?: number;
           } = undefined;
+      let defenseOutcome:
+        | ReturnType<typeof calculateDefenseOutcome>
+        | undefined;
       if (!(manualEvasive && manualEvasive.success)) {
         const defenseRoll = defender.hero.defense.roll(defender.tokens);
         patchAiDefense({ defenseRoll: defenseRoll.roll });
-        const isMonkDefender = defender.hero.id === "Shadow Monk";
-        const defenseWithoutChi = isMonkDefender
-          ? defender.hero.defense.fromRoll({
-              roll: defenseRoll.roll,
-              tokens: { ...defender.tokens, chi: 0 },
-            })
-          : null;
-        const baseReduced = defenseWithoutChi?.reduced ?? defenseRoll.reduced;
+        defenseOutcome = calculateDefenseOutcome(
+          attacker,
+          defender,
+          ab,
+          defenseRoll.roll
+        );
         manualDefense = {
-          reduced: defenseRoll.reduced,
-          reflect: defenseRoll.reflect,
-          roll: defenseRoll.roll,
+          reduced: defenseOutcome.totalBlock,
+          reflect: defenseOutcome.totalReflect,
+          roll: defenseOutcome.defenseRoll,
           label: defender.hero.name,
-          baseReduced,
-          chiUsed: isMonkDefender
-            ? Math.max(0, defenseRoll.reduced - baseReduced)
-            : undefined,
         };
       }
 
@@ -178,10 +173,20 @@ export function useDefenseActions({
         manualDefense,
         manualEvasive,
       });
-      const dmgToAi = Math.max(0, defender.hp - nextDefender.hp);
-      const dmgToYouReflect = Math.max(0, attacker.hp - nextAttacker.hp);
-      if (dmgToAi > 0) popDamage("ai", dmgToAi, "hit");
-      if (dmgToYouReflect > 0) popDamage("you", dmgToYouReflect, "reflect");
+
+      const damageDealt =
+        defenseOutcome?.damageDealt ??
+        Math.max(0, defender.hp - nextDefender.hp);
+      const reflectDamage =
+        defenseOutcome?.totalReflect ??
+        Math.max(0, attacker.hp - nextAttacker.hp);
+
+      if (damageDealt > 0) {
+        popDamage("ai", damageDealt, "hit");
+      }
+      if (reflectDamage > 0) {
+        popDamage("you", reflectDamage, "reflect");
+      }
       setPlayer("you", nextAttacker);
       setPlayer("ai", nextDefender);
       const resolutionLines = buildAttackResolutionLines({
@@ -190,10 +195,11 @@ export function useDefenseActions({
         defenderBefore: defender,
         defenderAfter: nextDefender,
         incomingDamage: ab.damage,
-        defenseRoll: manualDefense?.roll,
+        defenseRoll: defenseOutcome?.defenseRoll ?? manualDefense?.roll,
         manualDefense,
         manualEvasive,
-        reflectedDamage: dmgToYouReflect,
+        reflectedDamage: reflectDamage,
+        defenseOutcome,
       });
       if (resolutionLines.length) {
         pushLog(resolutionLines);
@@ -240,30 +246,18 @@ export function useDefenseActions({
       const attacker = snapshot.players[attackPayload.attacker];
       const defender = snapshot.players[attackPayload.defender];
       if (!attacker || !defender) return;
-      const defense = defender.hero.defense.fromRoll({
-        roll,
-        tokens: defender.tokens,
-      });
-      const isMonkDefender = defender.hero.id === "Shadow Monk";
-      const defenseWithoutChi = isMonkDefender
-        ? defender.hero.defense.fromRoll({
-            roll,
-            tokens: { ...defender.tokens, chi: 0 },
-          })
-        : null;
-      const baseReduced = defenseWithoutChi?.reduced ?? defense.reduced;
+      const defenseOutcome = calculateDefenseOutcome(
+        attacker,
+        defender,
+        attackPayload.ability,
+        roll
+      );
       const manualDefensePayload = {
-        reduced: defense.reduced,
-        reflect: defense.reflect,
+        reduced: defenseOutcome.totalBlock,
+        reflect: defenseOutcome.totalReflect,
         roll,
         label: defender.hero.name,
-        baseReduced,
-        chiUsed: isMonkDefender
-          ? Math.max(0, defense.reduced - baseReduced)
-          : undefined,
       };
-      const incoming = attackPayload.ability.damage;
-      const dealt = Math.max(0, incoming - defense.reduced);
       const [nextAttacker, nextDefender] = applyAttack(
         attacker,
         defender,
@@ -272,9 +266,12 @@ export function useDefenseActions({
           manualDefense: manualDefensePayload,
         }
       );
-      if (dealt > 0) popDamage(attackPayload.defender, dealt, "hit");
-      const reflected = Math.max(0, attacker.hp - nextAttacker.hp);
-      if (reflected > 0) popDamage(attackPayload.attacker, reflected, "reflect");
+      if (defenseOutcome.damageDealt > 0) {
+        popDamage(attackPayload.defender, defenseOutcome.damageDealt, "hit");
+      }
+      if (defenseOutcome.totalReflect > 0) {
+        popDamage(attackPayload.attacker, defenseOutcome.totalReflect, "reflect");
+      }
       setPlayer(attackPayload.attacker, nextAttacker);
       setPlayer(attackPayload.defender, nextDefender);
       setPendingAttackDispatch(null);
@@ -283,11 +280,12 @@ export function useDefenseActions({
         attackerAfter: nextAttacker,
         defenderBefore: defender,
         defenderAfter: nextDefender,
-        incomingDamage: incoming,
+        incomingDamage: attackPayload.ability.damage,
         defenseRoll: roll,
         manualDefense: manualDefensePayload,
         manualEvasive: undefined,
-        reflectedDamage: reflected,
+        reflectedDamage: defenseOutcome.totalReflect,
+        defenseOutcome,
       });
       if (resolutionLines.length) {
         pushLog(resolutionLines);
@@ -358,30 +356,17 @@ export function useDefenseActions({
       }
       animateDefenseDie(
         (defenseRoll) => {
-          const defense = consumedDefender.hero.defense.fromRoll({
-            roll: defenseRoll,
-            tokens: consumedDefender.tokens,
-          });
-          const isMonk = consumedDefender.hero.id === "Shadow Monk";
-          const monkBaseReduced = isMonk
-            ? consumedDefender.hero.defense.fromRoll({
-                roll: defenseRoll,
-                tokens: { ...consumedDefender.tokens, chi: 0 },
-              }).reduced
-            : undefined;
-          const incoming = attackPayload.ability.damage;
-          const dealt = Math.max(0, incoming - defense.reduced);
+          const defenseOutcome = calculateDefenseOutcome(
+            attacker,
+            consumedDefender,
+            attackPayload.ability,
+            defenseRoll
+          );
           const manualDefensePayload = {
-            reduced: defense.reduced,
-            reflect: defense.reflect,
+            reduced: defenseOutcome.totalBlock,
+            reflect: defenseOutcome.totalReflect,
             roll: defenseRoll,
             label: consumedDefender.hero.name,
-            baseReduced: isMonk
-              ? monkBaseReduced ?? defense.reduced
-              : defense.reduced,
-            chiUsed: isMonk
-              ? Math.max(0, defense.reduced - (monkBaseReduced ?? 0))
-              : undefined,
           };
           const [nextAttacker, nextDefender] = applyAttack(
             attacker,
@@ -397,10 +382,10 @@ export function useDefenseActions({
               },
             }
           );
-          if (dealt > 0) popDamage(attackPayload.defender, dealt, "hit");
-          const reflected = Math.max(0, attacker.hp - nextAttacker.hp);
-          if (reflected > 0)
-            popDamage(attackPayload.attacker, reflected, "reflect");
+          if (defenseOutcome.damageDealt > 0)
+            popDamage(attackPayload.defender, defenseOutcome.damageDealt, "hit");
+          if (defenseOutcome.totalReflect > 0)
+            popDamage(attackPayload.attacker, defenseOutcome.totalReflect, "reflect");
           setPlayer(attackPayload.attacker, nextAttacker);
           setPlayer(attackPayload.defender, nextDefender);
           setPendingAttackDispatch(null);
@@ -409,7 +394,7 @@ export function useDefenseActions({
             attackerAfter: nextAttacker,
             defenderBefore: consumedDefender,
             defenderAfter: nextDefender,
-            incomingDamage: incoming,
+            incomingDamage: attackPayload.ability.damage,
             defenseRoll: defenseRoll,
             manualDefense: manualDefensePayload,
             manualEvasive: {
@@ -417,7 +402,8 @@ export function useDefenseActions({
               success: false,
               roll: evasiveRoll,
             },
-            reflectedDamage: reflected,
+            reflectedDamage: defenseOutcome.totalReflect,
+            defenseOutcome,
           });
           if (resolutionLines.length) {
             pushLog(resolutionLines);

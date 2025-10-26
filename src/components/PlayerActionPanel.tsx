@@ -14,8 +14,9 @@ export function PlayerActionPanel() {
     onConfirmAttack,
     onEndTurnNoAttack,
     onUserDefenseRoll,
-    onUserEvasiveRoll,
     performStatusClearRoll,
+    activeAbilities,
+    onPerformActiveAbility,
   } = useGameController();
   const {
     statusActive,
@@ -40,7 +41,6 @@ export function PlayerActionPanel() {
   const ai = state.players.ai;
 
   const canInteract = turn === "you" && !isDefenseTurn && !statusActive;
-  const youHasEvasive = you.tokens.evasive > 0;
   const aiEvasiveRoll = aiDefense.evasiveRoll;
   const aiDefenseRoll = aiDefense.defenseRoll;
   const aiDefenseSim = aiDefense.inProgress;
@@ -171,7 +171,7 @@ export function PlayerActionPanel() {
           : "AI rolls automatically"
       }).`
     : isDefenseTurn
-    ? "Click Defense Roll (or use Evasive) to respond to the attack."
+    ? "Click Defense Roll or an active ability to respond to the attack."
     : "Tip: Confirm attack becomes available after the first Roll.";
 
   return (
@@ -203,11 +203,6 @@ export function PlayerActionPanel() {
               <button className='btn success' onClick={onUserDefenseRoll}>
                 Defense Roll
               </button>
-              {youHasEvasive && (
-                <button className='btn' onClick={onUserEvasiveRoll}>
-                  Use Evasive
-                </button>
-              )}
             </>
           ) : (
             <>
@@ -231,6 +226,19 @@ export function PlayerActionPanel() {
             </>
           ))}
         {renderInfoBanner()}
+        {!statusActive && activeAbilities.length > 0 && (
+          <div className={styles.activeAbilityRow}>
+            {activeAbilities.map((activeAbility) => (
+              <button
+                key={activeAbility.id}
+                className='btn'
+                onClick={() => onPerformActiveAbility(activeAbility.id)}
+                title={activeAbility.description ?? activeAbility.label}>
+                {activeAbility.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {statusCard}

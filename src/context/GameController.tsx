@@ -18,7 +18,13 @@ import { useAiController } from "../hooks/useAiController";
 import { useStatusManager } from "../hooks/useStatusManager";
 import { useDefenseActions } from "../hooks/useDefenseActions";
 import { useTurnController } from "../hooks/useTurnController";
+import { useActiveAbilities } from "../hooks/useActiveAbilities";
 import { bestAbility, detectCombos, rollDie } from "../game/combos";
+import type {
+  ActiveAbility,
+  ActiveAbilityContext,
+  ActiveAbilityOutcome,
+} from "../game/types";
 
 const DEF_DIE_INDEX = 2;
 const ROLL_ANIM_MS = 1300;
@@ -45,6 +51,8 @@ type ControllerContext = {
   onConfirmAttack: () => void;
   onUserDefenseRoll: () => void;
   onUserEvasiveRoll: () => void;
+  activeAbilities: ActiveAbility[];
+  onPerformActiveAbility: (abilityId: string) => boolean;
 };
 
 const GameDataContext = createContext<ComputedData | null>(null);
@@ -211,6 +219,31 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       aiStepDelay: AI_STEP_MS,
     });
 
+  const handleAbilityControllerAction = useCallback(
+    (
+      action: NonNullable<ActiveAbilityOutcome["controllerAction"]>,
+      _context: ActiveAbilityContext
+    ) => {
+      switch (action.type) {
+        case "USE_EVASIVE":
+          onUserEvasiveRoll();
+          break;
+        default:
+          break;
+      }
+    },
+    [onUserEvasiveRoll]
+  );
+
+  const { abilities: activeAbilities, performAbility: onPerformActiveAbility } =
+    useActiveAbilities({
+      side: "you",
+      pushLog,
+      popDamage,
+      handleControllerAction: handleAbilityControllerAction,
+    });
+
+
   const onRoll = useCallback(() => {
     if (turn !== "you" || rollsLeft <= 0 || statusActive || isDefenseTurn) {
       return;
@@ -350,11 +383,15 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       onConfirmAttack,
       onUserDefenseRoll,
       onUserEvasiveRoll,
+      activeAbilities,
+      onPerformActiveAbility,
     }),
     [
+      activeAbilities,
       handleReset,
       onConfirmAttack,
       onEndTurnNoAttack,
+      onPerformActiveAbility,
       onRoll,
       onToggleHold,
       onUserDefenseRoll,

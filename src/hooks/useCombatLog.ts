@@ -1,5 +1,9 @@
 import { useCallback } from "react";
-import type { Ability, PlayerState } from "../game/types";
+import type {
+  Ability,
+  DefenseCalculationResult,
+  PlayerState,
+} from "../game/types";
 import { useGame } from "../context/GameContext";
 
 type LogOptions = { blankLineBefore?: boolean; blankLineAfter?: boolean };
@@ -30,6 +34,7 @@ export type AttackResolutionLogArgs = {
   manualDefense?: ManualDefenseLog;
   manualEvasive?: ManualEvasiveLog;
   reflectedDamage: number;
+  defenseOutcome?: DefenseCalculationResult;
 };
 
 export const formatDice = (values: number[]) => values.join(" ");
@@ -86,10 +91,13 @@ export const buildAttackResolutionLines = ({
   manualDefense,
   manualEvasive,
   reflectedDamage,
+  defenseOutcome,
 }: AttackResolutionLogArgs) => {
   const lines: string[] = [];
   const damageDealt = Math.max(0, defenderBefore.hp - defenderAfter.hp);
   const blocked = Math.max(0, incomingDamage - damageDealt);
+  let addedDefenderHpLine = false;
+  let addedAttackerHpLine = false;
 
   if (manualEvasive?.used) {
     const evasionResult = manualEvasive.success ? "success" : "fail";
@@ -110,7 +118,33 @@ export const buildAttackResolutionLines = ({
     }
   }
 
-  if (manualDefense) {
+  if (defenseOutcome) {
+    const modifiersSummary = defenseOutcome.modifiersApplied.length
+      ? `${defenseOutcome.modifiersApplied
+          .map((modifier) => modifier.logDetail)
+          .join(", ")} -> Total Block ${defenseOutcome.totalBlock}`
+      : `Total Block ${defenseOutcome.totalBlock}`;
+    const basePart = `(${defenseOutcome.baseBlockLog})`;
+    const modifierPart = defenseOutcome.modifiersApplied.length
+      ? `(${modifiersSummary})`
+      : `(Total Block ${defenseOutcome.totalBlock})`;
+    let summaryLine = `${defenseOutcome.defenderName} Defense Roll: ${defenseOutcome.defenseRoll} ${basePart} ${modifierPart}. Damage Taken: ${defenseOutcome.damageDealt}. Reflect: ${defenseOutcome.totalReflect}.`;
+    lines.push(indentLog(summaryLine.trim()));
+    lines.push(
+      indentLog(
+        `${defenseOutcome.defenderName} HP: ${defenseOutcome.finalDefenderHp}/${defenseOutcome.maxDefenderHp}.`
+      )
+    );
+    addedDefenderHpLine = true;
+    if (defenseOutcome.totalReflect > 0) {
+      lines.push(
+        indentLog(
+          `${defenseOutcome.attackerName} HP: ${defenseOutcome.finalAttackerHp}/${defenseOutcome.maxAttackerHp}.`
+        )
+      );
+      addedAttackerHpLine = true;
+    }
+  } else if (manualDefense) {
     const name = manualDefense.label ?? defenderBefore.hero.name;
     const baseBlocked = manualDefense.baseReduced ?? manualDefense.reduced;
     const chiUsed = manualDefense.chiUsed ?? 0;
@@ -142,6 +176,20 @@ export const buildAttackResolutionLines = ({
         )
       );
     }
+    lines.push(
+      indentLog(
+        `${defenderBefore.hero.name} HP: ${defenderAfter.hp}/${defenderAfter.hero.maxHp}.`
+      )
+    );
+    addedDefenderHpLine = true;
+    if (manualDefense.reflect > 0) {
+      lines.push(
+        indentLog(
+          `${attackerBefore.hero.name} HP: ${attackerAfter.hp}/${attackerAfter.hero.maxHp}.`
+        )
+      );
+      addedAttackerHpLine = true;
+    }
   } else if (defenseRoll !== undefined) {
     let defenseLine = `${defenderBefore.hero.name} defense (roll: ${defenseRoll}): Hit for ${damageDealt} dmg (blocked ${blocked}).`;
     if (reflectedDamage > 0) {
@@ -162,11 +210,13 @@ export const buildAttackResolutionLines = ({
     lines.push(indentLog(genericLine));
   }
 
-  lines.push(
-    indentLog(
-      `${defenderBefore.hero.name} HP: ${defenderAfter.hp}/${defenderAfter.hero.maxHp}.`
-    )
-  );
+  if (!addedDefenderHpLine) {
+    lines.push(
+      indentLog(
+        `${defenderBefore.hero.name} HP: ${defenderAfter.hp}/${defenderAfter.hero.maxHp}.`
+      )
+    );
+  }
 
   const statusLines = getStatusGainLines(
     attackerBefore,
@@ -176,7 +226,7 @@ export const buildAttackResolutionLines = ({
   );
   statusLines.forEach((line) => lines.push(indentLog(line)));
 
-  if (reflectedDamage > 0) {
+  if (!addedAttackerHpLine && reflectedDamage > 0) {
     lines.push(
       indentLog(
         `${attackerBefore.hero.name} HP: ${attackerAfter.hp}/${attackerAfter.hero.maxHp}.`
