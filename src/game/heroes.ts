@@ -1,5 +1,5 @@
 import { Hero, HeroId } from "./types";
-import { StatusId } from "./statuses";
+import type { EffectId } from "./effects";
 import {
   monkDefenseFromRoll,
   monkDefenseRoll,
@@ -95,20 +95,17 @@ export const HEROES: Record<HeroId, Hero> = {
   },
 };
 
-export const getHeroStatusIds = (hero: Hero): StatusId[] => {
-  const statusIds = new Set<StatusId>();
+export const getHeroEffectIds = (hero: Hero): EffectId[] => {
+  const effectIds = new Set<EffectId>();
+
   hero.abilities.forEach((ability) => {
     const applyData = ability.apply;
+    if (!applyData) return;
 
-    if (applyData) {
-      // Použijeme Object.keys a pretypujeme pole kľúčov na StatusId[]
-      (Object.keys(applyData) as StatusId[]).forEach((key) => {
-        const value = applyData[key];
-        if (value && value > 0) {
-          statusIds.add(key);
-        }
-      });
-    }
+    if (applyData.burn && applyData.burn > 0) effectIds.add("burn");
+    if (applyData.chi && applyData.chi > 0) effectIds.add("chi");
+    if (applyData.evasive && applyData.evasive > 0) effectIds.add("evasive");
   });
-  return Array.from(statusIds);
+
+  return Array.from(effectIds);
 };

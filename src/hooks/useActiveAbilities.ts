@@ -73,6 +73,7 @@ export const useActiveAbilities = ({
         side,
         actingPlayer,
         opposingPlayer,
+        pendingAttack: state.pendingAttack,
         abilityId: ability.id,
         pushLog,
         popDamage,

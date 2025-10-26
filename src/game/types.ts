@@ -89,6 +89,7 @@ export type ActiveAbilityContext = {
   side: Side;
   actingPlayer: PlayerState;
   opposingPlayer: PlayerState;
+  pendingAttack: GameState["pendingAttack"];
   abilityId: string;
   pushLog: (entry: string | string[], options?: { blankLineBefore?: boolean; blankLineAfter?: boolean }) => void;
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
