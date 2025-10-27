@@ -18,7 +18,7 @@ import { useAiDiceAnimator } from "../hooks/useAiDiceAnimator";
 import { useAiController } from "../hooks/useAiController";
 import { useStatusManager } from "../hooks/useStatusManager";
 import { useDefenseActions } from "../hooks/useDefenseActions";
-import { useTurnController } from "../hooks/useTurnController";
+import { useGameFlow } from "../hooks/useTurnController";
 import { useActiveAbilities } from "../hooks/useActiveAbilities";
 import { bestAbility, detectCombos, rollDie } from "../game/combos";
 import type {
@@ -333,7 +333,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     animateDefenseDie,
     restoreDiceAfterDefense,
   });
-  const { tickAndStart } = useTurnController({
+  const { startTurn } = useGameFlow({
     resetRoll,
     pushLog,
     popDamage,
@@ -343,7 +343,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     logAiNoCombo,
     logAiAttackRoll,
     animatePreviewRoll,
-    tickAndStart,
+    startTurn,
     aiStepDelay: AI_STEP_MS,
     turnChiAvailable,
     consumeTurnChi,
@@ -362,7 +362,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       animateDefenseDie,
       popDamage,
       restoreDiceAfterDefense,
-      tickAndStart,
+      startTurn,
       aiPlay,
       aiStepDelay: AI_STEP_MS,
       attackChiSpend,
@@ -459,7 +459,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const onEndTurnNoAttack = useCallback(() => {
     if (turn !== "you" || rolling.some(Boolean)) return;
     window.setTimeout(() => {
-      const cont = tickAndStart("ai", () => {
+      const cont = startTurn("ai", () => {
         window.setTimeout(() => {
           const aiState = stateRef.current.players.ai;
           const youState = stateRef.current.players.you;
@@ -470,7 +470,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       });
       if (!cont) return;
     }, 0);
-  }, [aiPlay, rolling, tickAndStart, turn]);
+  }, [aiPlay, rolling, startTurn, turn]);
 
   const handleReset = useCallback(() => {
     const current = stateRef.current;
@@ -503,7 +503,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       const startingSide = state.turn;
       window.setTimeout(() => {
         if (startingSide === "ai") {
-          const cont = tickAndStart("ai", () => {
+          const cont = startTurn("ai", () => {
             window.setTimeout(() => {
               const aiState = stateRef.current.players.ai;
               const youState = stateRef.current.players.you;
@@ -514,7 +514,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
           });
           if (!cont) return;
         } else {
-          tickAndStart("you");
+          startTurn("you");
         }
       }, 0);
     }
@@ -525,7 +525,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     state.phase,
     state.round,
     state.turn,
-    tickAndStart,
+    startTurn,
   ]);
 
   const dataValue: ComputedData = useMemo(

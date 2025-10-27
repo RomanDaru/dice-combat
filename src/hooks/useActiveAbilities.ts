@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import { useGame } from "../context/GameContext";
 import type { GameState } from "../game/state";
 import { getActiveAbilitiesForHero } from "../game/activeAbilities";
@@ -11,6 +11,7 @@ import type {
   Side,
   Tokens,
 } from "../game/types";
+import { useLatest } from "./useLatest";
 
 type UseActiveAbilitiesArgs = {
   side: Side;
@@ -58,11 +59,7 @@ export const useActiveAbilities = ({
   handleControllerAction,
 }: UseActiveAbilitiesArgs) => {
   const { state, dispatch } = useGame();
-
-  const stateRef = useRef(state);
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
+  const latestState = useLatest(state);
 
   const heroId = state.players[side]?.hero.id;
   const abilities = useMemo<ActiveAbility[]>(() => {
@@ -75,7 +72,7 @@ export const useActiveAbilities = ({
       ability: ActiveAbility,
       baseState?: GameState
     ): ActiveAbilityContext | null => {
-      const current = baseState ?? stateRef.current;
+      const current = baseState ?? latestState.current;
       const actingPlayer = current.players[side];
       const opposingPlayer = current.players[side === "you" ? "ai" : "you"];
       if (!actingPlayer || !opposingPlayer) return null;
@@ -93,18 +90,18 @@ export const useActiveAbilities = ({
         popDamage,
       };
     },
-    [dispatch, popDamage, pushLog, side]
+    [dispatch, latestState, popDamage, pushLog, side]
   );
 
   const canPayCost = useCallback(
     (ability: ActiveAbility, baseState?: GameState) => {
-      const current = baseState ?? stateRef.current;
+      const current = baseState ?? latestState.current;
       const actingPlayer = current.players[side];
       if (!actingPlayer) return false;
       if (!ability.cost?.tokens) return true;
       return hasTokenCost(actingPlayer.tokens, ability.cost.tokens);
     },
-    [side]
+    [latestState, side]
   );
 
   const availableAbilities = useMemo(() => {
@@ -157,10 +154,33 @@ export const useActiveAbilities = ({
         handleControllerAction(outcome.controllerAction, context);
       }
       if (outcome?.statePatch) {
-        dispatch({ type: "PATCH_STATE", payload: outcome.statePatch });
+        const { phase, turn, round, pendingAttack, pendingStatusClear, ...rest } =
+          outcome.statePatch;
+        if (phase) {
+          dispatch({ type: "SET_PHASE", phase });
+        }
+        if (turn) {
+          dispatch({ type: "SET_TURN", turn });
+        }
+        if (typeof round === "number") {
+          dispatch({ type: "SET_ROUND", round });
+        }
+        if (pendingAttack !== undefined) {
+          dispatch({ type: "SET_PENDING_ATTACK", attack: pendingAttack });
+        }
+        if (pendingStatusClear !== undefined) {
+          dispatch({ type: "SET_PENDING_STATUS", status: pendingStatusClear });
+        }
+        const remaining = Object.keys(rest);
+        if (remaining.length > 0) {
+          console.warn(
+            "[useActiveAbilities] Unhandled statePatch keys:",
+            remaining
+          );
+        }
       }
       if (outcome?.nextPhase) {
-        dispatch({ type: "PATCH_STATE", payload: { phase: outcome.nextPhase } });
+        dispatch({ type: "SET_PHASE", phase: outcome.nextPhase });
       }
       return true;
     },

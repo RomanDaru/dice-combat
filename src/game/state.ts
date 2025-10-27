@@ -144,7 +144,6 @@ export type GameAction =
   | { type: "SET_PHASE"; phase: Phase }
   | { type: "SET_TURN"; turn: Side }
   | { type: "SET_ROUND"; round: number }
-  | { type: "PATCH_STATE"; payload: Partial<GameState> }
   | { type: "SET_DICE"; dice: number[] }
   | { type: "SET_HELD"; held: boolean[] }
   | { type: "SET_ROLLING"; rolling: boolean[] }
@@ -202,8 +201,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, turn: action.turn };
     case "SET_ROUND":
       return { ...state, round: action.round };
-    case "PATCH_STATE":
-      return { ...state, ...action.payload };
     case "SET_DICE":
       return { ...state, dice: action.dice };
     case "SET_HELD":

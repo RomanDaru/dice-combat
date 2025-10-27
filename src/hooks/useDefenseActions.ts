@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { rollDie } from "../game/combos";
 import { applyAttack, calculateDefenseOutcome } from "../game/engine";
 import type { GameState } from "../game/state";
@@ -15,6 +15,7 @@ import {
 import { useGame } from "../context/GameContext";
 import { useActiveAbilities } from "./useActiveAbilities";
 import { ActiveAbilityIds } from "../game/activeAbilities";
+import { useLatest } from "./useLatest";
 
 type UseDefenseActionsArgs = {
   turn: Side;
@@ -42,7 +43,7 @@ type UseDefenseActionsArgs = {
   animateDefenseDie: (onDone: (roll: number) => void, duration?: number) => void;
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
   restoreDiceAfterDefense: () => void;
-  tickAndStart: (next: Side, afterReady?: () => void) => boolean;
+  startTurn: (next: Side, afterReady?: () => void) => boolean;
   aiPlay: () => void;
   aiStepDelay: number;
 };
@@ -66,12 +67,12 @@ export function useDefenseActions({
   animateDefenseDie,
   popDamage,
   restoreDiceAfterDefense,
-  tickAndStart,
+  startTurn,
   aiPlay,
   aiStepDelay,
 }: UseDefenseActionsArgs) {
   const { state, dispatch } = useGame();
-  const stateRef = useRef<GameState>(state);
+  const latestState = useLatest(state);
   const manualEvasiveRef = useRef<ManualEvasiveLog | null>(null);
 
   const applyReactiveChiDefense = ({
@@ -155,14 +156,9 @@ export function useDefenseActions({
     handleControllerAction: handleAiAbilityControllerAction,
   });
 
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
-
   const setPhase = useCallback(
     (phase: GameState["phase"]) => {
       dispatch({ type: "SET_PHASE", phase });
-      stateRef.current = { ...stateRef.current, phase };
     },
     [dispatch]
   );
@@ -170,10 +166,6 @@ export function useDefenseActions({
   const patchAiDefense = useCallback(
     (partial: Partial<GameState["aiDefense"]>) => {
       dispatch({ type: "PATCH_AI_DEFENSE", payload: partial });
-      stateRef.current = {
-        ...stateRef.current,
-        aiDefense: { ...stateRef.current.aiDefense, ...partial },
-      };
     },
     [dispatch]
   );
@@ -181,7 +173,6 @@ export function useDefenseActions({
   const setPendingAttackDispatch = useCallback(
     (attack: GameState["pendingAttack"]) => {
       dispatch({ type: "SET_PENDING_ATTACK", attack });
-      stateRef.current = { ...stateRef.current, pendingAttack: attack };
       if (!attack) {
         manualEvasiveRef.current = null;
         clearDefenseChiSpend();
@@ -193,10 +184,6 @@ export function useDefenseActions({
   const setPlayer = useCallback(
     (side: Side, player: PlayerState) => {
       dispatch({ type: "SET_PLAYER", side, player });
-      stateRef.current = {
-        ...stateRef.current,
-        players: { ...stateRef.current.players, [side]: player },
-      };
     },
     [dispatch]
   );
@@ -211,10 +198,10 @@ export function useDefenseActions({
       logPlayerNoCombo(diceValues, you.hero.name);
       setPhase("end");
       window.setTimeout(() => {
-        const cont = tickAndStart("ai", () => {
+        const cont = startTurn("ai", () => {
           window.setTimeout(() => {
-            const aiState = stateRef.current.players.ai;
-            const youState = stateRef.current.players.you;
+            const aiState = latestState.current.players.ai;
+            const youState = latestState.current.players.you;
             if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
               return;
             aiPlay();
@@ -229,7 +216,7 @@ export function useDefenseActions({
     patchAiDefense({ inProgress: true, defenseRoll: null, evasiveRoll: null });
     const attackDice = [...dice];
     window.setTimeout(() => {
-      const snapshot = stateRef.current;
+      const snapshot = latestState.current;
       let attacker = snapshot.players.you;
       let defender = snapshot.players.ai;
       if (!attacker || !defender || attacker.hp <= 0 || defender.hp <= 0) {
@@ -387,10 +374,10 @@ export function useDefenseActions({
       setPhase("end");
       if (nextDefender.hp <= 0 || nextAttacker.hp <= 0) return;
       window.setTimeout(() => {
-        const cont = tickAndStart("ai", () => {
+        const cont = startTurn("ai", () => {
           window.setTimeout(() => {
-            const aiState = stateRef.current.players.ai;
-            const youState = stateRef.current.players.you;
+            const aiState = latestState.current.players.ai;
+            const youState = latestState.current.players.you;
             if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
               return;
             aiPlay();
@@ -419,10 +406,11 @@ export function useDefenseActions({
     setPlayer,
     consumeTurnChi,
     rolling,
-    tickAndStart,
+    startTurn,
     turn,
     turnChiAvailable.ai,
     turnChiAvailable.you,
+    latestState,
     you.hero.name,
   ]);
 
@@ -431,7 +419,7 @@ export function useDefenseActions({
     setPhase("defense");
     const attackPayload = pendingAttack;
     animateDefenseDie((roll) => {
-      const snapshot = stateRef.current;
+      const snapshot = latestState.current;
       const attacker = snapshot.players[attackPayload.attacker];
       const defender = snapshot.players[attackPayload.defender];
       if (!attacker || !defender) return;
@@ -509,7 +497,7 @@ export function useDefenseActions({
         setPhase("end");
         restoreDiceAfterDefense();
         if (nextDefender.hp <= 0 || nextAttacker.hp <= 0) return;
-        window.setTimeout(() => tickAndStart("you"), 700);
+        window.setTimeout(() => startTurn("you"), 700);
       }, 600);
     });
   }, [
@@ -525,19 +513,20 @@ export function useDefenseActions({
     setPendingAttackDispatch,
     setPlayer,
     consumeTurnChi,
-    tickAndStart,
+    startTurn,
     turnChiAvailable.ai,
     turnChiAvailable.you,
+    latestState,
   ]);
 
   const onUserEvasiveRoll = useCallback(() => {
     if (!pendingAttack || pendingAttack.defender !== "you") return;
-    const defenderSnapshot = stateRef.current.players[pendingAttack.defender];
+    const defenderSnapshot = latestState.current.players[pendingAttack.defender];
     if (!defenderSnapshot || defenderSnapshot.tokens.evasive <= 0) return;
     setPhase("defense");
     const attackPayload = pendingAttack;
     animateDefenseDie((evasiveRoll) => {
-      const snapshot = stateRef.current;
+      const snapshot = latestState.current;
       const attacker = snapshot.players[attackPayload.attacker];
       const defender = snapshot.players[attackPayload.defender];
       if (!attacker || !defender) return;
@@ -574,10 +563,10 @@ export function useDefenseActions({
           pushLog(resolutionLines);
         }
         window.setTimeout(() => {
-        setPhase("end");
+          setPhase("end");
           restoreDiceAfterDefense();
           if (attacker.hp <= 0 || consumedDefender.hp <= 0) return;
-          window.setTimeout(() => tickAndStart("you"), 700);
+          window.setTimeout(() => startTurn("you"), 700);
         }, 600);
         manualEvasiveRef.current = null;
         clearDefenseChiSpend();
@@ -594,7 +583,8 @@ export function useDefenseActions({
     restoreDiceAfterDefense,
     setPendingAttackDispatch,
     setPlayer,
-    tickAndStart,
+    startTurn,
+    latestState,
   ]);
 
   return {

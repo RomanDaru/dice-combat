@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { bestAbility, rollDie } from "../game/combos";
 import type { GameState } from "../game/state";
 import type { Ability, PlayerState, Side } from "../game/types";
 import { useGame } from "../context/GameContext";
+import { useLatest } from "./useLatest";
 
 type UseAiControllerArgs = {
   logAiNoCombo: (diceValues: number[]) => void;
@@ -12,7 +13,7 @@ type UseAiControllerArgs = {
     heldMask: boolean[],
     onDone: () => void
   ) => void;
-  tickAndStart: (next: Side, afterReady?: () => void) => boolean;
+  startTurn: (next: Side, afterReady?: () => void) => boolean;
   aiStepDelay: number;
   turnChiAvailable: Record<Side, number>;
   consumeTurnChi: (side: Side, amount: number) => void;
@@ -22,25 +23,17 @@ export function useAiController({
   logAiNoCombo,
   logAiAttackRoll,
   animatePreviewRoll,
-  tickAndStart,
+  startTurn,
   aiStepDelay,
   turnChiAvailable,
   consumeTurnChi,
 }: UseAiControllerArgs) {
   const { state, dispatch } = useGame();
-  const stateRef = useRef<GameState>(state);
-
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
+  const latestState = useLatest(state);
 
   const patchAiPreview = useCallback(
     (partial: Partial<GameState["aiPreview"]>) => {
       dispatch({ type: "PATCH_AI_PREVIEW", payload: partial });
-      stateRef.current = {
-        ...stateRef.current,
-        aiPreview: { ...stateRef.current.aiPreview, ...partial },
-      };
     },
     [dispatch]
   );
@@ -69,7 +62,6 @@ export function useAiController({
   const setPendingAttack = useCallback(
     (attack: GameState["pendingAttack"]) => {
       dispatch({ type: "SET_PENDING_ATTACK", attack });
-      stateRef.current = { ...stateRef.current, pendingAttack: attack };
     },
     [dispatch]
   );
@@ -77,7 +69,6 @@ export function useAiController({
   const setPhase = useCallback(
     (phase: GameState["phase"]) => {
       dispatch({ type: "SET_PHASE", phase });
-      stateRef.current = { ...stateRef.current, phase };
     },
     [dispatch]
   );
@@ -94,8 +85,9 @@ export function useAiController({
   );
 
   const aiPlay = useCallback(() => {
-    const curAi = stateRef.current.players.ai;
-    const curYou = stateRef.current.players.you;
+    const snapshot = latestState.current;
+    const curAi = snapshot.players.ai;
+    const curYou = snapshot.players.you;
     if (!curAi || !curYou || curAi.hp <= 0 || curYou.hp <= 0) {
       setAiSimActive(false);
       setAiSimRolling(false);
@@ -109,8 +101,9 @@ export function useAiController({
     let localHeld = [false, false, false, false, false];
 
     const doStep = (step: number) => {
-      const latestAi = stateRef.current.players.ai;
-      const latestYou = stateRef.current.players.you;
+      const stateNow = latestState.current;
+      const latestAi = stateNow.players.ai;
+      const latestYou = stateNow.players.you;
       if (!latestAi || !latestYou || latestAi.hp <= 0 || latestYou.hp <= 0) {
         setAiSimActive(false);
         setAiSimRolling(false);
@@ -148,7 +141,7 @@ export function useAiController({
             logAiNoCombo(finalDice);
             setPhase("end");
             window.setTimeout(() => {
-              tickAndStart("you");
+              startTurn("you");
             }, 600);
             return;
           }
@@ -174,10 +167,6 @@ export function useAiController({
               },
             };
             dispatch({ type: "SET_PLAYER", side: "ai", player: updatedAi });
-            stateRef.current = {
-              ...stateRef.current,
-              players: { ...stateRef.current.players, ai: updatedAi },
-            };
             consumeTurnChi("ai", chiAttackSpend);
             effectiveAbility = {
               ...ab,
@@ -215,7 +204,7 @@ export function useAiController({
     setAiSimRolling,
     setPendingAttack,
     setPhase,
-    tickAndStart,
+    startTurn,
     turnChiAvailable.ai,
   ]);
 
