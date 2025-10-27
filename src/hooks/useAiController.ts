@@ -4,6 +4,7 @@ import type { GameState } from "../game/state";
 import type { Ability, PlayerState, Side } from "../game/types";
 import { useGame } from "../context/GameContext";
 import { useLatest } from "./useLatest";
+import type { GameFlowEvent } from "./useTurnController";
 
 type UseAiControllerArgs = {
   logAiNoCombo: (diceValues: number[]) => void;
@@ -14,6 +15,7 @@ type UseAiControllerArgs = {
     onDone: () => void
   ) => void;
   startTurn: (next: Side, afterReady?: () => void) => boolean;
+  sendFlowEvent: (event: GameFlowEvent) => boolean;
   aiStepDelay: number;
   turnChiAvailable: Record<Side, number>;
   consumeTurnChi: (side: Side, amount: number) => void;
@@ -24,6 +26,7 @@ export function useAiController({
   logAiAttackRoll,
   animatePreviewRoll,
   startTurn,
+  sendFlowEvent,
   aiStepDelay,
   turnChiAvailable,
   consumeTurnChi,
@@ -68,9 +71,9 @@ export function useAiController({
 
   const setPhase = useCallback(
     (phase: GameState["phase"]) => {
-      dispatch({ type: "SET_PHASE", phase });
+      sendFlowEvent({ type: "SET_PHASE", phase });
     },
-    [dispatch]
+    [sendFlowEvent]
   );
 
   const chooseAiAttackChiSpend = useCallback(
@@ -204,6 +207,7 @@ export function useAiController({
     setAiSimRolling,
     setPendingAttack,
     setPhase,
+    sendFlowEvent,
     startTurn,
     turnChiAvailable.ai,
   ]);

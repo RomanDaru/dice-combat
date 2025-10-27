@@ -43,7 +43,7 @@ type UseDefenseActionsArgs = {
   animateDefenseDie: (onDone: (roll: number) => void, duration?: number) => void;
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
   restoreDiceAfterDefense: () => void;
-  startTurn: (next: Side, afterReady?: () => void) => boolean;
+  sendFlowEvent: (event: GameFlowEvent) => boolean;
   aiPlay: () => void;
   aiStepDelay: number;
 };
@@ -67,13 +67,19 @@ export function useDefenseActions({
   animateDefenseDie,
   popDamage,
   restoreDiceAfterDefense,
-  startTurn,
+  sendFlowEvent,
   aiPlay,
   aiStepDelay,
 }: UseDefenseActionsArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
   const manualEvasiveRef = useRef<ManualEvasiveLog | null>(null);
+  const setPhase = useCallback(
+    (phase: GameState["phase"]) => {
+      sendFlowEvent({ type: "SET_PHASE", phase });
+    },
+    [sendFlowEvent]
+  );
 
   const applyReactiveChiDefense = ({
     defender,
@@ -156,13 +162,6 @@ export function useDefenseActions({
     handleControllerAction: handleAiAbilityControllerAction,
   });
 
-  const setPhase = useCallback(
-    (phase: GameState["phase"]) => {
-      dispatch({ type: "SET_PHASE", phase });
-    },
-    [dispatch]
-  );
-
   const patchAiDefense = useCallback(
     (partial: Partial<GameState["aiDefense"]>) => {
       dispatch({ type: "PATCH_AI_DEFENSE", payload: partial });
@@ -197,8 +196,11 @@ export function useDefenseActions({
       const diceValues = [...dice];
       logPlayerNoCombo(diceValues, you.hero.name);
       setPhase("end");
-      window.setTimeout(() => {
-        const cont = startTurn("ai", () => {
+      sendFlowEvent({
+        type: "TURN_END",
+        next: "ai",
+        delayMs: 600,
+        afterReady: () => {
           window.setTimeout(() => {
             const aiState = latestState.current.players.ai;
             const youState = latestState.current.players.you;
@@ -206,9 +208,8 @@ export function useDefenseActions({
               return;
             aiPlay();
           }, 400);
-        });
-        if (!cont) return;
-      }, 600);
+        },
+      });
       return;
     }
 
@@ -373,8 +374,11 @@ export function useDefenseActions({
       patchAiDefense({ inProgress: false });
       setPhase("end");
       if (nextDefender.hp <= 0 || nextAttacker.hp <= 0) return;
-      window.setTimeout(() => {
-        const cont = startTurn("ai", () => {
+      sendFlowEvent({
+        type: "TURN_END",
+        next: "ai",
+        delayMs: 700,
+        afterReady: () => {
           window.setTimeout(() => {
             const aiState = latestState.current.players.ai;
             const youState = latestState.current.players.you;
@@ -382,9 +386,8 @@ export function useDefenseActions({
               return;
             aiPlay();
           }, aiStepDelay);
-        });
-        if (!cont) return;
-      }, 700);
+        },
+      });
     }, 900);
   }, [
     ability,
@@ -406,11 +409,11 @@ export function useDefenseActions({
     setPlayer,
     consumeTurnChi,
     rolling,
-    startTurn,
     turn,
     turnChiAvailable.ai,
     turnChiAvailable.you,
     latestState,
+    sendFlowEvent,
     you.hero.name,
   ]);
 
@@ -497,7 +500,7 @@ export function useDefenseActions({
         setPhase("end");
         restoreDiceAfterDefense();
         if (nextDefender.hp <= 0 || nextAttacker.hp <= 0) return;
-        window.setTimeout(() => startTurn("you"), 700);
+        sendFlowEvent({ type: "TURN_END", next: "you", delayMs: 700 });
       }, 600);
     });
   }, [
@@ -517,6 +520,7 @@ export function useDefenseActions({
     turnChiAvailable.ai,
     turnChiAvailable.you,
     latestState,
+    sendFlowEvent,
   ]);
 
   const onUserEvasiveRoll = useCallback(() => {
@@ -566,7 +570,7 @@ export function useDefenseActions({
           setPhase("end");
           restoreDiceAfterDefense();
           if (attacker.hp <= 0 || consumedDefender.hp <= 0) return;
-          window.setTimeout(() => startTurn("you"), 700);
+          sendFlowEvent({ type: "TURN_END", next: "you", delayMs: 700 });
         }, 600);
         manualEvasiveRef.current = null;
         clearDefenseChiSpend();

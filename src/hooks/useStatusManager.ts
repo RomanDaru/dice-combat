@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef } from "react";
+import { MutableRefObject, useCallback, useEffect, useRef } from "react";
 import { getStatusDefinition } from "../game/statuses";
 import type { PendingStatusClear } from "../game/state";
 import type { Side, PlayerState, Phase } from "../game/types";
 import { indentLog } from "./useCombatLog";
 import { useGame } from "../context/GameContext";
+import type { GameFlowEvent } from "./useTurnController";
 
 type UseStatusManagerArgs = {
   pushLog: (
@@ -12,16 +13,19 @@ type UseStatusManagerArgs = {
   ) => void;
   animateDefenseDie: (onDone: (roll: number) => void, duration?: number) => void;
   restoreDiceAfterDefense: () => void;
+  sendFlowEvent: (event: GameFlowEvent) => boolean;
+  statusResumeRef: MutableRefObject<(() => void) | null>;
 };
 
 export function useStatusManager({
   pushLog,
   animateDefenseDie,
   restoreDiceAfterDefense,
+  sendFlowEvent,
+  statusResumeRef,
 }: UseStatusManagerArgs) {
   const { state, dispatch } = useGame();
   const stateRef = useRef(state);
-  const statusResumeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     stateRef.current = state;
@@ -48,10 +52,10 @@ export function useStatusManager({
 
   const setPhase = useCallback(
     (phase: Phase) => {
-      dispatch({ type: "SET_PHASE", phase });
+      sendFlowEvent({ type: "SET_PHASE", phase });
       stateRef.current = { ...stateRef.current, phase };
     },
-    [dispatch]
+    [sendFlowEvent]
   );
 
   const performStatusClearRoll = useCallback(
@@ -128,3 +132,4 @@ export function useStatusManager({
     performStatusClearRoll,
   };
 }
+

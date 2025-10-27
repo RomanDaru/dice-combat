@@ -84,6 +84,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+  const statusResumeRef = useRef<(() => void) | null>(null);
 
   const updateAttackChiSpend = useCallback(
     (value: number | ((prev: number) => number)) => {
@@ -328,15 +329,17 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const { animatePreviewRoll } = useAiDiceAnimator({
     rollDurationMs: AI_ROLL_ANIM_MS,
   });
-  const { statusResumeRef, performStatusClearRoll } = useStatusManager({
-    pushLog,
-    animateDefenseDie,
-    restoreDiceAfterDefense,
-  });
-  const { startTurn } = useGameFlow({
+  const { send: sendFlowEvent, startTurn } = useGameFlow({
     resetRoll,
     pushLog,
     popDamage,
+    statusResumeRef,
+  });
+  const { performStatusClearRoll } = useStatusManager({
+    pushLog,
+    animateDefenseDie,
+    restoreDiceAfterDefense,
+    sendFlowEvent,
     statusResumeRef,
   });
   const { aiPlay } = useAiController({
@@ -344,6 +347,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     logAiAttackRoll,
     animatePreviewRoll,
     startTurn,
+    sendFlowEvent,
     aiStepDelay: AI_STEP_MS,
     turnChiAvailable,
     consumeTurnChi,
@@ -363,6 +367,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       popDamage,
       restoreDiceAfterDefense,
       startTurn,
+      sendFlowEvent,
       aiPlay,
       aiStepDelay: AI_STEP_MS,
       attackChiSpend,
@@ -458,8 +463,12 @@ export const GameController = ({ children }: { children: ReactNode }) => {
 
   const onEndTurnNoAttack = useCallback(() => {
     if (turn !== "you" || rolling.some(Boolean)) return;
-    window.setTimeout(() => {
-      const cont = startTurn("ai", () => {
+    sendFlowEvent({ type: "SET_PHASE", phase: "end" });
+    sendFlowEvent({
+      type: "TURN_END",
+      next: "ai",
+      delayMs: 0,
+      afterReady: () => {
         window.setTimeout(() => {
           const aiState = stateRef.current.players.ai;
           const youState = stateRef.current.players.you;
@@ -467,10 +476,9 @@ export const GameController = ({ children }: { children: ReactNode }) => {
             return;
           aiPlay();
         }, 450);
-      });
-      if (!cont) return;
-    }, 0);
-  }, [aiPlay, rolling, startTurn, turn]);
+      },
+    });
+  }, [aiPlay, rolling, sendFlowEvent, turn]);
 
   const handleReset = useCallback(() => {
     const current = stateRef.current;

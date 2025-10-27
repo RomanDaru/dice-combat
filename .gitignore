@@ -27,3 +27,4 @@ pnpm-debug.log*
 # yarn.lock
 # pnpm-lock.yaml
 
+docs/session-notes.md

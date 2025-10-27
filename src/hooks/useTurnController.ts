@@ -2,7 +2,7 @@ import { MutableRefObject, useCallback, useEffect, useRef } from "react";
 import { useGame } from "../context/GameContext";
 import { resolveTurnStart } from "../game/flow";
 import type { GameState } from "../game/state";
-import type { Side } from "../game/types";
+import type { Phase, Side } from "../game/types";
 
 type UseGameFlowArgs = {
   resetRoll: () => void;
@@ -19,6 +19,17 @@ export type GameFlowEvent =
       type: "TURN_START";
       side: Side;
       afterReady?: () => void;
+    }
+  | {
+      type: "SET_PHASE";
+      phase: Phase;
+    }
+  | {
+      type: "TURN_END";
+      next: Side;
+      delayMs?: number;
+      afterReady?: () => void;
+      prePhase?: Phase;
     };
 
 export function useGameFlow({
@@ -162,11 +173,25 @@ export function useGameFlow({
       switch (event.type) {
         case "TURN_START":
           return startTurn(event.side, event.afterReady);
+        case "SET_PHASE":
+          dispatch({ type: "SET_PHASE", phase: event.phase });
+          stateRef.current = { ...stateRef.current, phase: event.phase };
+          return true;
+        case "TURN_END": {
+          const prePhase = event.prePhase ?? "end";
+          dispatch({ type: "SET_PHASE", phase: prePhase });
+          stateRef.current = { ...stateRef.current, phase: prePhase };
+          const delay = event.delayMs ?? 0;
+          window.setTimeout(() => {
+            startTurn(event.next, event.afterReady);
+          }, delay);
+          return true;
+        }
         default:
           return false;
       }
     },
-    [startTurn]
+    [dispatch, startTurn]
   );
 
   return { send, startTurn };
