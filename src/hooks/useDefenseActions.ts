@@ -159,10 +159,10 @@ export function useDefenseActions({
     stateRef.current = state;
   }, [state]);
 
-  const patchState = useCallback(
-    (partial: Partial<GameState>) => {
-      dispatch({ type: "PATCH_STATE", payload: partial });
-      stateRef.current = { ...stateRef.current, ...partial };
+  const setPhase = useCallback(
+    (phase: GameState["phase"]) => {
+      dispatch({ type: "SET_PHASE", phase });
+      stateRef.current = { ...stateRef.current, phase };
     },
     [dispatch]
   );
@@ -209,7 +209,7 @@ export function useDefenseActions({
       clearAttackChiSpend();
       const diceValues = [...dice];
       logPlayerNoCombo(diceValues, you.hero.name);
-      patchState({ phase: "end" });
+      setPhase("end");
       window.setTimeout(() => {
         const cont = tickAndStart("ai", () => {
           window.setTimeout(() => {
@@ -225,7 +225,7 @@ export function useDefenseActions({
       return;
     }
 
-    patchState({ phase: "attack" });
+    setPhase("attack");
     patchAiDefense({ inProgress: true, defenseRoll: null, evasiveRoll: null });
     const attackDice = [...dice];
     window.setTimeout(() => {
@@ -384,7 +384,7 @@ export function useDefenseActions({
         pushLog(resolutionLines);
       }
       patchAiDefense({ inProgress: false });
-      patchState({ phase: "end" });
+      setPhase("end");
       if (nextDefender.hp <= 0 || nextAttacker.hp <= 0) return;
       window.setTimeout(() => {
         const cont = tickAndStart("ai", () => {
@@ -412,7 +412,7 @@ export function useDefenseActions({
     logPlayerAttackStart,
     logPlayerNoCombo,
     patchAiDefense,
-    patchState,
+    setPhase,
     popDamage,
     pushLog,
     setPendingAttackDispatch,
@@ -428,7 +428,7 @@ export function useDefenseActions({
 
   const onUserDefenseRoll = useCallback(() => {
     if (!pendingAttack || pendingAttack.defender !== "you") return;
-    patchState({ phase: "defense" });
+    setPhase("defense");
     const attackPayload = pendingAttack;
     animateDefenseDie((roll) => {
       const snapshot = stateRef.current;
@@ -506,7 +506,7 @@ export function useDefenseActions({
         pushLog(resolutionLines);
       }
       window.setTimeout(() => {
-        patchState({ phase: "end" });
+        setPhase("end");
         restoreDiceAfterDefense();
         if (nextDefender.hp <= 0 || nextAttacker.hp <= 0) return;
         window.setTimeout(() => tickAndStart("you"), 700);
@@ -518,7 +518,7 @@ export function useDefenseActions({
     clearDefenseChiSpend,
     defenseChiSpend,
     applyReactiveChiDefense,
-    patchState,
+    setPhase,
     popDamage,
     pushLog,
     restoreDiceAfterDefense,
@@ -534,7 +534,7 @@ export function useDefenseActions({
     if (!pendingAttack || pendingAttack.defender !== "you") return;
     const defenderSnapshot = stateRef.current.players[pendingAttack.defender];
     if (!defenderSnapshot || defenderSnapshot.tokens.evasive <= 0) return;
-    patchState({ phase: "defense" });
+    setPhase("defense");
     const attackPayload = pendingAttack;
     animateDefenseDie((evasiveRoll) => {
       const snapshot = stateRef.current;
@@ -574,7 +574,7 @@ export function useDefenseActions({
           pushLog(resolutionLines);
         }
         window.setTimeout(() => {
-          patchState({ phase: "end" });
+        setPhase("end");
           restoreDiceAfterDefense();
           if (attacker.hp <= 0 || consumedDefender.hp <= 0) return;
           window.setTimeout(() => tickAndStart("you"), 700);
@@ -589,7 +589,7 @@ export function useDefenseActions({
     animateDefenseDie,
     clearDefenseChiSpend,
     pendingAttack,
-    patchState,
+    setPhase,
     pushLog,
     restoreDiceAfterDefense,
     setPendingAttackDispatch,

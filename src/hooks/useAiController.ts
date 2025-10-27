@@ -34,14 +34,6 @@ export function useAiController({
     stateRef.current = state;
   }, [state]);
 
-  const patchState = useCallback(
-    (partial: Partial<GameState>) => {
-      dispatch({ type: "PATCH_STATE", payload: partial });
-      stateRef.current = { ...stateRef.current, ...partial };
-    },
-    [dispatch]
-  );
-
   const patchAiPreview = useCallback(
     (partial: Partial<GameState["aiPreview"]>) => {
       dispatch({ type: "PATCH_AI_PREVIEW", payload: partial });
@@ -84,9 +76,10 @@ export function useAiController({
 
   const setPhase = useCallback(
     (phase: GameState["phase"]) => {
-      patchState({ phase });
+      dispatch({ type: "SET_PHASE", phase });
+      stateRef.current = { ...stateRef.current, phase };
     },
-    [patchState]
+    [dispatch]
   );
 
   const chooseAiAttackChiSpend = useCallback(

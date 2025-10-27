@@ -37,3 +37,67 @@
   justify-content: center;
   gap: 12px;
 }
+
+.standoffLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 420px;
+}
+
+.standoffDiceRow {
+  display: flex;
+  gap: 24px;
+}
+
+.diceColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.diceFace {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: rgba(24, 24, 27, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+  box-shadow: inset 0 0 14px rgba(15, 23, 42, 0.55),
+    0 0 10px rgba(59, 130, 246, 0.15);
+}
+
+.diceRolling {
+  animation: diceRoll 0.32s linear infinite;
+}
+
+.standoffActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.standoffActions .btn.primary {
+  margin-left: 4px;
+}
+
+.standoffActions .btn.success {
+  min-width: 140px;
+}
+
+@keyframes diceRoll {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(12deg) scale(1.09);
+  }
+  100% {
+    transform: rotate(-4deg) scale(1);
+  }
+}

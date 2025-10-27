@@ -50,14 +50,6 @@ export function useTurnController({
     [dispatch]
   );
 
-  const patchState = useCallback(
-    (partial: Partial<GameState>) => {
-      dispatch({ type: "PATCH_STATE", payload: partial });
-      stateRef.current = { ...stateRef.current, ...partial };
-    },
-    [dispatch]
-  );
-
   const patchAiPreview = useCallback(
     (partial: Partial<GameState["aiPreview"]>) => {
       dispatch({ type: "PATCH_AI_PREVIEW", payload: partial });
@@ -157,7 +149,13 @@ export function useTurnController({
       const { continueBattle, header, lines, pendingStatus } =
         runUpkeepFor(next);
 
-      patchState({ turn: next, phase: "upkeep" });
+      dispatch({ type: "SET_TURN", turn: next });
+      dispatch({ type: "SET_PHASE", phase: "upkeep" });
+      stateRef.current = {
+        ...stateRef.current,
+        turn: next,
+        phase: "upkeep",
+      };
       dispatch({ type: "SET_PENDING_ATTACK", attack: null });
       patchAiPreview({ active: false, rolling: false });
       patchAiDefense({ inProgress: false, defenseRoll: null, evasiveRoll: null });
@@ -185,7 +183,11 @@ export function useTurnController({
 
         if (shouldLogRound) {
           const shouldAddGap = currentRound > 0 || logLength > 1;
-          patchState({ round: newRound });
+          dispatch({ type: "SET_ROUND", round: newRound });
+          stateRef.current = {
+            ...stateRef.current,
+            round: newRound,
+          };
           pushLog(`--- Kolo ${newRound} ---`, {
             blankLineBefore: shouldAddGap,
           });
@@ -211,7 +213,10 @@ export function useTurnController({
       } else {
         dispatch({ type: "SET_PENDING_STATUS", status: null });
         statusResumeRef.current = null;
-        window.setTimeout(() => patchState({ phase: "roll" }), 600);
+        window.setTimeout(() => {
+          dispatch({ type: "SET_PHASE", phase: "roll" });
+          stateRef.current = { ...stateRef.current, phase: "roll" };
+        }, 600);
         afterReady?.();
       }
 
@@ -221,7 +226,6 @@ export function useTurnController({
       dispatch,
       patchAiDefense,
       patchAiPreview,
-      patchState,
       resetRoll,
       runUpkeepFor,
       statusResumeRef,

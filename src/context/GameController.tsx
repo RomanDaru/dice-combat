@@ -9,8 +9,8 @@ import React, {
   type ReactNode,
 } from "react";
 import { useGame } from "./GameContext";
-import type { GameState } from "../game/state";
-import type { Ability, Side } from "../game/types";
+import type { GameState, InitialRollState } from "../game/state";
+import type { Ability, Phase, Side } from "../game/types";
 
 import { useCombatLog } from "../hooks/useCombatLog";
 import { useDiceAnimator } from "../hooks/useDiceAnimator";
@@ -40,6 +40,8 @@ type ComputedData = {
   statusActive: boolean;
   showDcLogo: boolean;
   defenseDieIndex: number;
+  phase: Phase;
+  initialRoll: InitialRollState;
 };
 
 type ControllerContext = {
@@ -54,6 +56,8 @@ type ControllerContext = {
   onToggleHold: (index: number) => void;
   onEndTurnNoAttack: () => void;
   handleReset: () => void;
+  startInitialRoll: () => void;
+  confirmInitialRoll: () => void;
   performStatusClearRoll: (side: Side) => void;
   onConfirmAttack: () => void;
   onUserDefenseRoll: () => void;
@@ -221,6 +225,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     [aiPreview.dice]
   );
   const isDefenseTurn = !!pendingAttack && pendingAttack.defender === "you";
+  const initialRoll = state.initialRoll;
+  const phase = state.phase;
 
   useEffect(() => {
     const currentChi =
@@ -243,6 +249,52 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const statusActive = !!pendingStatusClear;
   const showDcLogo =
     turn === "you" && rollsLeft === 3 && !pendingAttack && !statusActive;
+
+  const startInitialRoll = useCallback(() => {
+    if (
+      phase !== "standoff" ||
+      initialRoll.inProgress ||
+      initialRoll.awaitingConfirmation
+    )
+      return;
+    dispatch({ type: "START_INITIAL_ROLL" });
+    const youRoll = rollDie();
+    const aiRoll = rollDie();
+    const winner =
+      youRoll === aiRoll ? null : youRoll > aiRoll ? ("you" as Side) : "ai";
+
+    window.setTimeout(() => {
+      dispatch({
+        type: "RESOLVE_INITIAL_ROLL",
+        payload: { you: youRoll, ai: aiRoll, winner },
+      });
+      const logEntry =
+        winner === null
+          ? `Initiative roll tie: You ${youRoll} vs AI ${aiRoll}. Roll again!`
+          : `Initiative roll: You ${youRoll} vs AI ${aiRoll}. ${
+              winner === "you" ? "You begin." : "AI begins."
+            }`;
+      pushLog(logEntry, { blankLineBefore: true });
+    }, 350);
+  }, [
+    dispatch,
+    initialRoll.awaitingConfirmation,
+    initialRoll.inProgress,
+    phase,
+    pushLog,
+  ]);
+
+  const confirmInitialRoll = useCallback(() => {
+    if (
+      phase !== "standoff" ||
+      initialRoll.inProgress ||
+      !initialRoll.awaitingConfirmation ||
+      !initialRoll.winner
+    ) {
+      return;
+    }
+    dispatch({ type: "CONFIRM_INITIAL_ROLL" });
+  }, [dispatch, initialRoll, phase]);
 
   useEffect(() => {
     const maxChi = state.players.you.tokens.chi ?? 0;
@@ -434,25 +486,47 @@ export const GameController = ({ children }: { children: ReactNode }) => {
 
   const initialStartRef = useRef(false);
   useEffect(() => {
-    if (
-      state.phase === "upkeep" &&
-      state.round === 0 &&
-      state.log.length === 1
-    ) {
+    if (state.phase === "standoff") {
       initialStartRef.current = false;
     }
-  }, [state.phase, state.round, state.log.length]);
+  }, [state.phase]);
 
   useEffect(() => {
     if (
       !initialStartRef.current &&
       state.phase === "upkeep" &&
-      state.round === 0
+      state.round === 0 &&
+      !state.initialRoll.inProgress &&
+      state.initialRoll.winner
     ) {
       initialStartRef.current = true;
-      window.setTimeout(() => tickAndStart("you"), 0);
+      const startingSide = state.turn;
+      window.setTimeout(() => {
+        if (startingSide === "ai") {
+          const cont = tickAndStart("ai", () => {
+            window.setTimeout(() => {
+              const aiState = stateRef.current.players.ai;
+              const youState = stateRef.current.players.you;
+              if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
+                return;
+              aiPlay();
+            }, 450);
+          });
+          if (!cont) return;
+        } else {
+          tickAndStart("you");
+        }
+      }, 0);
     }
-  }, [state.phase, state.round, tickAndStart]);
+  }, [
+    aiPlay,
+    state.initialRoll.inProgress,
+    state.initialRoll.winner,
+    state.phase,
+    state.round,
+    state.turn,
+    tickAndStart,
+  ]);
 
   const dataValue: ComputedData = useMemo(
     () => ({
@@ -463,6 +537,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       statusActive,
       showDcLogo,
       defenseDieIndex: DEF_DIE_INDEX,
+      phase,
+      initialRoll,
     }),
     [
       ability,
@@ -471,6 +547,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       isDefenseTurn,
       statusActive,
       showDcLogo,
+      phase,
+      initialRoll,
     ]
   );
 
@@ -487,6 +565,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       onToggleHold,
       onEndTurnNoAttack,
       handleReset,
+      startInitialRoll,
+      confirmInitialRoll,
       performStatusClearRoll,
       onConfirmAttack,
       onUserDefenseRoll,
@@ -512,6 +592,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       onUserEvasiveRoll,
       performStatusClearRoll,
       popDamage,
+      startInitialRoll,
+      confirmInitialRoll,
     ]
   );
 

@@ -48,7 +48,7 @@ export function useStatusManager({
 
   const setPhase = useCallback(
     (phase: Phase) => {
-      dispatch({ type: "PATCH_STATE", payload: { phase } });
+      dispatch({ type: "SET_PHASE", phase });
       stateRef.current = { ...stateRef.current, phase };
     },
     [dispatch]

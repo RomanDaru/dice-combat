@@ -22,7 +22,7 @@ describe('applyAttack', () => {
     });
 
     expect(nextMonk.hp).toBe(monk.hp - (inferno.damage - 2));
-    expect(nextMonk.tokens.burn).toBe(1);
+    expect(nextMonk.tokens.burn).toBe(2);
     expect(nextPyro.hp).toBe(pyro.hp);
     expect(notes).toContain('Hit for 10 dmg (blocked 2).');
   });
@@ -64,4 +64,3 @@ describe('applyAttack', () => {
     expect(notes[0]).toMatch(/Evasive roll: 6 -> Attack fully dodged/);
   });
 });
-

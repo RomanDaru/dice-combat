@@ -6,6 +6,15 @@ import { Tokens } from "./types";
 
 type FloatDamage = { val: number; kind: "hit" | "reflect" };
 
+export type InitialRollState = {
+  you: number | null;
+  ai: number | null;
+  inProgress: boolean;
+  winner: Side | null;
+  tie: boolean;
+  awaitingConfirmation: boolean;
+};
+
 export type PendingAttack = {
   attacker: Side;
   defender: Side;
@@ -61,6 +70,7 @@ export type GameState = {
   pendingStatusClear: PendingStatusClear;
   savedDefenseDice: number[] | null;
   fx: FxState;
+  initialRoll: InitialRollState;
 };
 
 const MAX_LOG = 80;
@@ -90,7 +100,7 @@ export function createInitialState(
       ai: aiPlayer,
     },
     turn: "you",
-    phase: "upkeep",
+    phase: "standoff",
     round: 0,
     dice: [2, 2, 3, 4, 6],
     held: [false, false, false, false, false],
@@ -115,6 +125,14 @@ export function createInitialState(
       floatDamage: { you: null, ai: null },
       shake: { you: false, ai: false },
     },
+    initialRoll: {
+      you: null,
+      ai: null,
+      inProgress: false,
+      winner: null,
+      tie: false,
+      awaitingConfirmation: false,
+    },
   };
 }
 
@@ -123,6 +141,9 @@ export type GameAction =
       type: "RESET";
       payload: { youHero: Hero; aiHero: Hero };
     }
+  | { type: "SET_PHASE"; phase: Phase }
+  | { type: "SET_TURN"; turn: Side }
+  | { type: "SET_ROUND"; round: number }
   | { type: "PATCH_STATE"; payload: Partial<GameState> }
   | { type: "SET_DICE"; dice: number[] }
   | { type: "SET_HELD"; held: boolean[] }
@@ -164,11 +185,23 @@ export type GameAction =
       type: "SET_SHAKE";
       side: Side;
       value: boolean;
-    };
+    }
+  | { type: "START_INITIAL_ROLL" }
+  | {
+      type: "RESOLVE_INITIAL_ROLL";
+      payload: { you: number; ai: number; winner: Side | null };
+    }
+  | { type: "CONFIRM_INITIAL_ROLL" };
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "RESET":
       return createInitialState(action.payload.youHero, action.payload.aiHero);
+    case "SET_PHASE":
+      return { ...state, phase: action.phase };
+    case "SET_TURN":
+      return { ...state, turn: action.turn };
+    case "SET_ROUND":
+      return { ...state, round: action.round };
     case "PATCH_STATE":
       return { ...state, ...action.payload };
     case "SET_DICE":
@@ -250,6 +283,45 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         fx: {
           ...state.fx,
           shake: { ...state.fx.shake, [action.side]: action.value },
+        },
+      };
+    case "START_INITIAL_ROLL":
+      return {
+        ...state,
+        initialRoll: {
+          you: null,
+          ai: null,
+          winner: null,
+          inProgress: true,
+          tie: false,
+          awaitingConfirmation: false,
+        },
+      };
+    case "RESOLVE_INITIAL_ROLL": {
+      const tie = action.payload.you === action.payload.ai;
+      return {
+        ...state,
+        turn: tie ? state.turn : action.payload.winner ?? state.turn,
+        initialRoll: {
+          you: action.payload.you,
+          ai: action.payload.ai,
+          winner: tie ? null : action.payload.winner,
+          inProgress: false,
+          tie,
+          awaitingConfirmation: tie ? false : !!action.payload.winner,
+        },
+      };
+    }
+    case "CONFIRM_INITIAL_ROLL":
+      if (!state.initialRoll.winner) {
+        return state;
+      }
+      return {
+        ...state,
+        phase: "upkeep",
+        initialRoll: {
+          ...state.initialRoll,
+          awaitingConfirmation: false,
         },
       };
     default:
