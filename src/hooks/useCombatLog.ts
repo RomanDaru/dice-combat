@@ -15,7 +15,7 @@ const abilityTag = (value: string) => `<<ability:${value}>>`;
 const formatAbilityName = (ability: Ability) =>
   abilityTag(ability.label ?? ability.combo);
 
-export { buildAttackResolutionLines };
+export { buildAttackResolutionLines, indentLog };
 export type { ManualDefenseLog, ManualEvasiveLog };
 
 export function useCombatLog() {
@@ -74,4 +74,3 @@ export function useCombatLog() {
     logAiNoCombo,
   };
 }
-
