@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 import { rollDie } from "../game/combos";
-import { applyAttack, calculateDefenseOutcome } from "../game/engine";
+import { calculateDefenseOutcome } from "../game/engine";
 import type { GameState } from "../game/state";
 import type {
   Ability,
@@ -8,15 +8,13 @@ import type {
   PlayerState,
   Side,
 } from "../game/types";
-import {
-  buildAttackResolutionLines,
-  ManualEvasiveLog,
-} from "./useCombatLog";
+import { ManualDefenseLog, ManualEvasiveLog } from "./useCombatLog";
 import { useGame } from "../context/GameContext";
 import { useActiveAbilities } from "./useActiveAbilities";
 import { ActiveAbilityIds } from "../game/activeAbilities";
 import { useLatest } from "./useLatest";
 import type { GameFlowEvent } from "./useTurnController";
+import { resolveAttack } from "../game/combat/resolveAttack";
 
 type UseDefenseActionsArgs = {
   turn: Side;
@@ -191,11 +189,10 @@ export function useDefenseActions({
   const onConfirmAttack = useCallback(() => {
     manualEvasiveRef.current = null;
     if (turn !== "you" || rolling.some(Boolean)) return;
-    const ab = ability;
-    if (!ab) {
+    const selectedAbility = ability;
+    if (!selectedAbility) {
       clearAttackChiSpend();
-      const diceValues = [...dice];
-      logPlayerNoCombo(diceValues, you.hero.name);
+      logPlayerNoCombo([...dice], you.hero.name);
       setPhase("end");
       sendFlowEvent({
         type: "TURN_END",
@@ -203,8 +200,9 @@ export function useDefenseActions({
         delayMs: 600,
         afterReady: () => {
           window.setTimeout(() => {
-            const aiState = latestState.current.players.ai;
-            const youState = latestState.current.players.you;
+            const latest = latestState.current;
+            const aiState = latest.players.ai;
+            const youState = latest.players.you;
             if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
               return;
             aiPlay();
@@ -217,6 +215,7 @@ export function useDefenseActions({
     setPhase("attack");
     patchAiDefense({ inProgress: true, defenseRoll: null, evasiveRoll: null });
     const attackDice = [...dice];
+
     window.setTimeout(() => {
       const snapshot = latestState.current;
       let attacker = snapshot.players.you;
@@ -247,27 +246,14 @@ export function useDefenseActions({
       clearAttackChiSpend();
 
       const effectiveAbility: Ability = {
-        ...ab,
-        damage: ab.damage + chiAttackSpend,
+        ...selectedAbility,
+        damage: selectedAbility.damage + chiAttackSpend,
       };
 
       logPlayerAttackStart(attackDice, effectiveAbility, attacker.hero.name);
 
-      let manualEvasive: ManualEvasiveLog | undefined;
-      let defenseOutcome: ReturnType<typeof calculateDefenseOutcome> | undefined;
-      let manualDefense:
-        | {
-            reduced: number;
-            reflect: number;
-            roll: number;
-            label?: string;
-            chiUsed?: number;
-          }
-        | undefined;
-      let defenseChiSpent = 0;
-
       const aiEvasiveAbility = aiActiveAbilities.find(
-        (ability) => ability.id === ActiveAbilityIds.SHADOW_MONK_EVASIVE_ID
+        (abilityItem) => abilityItem.id === ActiveAbilityIds.SHADOW_MONK_EVASIVE_ID
       );
       let aiShouldAttemptEvasive = false;
       if (aiEvasiveAbility) {
@@ -276,6 +262,7 @@ export function useDefenseActions({
         aiShouldAttemptEvasive = true;
       }
 
+      let manualEvasive: ManualEvasiveLog | undefined;
       if (aiShouldAttemptEvasive && defender.tokens.evasive > 0) {
         const roll = rollDie();
         patchAiDefense({ evasiveRoll: roll });
@@ -287,9 +274,15 @@ export function useDefenseActions({
         };
       }
 
-      let defenderBeforeChi = defender;
+      let defenseOutcome: ReturnType<typeof calculateDefenseOutcome> | undefined;
+      let manualDefense: ManualDefenseLog | undefined;
+      let defenseRollValue: number | undefined;
+      let defenseChiSpent = 0;
+      let defenderForResolution = defender;
+
       if (!(manualEvasive && manualEvasive.success)) {
         const defenseRoll = defender.hero.defense.roll(defender.tokens);
+        defenseRollValue = defenseRoll.roll;
         patchAiDefense({ defenseRoll: defenseRoll.roll });
         defenseOutcome = calculateDefenseOutcome(
           attacker,
@@ -315,80 +308,73 @@ export function useDefenseActions({
           ),
         });
         defenseChiSpent = chiAdjustment.chiSpent;
-        defender = chiAdjustment.defenderAfter;
+        defenderForResolution = chiAdjustment.defenderAfter;
         defenseOutcome = chiAdjustment.outcome;
         if (defenseChiSpent > 0) {
-          setPlayer("ai", defender);
+          setPlayer("ai", defenderForResolution);
           consumeTurnChi("ai", defenseChiSpent);
-          if (manualDefense) {
-            manualDefense = {
-              ...manualDefense,
-              reduced: defenseOutcome.totalBlock,
-              chiUsed: (manualDefense.chiUsed ?? 0) + defenseChiSpent,
-            };
-          }
+          manualDefense = manualDefense
+            ? {
+                ...manualDefense,
+                reduced: defenseOutcome.totalBlock,
+                chiUsed: (manualDefense.chiUsed ?? 0) + defenseChiSpent,
+              }
+            : undefined;
         }
       }
 
-      const [nextAttacker, nextDefender] = applyAttack(
+      const resolution = resolveAttack({
+        source: "player",
+        attackerSide: "you",
+        defenderSide: "ai",
         attacker,
-        defender,
-        effectiveAbility,
-        {
+        defender: defenderForResolution,
+        ability: selectedAbility,
+        attackChiSpend: chiAttackSpend,
+        attackChiApplied: false,
+        defense: {
+          defenseRoll: defenseRollValue,
           manualDefense,
+          defenseOutcome,
           manualEvasive,
-        }
+          defenseChiSpend,
+        },
+      });
+
+      setPlayer("you", resolution.updatedAttacker);
+      setPlayer("ai", resolution.updatedDefender);
+      setPendingAttackDispatch(null);
+      patchAiDefense({ inProgress: false });
+
+      if (resolution.logs.length) {
+        pushLog(resolution.logs);
+      }
+      resolution.fx.forEach(({ side, amount, kind }) =>
+        popDamage(side, amount, kind)
       );
 
-      const damageDealt =
-        defenseOutcome?.damageDealt ??
-        Math.max(0, defender.hp - nextDefender.hp);
-      const reflectDamage =
-        defenseOutcome?.totalReflect ??
-        Math.max(0, attacker.hp - nextAttacker.hp);
+      setPhase(resolution.nextPhase);
 
-      if (damageDealt > 0) {
-        popDamage("ai", damageDealt, "hit");
-      }
-      if (reflectDamage > 0) {
-        popDamage("you", reflectDamage, "reflect");
-      }
-      setPlayer("you", nextAttacker);
-      setPlayer("ai", nextDefender);
-      setPendingAttackDispatch(null);
-      const resolutionLines = buildAttackResolutionLines({
-        attackerBefore: attacker,
-        attackerAfter: nextAttacker,
-        defenderBefore: defenderBeforeChi,
-        defenderAfter: nextDefender,
-        incomingDamage: effectiveAbility.damage,
-        defenseRoll: defenseOutcome?.defenseRoll ?? manualDefense?.roll,
-        manualDefense,
-        manualEvasive,
-        reflectedDamage: reflectDamage,
-        defenseOutcome,
-        attackChiSpent: chiAttackSpend,
-        defenseChiSpent,
-      });
-      if (resolutionLines.length) {
-        pushLog(resolutionLines);
-      }
-      patchAiDefense({ inProgress: false });
-      setPhase("end");
-      if (nextDefender.hp <= 0 || nextAttacker.hp <= 0) return;
-      sendFlowEvent({
-        type: "TURN_END",
-        next: "ai",
-        delayMs: 700,
-        afterReady: () => {
-          window.setTimeout(() => {
-            const aiState = latestState.current.players.ai;
-            const youState = latestState.current.players.you;
-            if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
-              return;
-            aiPlay();
-          }, aiStepDelay);
-        },
+      resolution.events.forEach((event) => {
+        sendFlowEvent({
+          type: event.type,
+          next: event.payload.next,
+          delayMs: event.payload.delayMs,
+          prePhase: event.payload.prePhase,
+          afterReady:
+            event.payload.next === "ai"
+              ? () => {
+                  window.setTimeout(() => {
+                    const latest = latestState.current;
+                    const aiState = latest.players.ai;
+                    const youState = latest.players.you;
+                    if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
+                      return;
+                    aiPlay();
+                  }, aiStepDelay);
+                }
+              : undefined,
+        });
       });
     }, 900);
   }, [
@@ -417,6 +403,7 @@ export function useDefenseActions({
     latestState,
     sendFlowEvent,
     you.hero.name,
+    resolveAttack,
   ]);
 
   const onUserDefenseRoll = useCallback(() => {
@@ -429,7 +416,7 @@ export function useDefenseActions({
       const defender = snapshot.players[attackPayload.defender];
       if (!attacker || !defender) return;
       const effectiveAbility = attackPayload.ability;
-      const defenseOutcome = calculateDefenseOutcome(
+      let defenseOutcome = calculateDefenseOutcome(
         attacker,
         defender,
         effectiveAbility,
@@ -446,63 +433,63 @@ export function useDefenseActions({
         defenseOutcome,
         requestedChi,
       });
-      const adjustedOutcome = chiAdjustment.outcome;
       const chiSpend = chiAdjustment.chiSpent;
       const defenderAfterChi = chiAdjustment.defenderAfter;
+      defenseOutcome = chiAdjustment.outcome;
       if (chiSpend > 0) {
         setPlayer(attackPayload.defender, defenderAfterChi);
         consumeTurnChi(defenderSide, chiSpend);
       }
-      const manualDefensePayload = {
-        reduced: adjustedOutcome.totalBlock,
-        reflect: adjustedOutcome.totalReflect,
+      const manualDefensePayload: ManualDefenseLog = {
+        reduced: defenseOutcome.totalBlock,
+        reflect: defenseOutcome.totalReflect,
         roll,
         label: defender.hero.name,
         chiUsed: chiSpend,
       };
       const manualEvasive = manualEvasiveRef.current ?? undefined;
-      const [nextAttacker, nextDefender] = applyAttack(
+      const resolution = resolveAttack({
+        source: "ai",
+        attackerSide: attackPayload.attacker,
+        defenderSide: attackPayload.defender,
         attacker,
         defenderAfterChi,
         effectiveAbility,
-        {
+        attackChiSpend: attackPayload.modifiers?.chiAttackSpend ?? 0,
+        attackChiApplied: true,
+        defense: {
+          defenseRoll: roll,
           manualDefense: manualDefensePayload,
+          defenseOutcome,
           manualEvasive,
-        }
-      );
-      if (adjustedOutcome.damageDealt > 0) {
-        popDamage(attackPayload.defender, adjustedOutcome.damageDealt, "hit");
-      }
-      if (adjustedOutcome.totalReflect > 0) {
-        popDamage(attackPayload.attacker, adjustedOutcome.totalReflect, "reflect");
-      }
-      setPlayer(attackPayload.attacker, nextAttacker);
-      setPlayer(attackPayload.defender, nextDefender);
-      setPendingAttackDispatch(null);
-      const resolutionLines = buildAttackResolutionLines({
-        attackerBefore: attacker,
-        attackerAfter: nextAttacker,
-        defenderBefore: defender,
-        defenderAfter: nextDefender,
-        incomingDamage: effectiveAbility.damage,
-        defenseRoll: roll,
-        manualDefense: manualDefensePayload,
-        manualEvasive,
-        reflectedDamage: adjustedOutcome.totalReflect,
-        defenseOutcome: adjustedOutcome,
-        attackChiSpent: attackPayload.modifiers?.chiAttackSpend ?? 0,
-        defenseChiSpent: chiSpend,
+          defenseChiSpend: chiSpend,
+        },
       });
+
       manualEvasiveRef.current = null;
       clearDefenseChiSpend();
-      if (resolutionLines.length) {
-        pushLog(resolutionLines);
+
+      setPlayer(attackPayload.attacker, resolution.updatedAttacker);
+      setPlayer(attackPayload.defender, resolution.updatedDefender);
+      setPendingAttackDispatch(null);
+
+      if (resolution.logs.length) {
+        pushLog(resolution.logs);
       }
+      resolution.fx.forEach(({ side, amount, kind }) =>
+        popDamage(side, amount, kind)
+      );
       window.setTimeout(() => {
-        setPhase("end");
+        setPhase(resolution.nextPhase);
         restoreDiceAfterDefense();
-        if (nextDefender.hp <= 0 || nextAttacker.hp <= 0) return;
-        sendFlowEvent({ type: "TURN_END", next: "you", delayMs: 700 });
+        resolution.events.forEach((event) => {
+          sendFlowEvent({
+            type: event.type,
+            next: event.payload.next,
+            delayMs: event.payload.delayMs,
+            prePhase: event.payload.prePhase,
+          });
+        });
       }, 600);
     });
   }, [
@@ -522,6 +509,7 @@ export function useDefenseActions({
     turnChiAvailable.you,
     latestState,
     sendFlowEvent,
+    resolveAttack,
   ]);
 
   const onUserEvasiveRoll = useCallback(() => {
@@ -552,29 +540,43 @@ export function useDefenseActions({
       manualEvasiveRef.current = manualEvasiveAttempt;
       setPlayer(attackPayload.defender, consumedDefender);
       if (evasiveRoll >= 5) {
-        setPendingAttackDispatch(null);
-        const resolutionLines = buildAttackResolutionLines({
-          attackerBefore: attacker,
-          attackerAfter: attacker,
-          defenderBefore: consumedDefender,
-          defenderAfter: consumedDefender,
-          incomingDamage: attackPayload.ability.damage,
-          defenseRoll: undefined,
-          manualEvasive: manualEvasiveAttempt,
-          reflectedDamage: 0,
-          attackChiSpent: attackPayload.modifiers?.chiAttackSpend ?? 0,
+        const resolution = resolveAttack({
+          source: "ai",
+          attackerSide: attackPayload.attacker,
+          defenderSide: attackPayload.defender,
+          attacker,
+          defender: consumedDefender,
+          ability: attackPayload.ability,
+          attackChiSpend: attackPayload.modifiers?.chiAttackSpend ?? 0,
+          attackChiApplied: true,
+          defense: {
+            manualEvasive: manualEvasiveAttempt,
+            defenseChiSpend: 0,
+          },
         });
-        if (resolutionLines.length) {
-          pushLog(resolutionLines);
-        }
-        window.setTimeout(() => {
-          setPhase("end");
-          restoreDiceAfterDefense();
-          if (attacker.hp <= 0 || consumedDefender.hp <= 0) return;
-          sendFlowEvent({ type: "TURN_END", next: "you", delayMs: 700 });
-        }, 600);
         manualEvasiveRef.current = null;
         clearDefenseChiSpend();
+        setPlayer(attackPayload.attacker, resolution.updatedAttacker);
+        setPlayer(attackPayload.defender, resolution.updatedDefender);
+        setPendingAttackDispatch(null);
+        if (resolution.logs.length) {
+          pushLog(resolution.logs);
+        }
+        resolution.fx.forEach(({ side, amount, kind }) =>
+          popDamage(side, amount, kind)
+        );
+        window.setTimeout(() => {
+          setPhase(resolution.nextPhase);
+          restoreDiceAfterDefense();
+          resolution.events.forEach((event) =>
+            sendFlowEvent({
+              type: event.type,
+              next: event.payload.next,
+              delayMs: event.payload.delayMs,
+              prePhase: event.payload.prePhase,
+            })
+          );
+        }, 600);
         return;
       }
       // Evasive failed; defender may still choose to roll a defense die manually.
@@ -588,7 +590,10 @@ export function useDefenseActions({
     restoreDiceAfterDefense,
     setPendingAttackDispatch,
     setPlayer,
+    popDamage,
+    sendFlowEvent,
     latestState,
+    resolveAttack,
   ]);
 
   return {
