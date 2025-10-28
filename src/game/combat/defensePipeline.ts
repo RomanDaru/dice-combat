@@ -1,6 +1,8 @@
 import type { PlayerState } from "../types";
-import type { ChiDefenseAdjustment } from "./types";
+import type { ChiDefenseAdjustment, DefensePlanResult } from "./types";
 import type { DefenseCalculationResult } from "../types";
+import type { ManualEvasiveLog } from "../logging/combatLog";
+import { buildManualDefenseLog } from "../logging/defenseLogs";
 
 type AdjustDefenseWithChiArgs = {
   defender: PlayerState;
@@ -74,5 +76,48 @@ export function adjustDefenseWithChi({
     defenderAfter,
     defenseOutcome: adjustedOutcome,
     chiSpent,
+  };
+}
+
+type BuildDefensePlanArgs = {
+  defender: PlayerState;
+  abilityDamage: number;
+  defenseOutcome: DefenseCalculationResult;
+  defenseRoll?: number;
+  requestedChi: number;
+  manualEvasive?: ManualEvasiveLog;
+};
+
+export function buildDefensePlan({
+  defender,
+  abilityDamage,
+  defenseOutcome,
+  defenseRoll,
+  requestedChi,
+  manualEvasive,
+}: BuildDefensePlanArgs): DefensePlanResult {
+  const chiAdjustment = adjustDefenseWithChi({
+    defender,
+    abilityDamage,
+    defenseOutcome,
+    requestedChi,
+  });
+
+  const manualDefense = buildManualDefenseLog({
+    outcome: chiAdjustment.defenseOutcome,
+    defenderName: defender.hero.name,
+    chiSpent: chiAdjustment.chiSpent,
+  });
+
+  return {
+    defenderAfter: chiAdjustment.defenderAfter,
+    defense: {
+      defenseRoll,
+      manualDefense,
+      defenseOutcome: chiAdjustment.defenseOutcome,
+      manualEvasive,
+      defenseChiSpend: chiAdjustment.chiSpent,
+    },
+    chiSpent: chiAdjustment.chiSpent,
   };
 }

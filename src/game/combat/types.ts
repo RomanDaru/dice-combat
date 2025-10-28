@@ -66,3 +66,9 @@ export type DefensePreparationOutput = {
   manualDefense: ManualDefenseLog;
   chiAdjustment: ChiDefenseAdjustment;
 };
+
+export type DefensePlanResult = {
+  defenderAfter: PlayerState;
+  defense: AttackContext["defense"];
+  chiSpent: number;
+};
