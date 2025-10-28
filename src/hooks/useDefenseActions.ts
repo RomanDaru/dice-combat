@@ -208,11 +208,8 @@ export function useDefenseActions({
         };
       }
 
-      let defenseOutcome: ReturnType<typeof calculateDefenseOutcome> | undefined;
-      let manualDefense: ManualDefenseLog | undefined;
+      let defensePlanResult: ReturnType<typeof buildDefensePlan> | null = null;
       let defenseRollValue: number | undefined;
-      let defenseChiSpent = 0;
-      let defenderForResolution = defender;
 
       if (!(manualEvasive && manualEvasive.success)) {
         const defenseRoll = defender.hero.defense.roll(defender.tokens);
@@ -235,15 +232,25 @@ export function useDefenseActions({
           ),
           manualEvasive,
         });
-        defenseChiSpent = defensePlan.chiSpent;
-        defenderForResolution = defensePlan.defenderAfter;
-        defenseOutcome = defensePlan.defense.defenseOutcome;
-        manualDefense = defensePlan.defense.manualDefense;
-        if (defenseChiSpent > 0) {
-          setPlayer("ai", defenderForResolution);
-          consumeTurnChi("ai", defenseChiSpent);
+        defensePlanResult = defensePlan;
+        if (defensePlan.chiSpent > 0) {
+          setPlayer("ai", defensePlan.defenderAfter);
+          consumeTurnChi("ai", defensePlan.chiSpent);
         }
       }
+
+      const defenderForResolution = defensePlanResult
+        ? defensePlanResult.defenderAfter
+        : defender;
+      const defenseContext = defensePlanResult
+        ? defensePlanResult.defense
+        : {
+            defenseRoll: undefined as number | undefined,
+            manualDefense: undefined,
+            defenseOutcome: undefined,
+            manualEvasive,
+            defenseChiSpend: 0,
+          };
 
       const resolution = resolveAttack({
         source: "player",
@@ -255,11 +262,11 @@ export function useDefenseActions({
         attackChiSpend: chiAttackSpend,
         attackChiApplied: false,
         defense: {
-          defenseRoll: defenseRollValue,
-          manualDefense,
-          defenseOutcome,
+          defenseRoll: defenseContext.defenseRoll ?? defenseRollValue,
+          manualDefense: defenseContext.manualDefense,
+          defenseOutcome: defenseContext.defenseOutcome,
           manualEvasive,
-          defenseChiSpend,
+          defenseChiSpend: defenseContext.defenseChiSpend,
         },
       });
 
@@ -340,7 +347,7 @@ export function useDefenseActions({
       const defender = snapshot.players[attackPayload.defender];
       if (!attacker || !defender) return;
       const effectiveAbility = attackPayload.ability;
-      let defenseOutcome = calculateDefenseOutcome(
+      const baseOutcome = calculateDefenseOutcome(
         attacker,
         defender,
         effectiveAbility,
@@ -354,19 +361,17 @@ export function useDefenseActions({
       const defensePlan = buildDefensePlan({
         defender,
         abilityDamage: effectiveAbility.damage,
-        defenseOutcome,
+        defenseOutcome: baseOutcome,
         defenseRoll: roll,
         requestedChi,
         manualEvasive: manualEvasiveRef.current ?? undefined,
       });
       const chiSpend = defensePlan.chiSpent;
       const defenderAfterChi = defensePlan.defenderAfter;
-      defenseOutcome = defensePlan.defense.defenseOutcome;
       if (chiSpend > 0) {
         setPlayer(attackPayload.defender, defenderAfterChi);
         consumeTurnChi(defenderSide, chiSpend);
       }
-      const manualDefensePayload = defensePlan.defense.manualDefense;
       const manualEvasive = manualEvasiveRef.current ?? undefined;
       const resolution = resolveAttack({
         source: "ai",
@@ -378,11 +383,8 @@ export function useDefenseActions({
         attackChiSpend: attackPayload.modifiers?.chiAttackSpend ?? 0,
         attackChiApplied: true,
         defense: {
-          defenseRoll: defensePlan.defense.defenseRoll,
-          manualDefense: manualDefensePayload,
-          defenseOutcome,
+          ...defensePlan.defense,
           manualEvasive,
-          defenseChiSpend: defensePlan.defense.defenseChiSpend,
         },
       });
 
