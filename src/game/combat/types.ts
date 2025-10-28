@@ -23,6 +23,12 @@ export type AttackContext = {
   };
 };
 
+export type CombatEvent = {
+  type: "TURN_END";
+  payload: { next: Side; delayMs?: number; prePhase?: GameState["phase"] };
+  followUp?: "trigger_ai_turn";
+};
+
 export type AttackResolution = {
   updatedAttacker: PlayerState;
   updatedDefender: PlayerState;
@@ -31,8 +37,5 @@ export type AttackResolution = {
   outcome: "continue" | "attacker_defeated" | "defender_defeated";
   nextPhase: GameState["phase"];
   nextSide: Side;
-  events: Array<{
-    type: "TURN_END";
-    payload: { next: Side; delayMs?: number; prePhase?: GameState["phase"] };
-  }>;
+  events: CombatEvent[];
 };

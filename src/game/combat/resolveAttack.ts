@@ -54,16 +54,18 @@ export function resolveAttack(context: AttackContext): AttackResolution {
       ? "attacker_defeated"
       : "continue";
 
+  const nextSide = attackerSide === "you" ? "ai" : "you";
   const events =
     outcome === "continue"
       ? [
           {
             type: "TURN_END" as const,
             payload: {
-              next: attackerSide === "you" ? "ai" : "you",
+              next: nextSide,
               delayMs: 700,
               prePhase: "end" as const,
             },
+            followUp: nextSide === "ai" ? "trigger_ai_turn" : undefined,
           },
         ]
       : [];
@@ -84,7 +86,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     fx,
     outcome,
     nextPhase: "end",
-    nextSide: attackerSide === "you" ? "ai" : "you",
+    nextSide,
     events,
   };
 }

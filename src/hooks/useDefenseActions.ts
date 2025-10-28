@@ -356,24 +356,26 @@ export function useDefenseActions({
       setPhase(resolution.nextPhase);
 
       resolution.events.forEach((event) => {
+        const followUp =
+          event.followUp === "trigger_ai_turn"
+            ? () => {
+                window.setTimeout(() => {
+                  const latest = latestState.current;
+                  const aiState = latest.players.ai;
+                  const youState = latest.players.you;
+                  if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
+                    return;
+                  aiPlay();
+                }, aiStepDelay);
+              }
+            : undefined;
+
         sendFlowEvent({
           type: event.type,
           next: event.payload.next,
           delayMs: event.payload.delayMs,
           prePhase: event.payload.prePhase,
-          afterReady:
-            event.payload.next === "ai"
-              ? () => {
-                  window.setTimeout(() => {
-                    const latest = latestState.current;
-                    const aiState = latest.players.ai;
-                    const youState = latest.players.you;
-                    if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
-                      return;
-                    aiPlay();
-                  }, aiStepDelay);
-                }
-              : undefined,
+          afterReady: followUp,
         });
       });
     }, 900);
@@ -483,11 +485,26 @@ export function useDefenseActions({
         setPhase(resolution.nextPhase);
         restoreDiceAfterDefense();
         resolution.events.forEach((event) => {
+          const followUp =
+            event.followUp === "trigger_ai_turn"
+              ? () => {
+                  window.setTimeout(() => {
+                    const latest = latestState.current;
+                    const aiState = latest.players.ai;
+                    const youState = latest.players.you;
+                    if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
+                      return;
+                    aiPlay();
+                  }, aiStepDelay);
+                }
+              : undefined;
+
           sendFlowEvent({
             type: event.type,
             next: event.payload.next,
             delayMs: event.payload.delayMs,
             prePhase: event.payload.prePhase,
+            afterReady: followUp,
           });
         });
       }, 600);
@@ -568,14 +585,29 @@ export function useDefenseActions({
         window.setTimeout(() => {
           setPhase(resolution.nextPhase);
           restoreDiceAfterDefense();
-          resolution.events.forEach((event) =>
+          resolution.events.forEach((event) => {
+            const followUp =
+              event.followUp === "trigger_ai_turn"
+                ? () => {
+                    window.setTimeout(() => {
+                      const latest = latestState.current;
+                      const aiState = latest.players.ai;
+                      const youState = latest.players.you;
+                      if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
+                        return;
+                      aiPlay();
+                    }, aiStepDelay);
+                  }
+                : undefined;
+
             sendFlowEvent({
               type: event.type,
               next: event.payload.next,
               delayMs: event.payload.delayMs,
               prePhase: event.payload.prePhase,
-            })
-          );
+              afterReady: followUp,
+            });
+          });
         }, 600);
         return;
       }
@@ -594,6 +626,8 @@ export function useDefenseActions({
     sendFlowEvent,
     latestState,
     resolveAttack,
+    aiPlay,
+    aiStepDelay,
   ]);
 
   return {
