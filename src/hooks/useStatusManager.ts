@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { getStatusDefinition } from "../game/statuses";
 import type { PendingStatusClear } from "../game/state";
 import type { Side, PlayerState, Phase } from "../game/types";
 import { indentLog } from "./useCombatLog";
 import { useGame } from "../context/GameContext";
 import type { GameFlowEvent } from "./useTurnController";
+import { useLatest } from "./useLatest";
 
 type UseStatusManagerArgs = {
   pushLog: (
@@ -25,19 +26,11 @@ export function useStatusManager({
   resumePendingStatus,
 }: UseStatusManagerArgs) {
   const { state, dispatch } = useGame();
-  const stateRef = useRef(state);
-
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
+  const latestState = useLatest(state);
 
   const setPlayer = useCallback(
     (side: Side, player: PlayerState) => {
       dispatch({ type: "SET_PLAYER", side, player });
-      stateRef.current = {
-        ...stateRef.current,
-        players: { ...stateRef.current.players, [side]: player },
-      };
     },
     [dispatch]
   );
@@ -45,7 +38,6 @@ export function useStatusManager({
   const setPendingStatus = useCallback(
     (status: PendingStatusClear) => {
       dispatch({ type: "SET_PENDING_STATUS", status });
-      stateRef.current = { ...stateRef.current, pendingStatusClear: status };
     },
     [dispatch]
   );
@@ -53,14 +45,13 @@ export function useStatusManager({
   const setPhase = useCallback(
     (phase: Phase) => {
       sendFlowEvent({ type: "SET_PHASE", phase });
-      stateRef.current = { ...stateRef.current, phase };
     },
     [sendFlowEvent]
   );
 
   const performStatusClearRoll = useCallback(
     (side: Side) => {
-      const currentStatus = stateRef.current.pendingStatusClear;
+      const currentStatus = latestState.current.pendingStatusClear;
       if (
         !currentStatus ||
         currentStatus.side !== side ||
@@ -81,7 +72,7 @@ export function useStatusManager({
       const animationDuration = cleanse.animationDuration ?? 650;
 
       animateDefenseDie((roll) => {
-        const snapshot = stateRef.current;
+        const snapshot = latestState.current;
         const playerState = snapshot.players[side];
         if (!playerState) {
           setPendingStatus(null);
@@ -122,6 +113,7 @@ export function useStatusManager({
       setPendingStatus,
       setPhase,
       setPlayer,
+      latestState,
       resumePendingStatus,
     ]
   );
