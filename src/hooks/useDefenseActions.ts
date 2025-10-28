@@ -516,7 +516,6 @@ export function useDefenseActions({
     setPendingAttackDispatch,
     setPlayer,
     consumeTurnChi,
-    startTurn,
     turnChiAvailable.ai,
     turnChiAvailable.you,
     latestState,
@@ -587,7 +586,6 @@ export function useDefenseActions({
     restoreDiceAfterDefense,
     setPendingAttackDispatch,
     setPlayer,
-    startTurn,
     latestState,
   ]);
 

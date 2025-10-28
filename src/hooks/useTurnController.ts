@@ -1,4 +1,4 @@
-import { MutableRefObject, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useGame } from "../context/GameContext";
 import { resolveTurnStart } from "../game/flow";
 import type { GameState } from "../game/state";
@@ -11,7 +11,6 @@ type UseGameFlowArgs = {
     options?: { blankLineBefore?: boolean; blankLineAfter?: boolean }
   ) => void;
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
-  statusResumeRef: MutableRefObject<(() => void) | null>;
 };
 
 export type GameFlowEvent =
@@ -36,10 +35,10 @@ export function useGameFlow({
   resetRoll,
   pushLog,
   popDamage,
-  statusResumeRef,
 }: UseGameFlowArgs) {
   const { state, dispatch } = useGame();
   const stateRef = useRef<GameState>(state);
+  const statusResumeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     stateRef.current = state;
@@ -155,7 +154,7 @@ export function useGameFlow({
         afterReady?.();
       }
 
-      return true;
+  return true;
     },
     [
       dispatch,
@@ -164,7 +163,6 @@ export function useGameFlow({
       popDamage,
       pushLog,
       resetRoll,
-      statusResumeRef,
     ]
   );
 
@@ -194,5 +192,11 @@ export function useGameFlow({
     [dispatch, startTurn]
   );
 
-  return { send, startTurn };
+  const resumePendingStatus = useCallback(() => {
+    const resume = statusResumeRef.current;
+    statusResumeRef.current = null;
+    resume?.();
+  }, []);
+
+  return { send, resumePendingStatus };
 }

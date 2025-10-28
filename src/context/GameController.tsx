@@ -84,7 +84,6 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
-  const statusResumeRef = useRef<(() => void) | null>(null);
 
   const updateAttackChiSpend = useCallback(
     (value: number | ((prev: number) => number)) => {
@@ -329,24 +328,22 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const { animatePreviewRoll } = useAiDiceAnimator({
     rollDurationMs: AI_ROLL_ANIM_MS,
   });
-  const { send: sendFlowEvent, startTurn } = useGameFlow({
+  const { send: sendFlowEvent, resumePendingStatus } = useGameFlow({
     resetRoll,
     pushLog,
     popDamage,
-    statusResumeRef,
   });
   const { performStatusClearRoll } = useStatusManager({
     pushLog,
     animateDefenseDie,
     restoreDiceAfterDefense,
     sendFlowEvent,
-    statusResumeRef,
+    resumePendingStatus,
   });
   const { aiPlay } = useAiController({
     logAiNoCombo,
     logAiAttackRoll,
     animatePreviewRoll,
-    startTurn,
     sendFlowEvent,
     aiStepDelay: AI_STEP_MS,
     turnChiAvailable,
@@ -366,7 +363,6 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       animateDefenseDie,
       popDamage,
       restoreDiceAfterDefense,
-      startTurn,
       sendFlowEvent,
       aiPlay,
       aiStepDelay: AI_STEP_MS,
@@ -511,29 +507,33 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       const startingSide = state.turn;
       window.setTimeout(() => {
         if (startingSide === "ai") {
-          const cont = startTurn("ai", () => {
-            window.setTimeout(() => {
-              const aiState = stateRef.current.players.ai;
-              const youState = stateRef.current.players.you;
-              if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
-                return;
-              aiPlay();
-            }, 450);
+          const cont = sendFlowEvent({
+            type: "TURN_START",
+            side: "ai",
+            afterReady: () => {
+              window.setTimeout(() => {
+                const aiState = stateRef.current.players.ai;
+                const youState = stateRef.current.players.you;
+                if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
+                  return;
+                aiPlay();
+              }, 450);
+            },
           });
           if (!cont) return;
         } else {
-          startTurn("you");
+          sendFlowEvent({ type: "TURN_START", side: "you" });
         }
       }, 0);
     }
   }, [
     aiPlay,
+    sendFlowEvent,
     state.initialRoll.inProgress,
     state.initialRoll.winner,
     state.phase,
     state.round,
     state.turn,
-    startTurn,
   ]);
 
   const dataValue: ComputedData = useMemo(

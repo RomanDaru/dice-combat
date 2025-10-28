@@ -1,4 +1,4 @@
-import { MutableRefObject, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { getStatusDefinition } from "../game/statuses";
 import type { PendingStatusClear } from "../game/state";
 import type { Side, PlayerState, Phase } from "../game/types";
@@ -14,7 +14,7 @@ type UseStatusManagerArgs = {
   animateDefenseDie: (onDone: (roll: number) => void, duration?: number) => void;
   restoreDiceAfterDefense: () => void;
   sendFlowEvent: (event: GameFlowEvent) => boolean;
-  statusResumeRef: MutableRefObject<(() => void) | null>;
+  resumePendingStatus: () => void;
 };
 
 export function useStatusManager({
@@ -22,7 +22,7 @@ export function useStatusManager({
   animateDefenseDie,
   restoreDiceAfterDefense,
   sendFlowEvent,
-  statusResumeRef,
+  resumePendingStatus,
 }: UseStatusManagerArgs) {
   const { state, dispatch } = useGame();
   const stateRef = useRef(state);
@@ -73,7 +73,7 @@ export function useStatusManager({
       const cleanse = definition?.cleanse;
       if (!cleanse || cleanse.type !== "roll") {
         setPendingStatus(null);
-        statusResumeRef.current?.();
+        resumePendingStatus();
         return;
       }
 
@@ -85,7 +85,7 @@ export function useStatusManager({
         const playerState = snapshot.players[side];
         if (!playerState) {
           setPendingStatus(null);
-          statusResumeRef.current?.();
+          resumePendingStatus();
           return;
         }
 
@@ -110,9 +110,7 @@ export function useStatusManager({
           window.setTimeout(() => {
             setPendingStatus(null);
             setPhase("roll");
-            const resume = statusResumeRef.current;
-            statusResumeRef.current = null;
-            resume?.();
+            resumePendingStatus();
           }, 400);
         }, 600);
       }, animationDuration);
@@ -124,11 +122,11 @@ export function useStatusManager({
       setPendingStatus,
       setPhase,
       setPlayer,
+      resumePendingStatus,
     ]
   );
 
   return {
-    statusResumeRef,
     performStatusClearRoll,
   };
 }

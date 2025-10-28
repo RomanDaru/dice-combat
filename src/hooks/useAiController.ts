@@ -14,7 +14,6 @@ type UseAiControllerArgs = {
     heldMask: boolean[],
     onDone: () => void
   ) => void;
-  startTurn: (next: Side, afterReady?: () => void) => boolean;
   sendFlowEvent: (event: GameFlowEvent) => boolean;
   aiStepDelay: number;
   turnChiAvailable: Record<Side, number>;
@@ -25,7 +24,6 @@ export function useAiController({
   logAiNoCombo,
   logAiAttackRoll,
   animatePreviewRoll,
-  startTurn,
   sendFlowEvent,
   aiStepDelay,
   turnChiAvailable,
@@ -142,10 +140,12 @@ export function useAiController({
           if (!ab) {
             setAiSimActive(false);
             logAiNoCombo(finalDice);
-            setPhase("end");
-            window.setTimeout(() => {
-              startTurn("you");
-            }, 600);
+            sendFlowEvent({
+              type: "TURN_END",
+              next: "you",
+              delayMs: 600,
+              prePhase: "end",
+            });
             return;
           }
           let chiAttackSpend = 0;
@@ -208,7 +208,6 @@ export function useAiController({
     setPendingAttack,
     setPhase,
     sendFlowEvent,
-    startTurn,
     turnChiAvailable.ai,
   ]);
 
