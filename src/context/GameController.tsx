@@ -21,7 +21,7 @@ import { useDefenseActions } from "../hooks/useDefenseActions";
 import { useGameFlow } from "../hooks/useTurnController";
 import { useActiveAbilities } from "../hooks/useActiveAbilities";
 import { useRollAnimator } from "../hooks/useRollAnimator";
-import { bestAbility, detectCombos } from "../game/combos";
+import { bestAbility, detectCombos, rollDie } from "../game/combos";
 import type {
   ActiveAbility,
   ActiveAbilityContext,
