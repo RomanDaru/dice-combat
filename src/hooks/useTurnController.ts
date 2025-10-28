@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { useGame } from "../context/GameContext";
 import { resolveTurnStart } from "../game/flow";
 import type { GameState } from "../game/state";
 import type { Phase, Side } from "../game/types";
+import { useLatest } from "./useLatest";
 
 type UseGameFlowArgs = {
   resetRoll: () => void;
@@ -37,20 +38,12 @@ export function useGameFlow({
   popDamage,
 }: UseGameFlowArgs) {
   const { state, dispatch } = useGame();
-  const stateRef = useRef<GameState>(state);
+  const latestState = useLatest(state);
   const statusResumeRef = useRef<(() => void) | null>(null);
-
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
 
   const patchAiPreview = useCallback(
     (partial: Partial<GameState["aiPreview"]>) => {
       dispatch({ type: "PATCH_AI_PREVIEW", payload: partial });
-      stateRef.current = {
-        ...stateRef.current,
-        aiPreview: { ...stateRef.current.aiPreview, ...partial },
-      };
     },
     [dispatch]
   );
@@ -58,18 +51,17 @@ export function useGameFlow({
   const patchAiDefense = useCallback(
     (partial: Partial<GameState["aiDefense"]>) => {
       dispatch({ type: "PATCH_AI_DEFENSE", payload: partial });
-      stateRef.current = {
-        ...stateRef.current,
-        aiDefense: { ...stateRef.current.aiDefense, ...partial },
-      };
     },
     [dispatch]
   );
 
   const startTurn = useCallback(
     (next: Side, afterReady?: () => void): boolean => {
-      const prevTurn = stateRef.current.turn;
-      const turnResult = resolveTurnStart(stateRef.current, next);
+      const snapshot = latestState.current;
+      const prevTurn = snapshot.turn;
+      const turnResult = resolveTurnStart(snapshot, next);
+      const prevRound = snapshot.round;
+      const prevLogLength = snapshot.log?.length ?? 0;
 
       dispatch({ type: "SET_TURN", turn: next });
       dispatch({ type: "SET_PHASE", phase: "upkeep" });
@@ -79,12 +71,6 @@ export function useGameFlow({
       resetRoll();
 
       dispatch({ type: "SET_PLAYER", side: next, player: turnResult.updatedPlayer });
-      stateRef.current = {
-        ...stateRef.current,
-        players: { ...stateRef.current.players, [next]: turnResult.updatedPlayer },
-        turn: next,
-        phase: "upkeep",
-      };
 
       if (turnResult.statusDamage > 0) {
         popDamage(next, turnResult.statusDamage, "hit");
@@ -103,29 +89,26 @@ export function useGameFlow({
       const lines = turnResult.logLines;
 
       if (next === "you") {
-        const currentRound = stateRef.current.round;
-        const logLength = stateRef.current.log?.length ?? 0;
-        let newRound = currentRound;
+        let newRound = prevRound;
         let shouldLogRound = false;
 
-        if (currentRound <= 0) {
+        if (prevRound <= 0) {
           newRound = 1;
           shouldLogRound = true;
         } else if (prevTurn !== "you") {
-          newRound = currentRound + 1;
+          newRound = prevRound + 1;
           shouldLogRound = true;
         }
 
         if (shouldLogRound) {
-          const shouldAddGap = currentRound > 0 || logLength > 1;
+          const shouldAddGap = prevRound > 0 || prevLogLength > 1;
           dispatch({ type: "SET_ROUND", round: newRound });
-          stateRef.current = { ...stateRef.current, round: newRound };
           pushLog(`--- Kolo ${newRound} ---`, { blankLineBefore: shouldAddGap });
         }
 
         if (lines.length) {
           pushLog(lines, {
-            blankLineBefore: !shouldLogRound && (currentRound > 0 || logLength > 1),
+            blankLineBefore: !shouldLogRound && (prevRound > 0 || prevLogLength > 1),
           });
         }
       } else if (next === "ai") {
@@ -149,12 +132,11 @@ export function useGameFlow({
         statusResumeRef.current = null;
         window.setTimeout(() => {
           dispatch({ type: "SET_PHASE", phase: "roll" });
-          stateRef.current = { ...stateRef.current, phase: "roll" };
         }, 600);
         afterReady?.();
       }
 
-  return true;
+      return true;
     },
     [
       dispatch,
@@ -163,6 +145,7 @@ export function useGameFlow({
       popDamage,
       pushLog,
       resetRoll,
+      latestState,
     ]
   );
 
@@ -173,12 +156,10 @@ export function useGameFlow({
           return startTurn(event.side, event.afterReady);
         case "SET_PHASE":
           dispatch({ type: "SET_PHASE", phase: event.phase });
-          stateRef.current = { ...stateRef.current, phase: event.phase };
           return true;
         case "TURN_END": {
           const prePhase = event.prePhase ?? "end";
           dispatch({ type: "SET_PHASE", phase: prePhase });
-          stateRef.current = { ...stateRef.current, phase: prePhase };
           const delay = event.delayMs ?? 0;
           window.setTimeout(() => {
             startTurn(event.next, event.afterReady);
