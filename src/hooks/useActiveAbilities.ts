@@ -23,12 +23,27 @@ type UseActiveAbilitiesArgs = {
   ) => void;
 };
 
+const toActiveAbilityPhase = (phase: Phase): ActiveAbilityPhase | null => {
+  switch (phase) {
+    case "upkeep":
+    case "roll":
+    case "attack":
+    case "defense":
+    case "end":
+      return phase;
+    default:
+      return null;
+  }
+};
+
 const matchesPhase = (
   abilityPhase: ActiveAbilityPhase | ActiveAbilityPhase[],
   phase: Phase
 ) => {
+  const normalized = toActiveAbilityPhase(phase);
+  if (!normalized) return false;
   const phases = Array.isArray(abilityPhase) ? abilityPhase : [abilityPhase];
-  return phases.includes(phase);
+  return phases.includes(normalized);
 };
 
 const hasTokenCost = (tokens: Tokens, cost?: Partial<Tokens>) => {
