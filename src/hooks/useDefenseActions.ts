@@ -15,6 +15,8 @@ import { ActiveAbilityIds } from "../game/activeAbilities";
 import { useLatest } from "./useLatest";
 import type { GameFlowEvent } from "./useTurnController";
 import { resolveAttack } from "../game/combat/resolveAttack";
+import { adjustDefenseWithChi } from "../game/combat/defensePipeline";
+import { buildManualDefenseLog } from "../game/logging/defenseLogs";
 
 type UseDefenseActionsArgs = {
   turn: Side;
@@ -79,73 +81,6 @@ export function useDefenseActions({
     },
     [sendFlowEvent]
   );
-
-  const applyReactiveChiDefense = ({
-    defender,
-    abilityDamage,
-    defenseOutcome,
-    requestedChi,
-  }: {
-    defender: PlayerState;
-    abilityDamage: number;
-    defenseOutcome: DefenseCalculationResult;
-    requestedChi: number;
-  }): {
-    defenderAfter: PlayerState;
-    outcome: DefenseCalculationResult;
-    chiSpent: number;
-  } => {
-    const availableChi = defender.tokens.chi ?? 0;
-    if (availableChi <= 0 || requestedChi <= 0) {
-      return {
-        defenderAfter: defender,
-        outcome: defenseOutcome,
-        chiSpent: 0,
-      };
-    }
-    const chiBudget = Math.min(requestedChi, availableChi);
-    const currentBlocked = defenseOutcome.totalBlock;
-    const remainingDamage = Math.max(0, abilityDamage - currentBlocked);
-    const chiSpent = Math.min(chiBudget, remainingDamage);
-    if (chiSpent <= 0) {
-      return {
-        defenderAfter: defender,
-        outcome: defenseOutcome,
-        chiSpent: 0,
-      };
-    }
-    const defenderAfter: PlayerState = {
-      ...defender,
-      tokens: {
-        ...defender.tokens,
-        chi: Math.max(0, availableChi - chiSpent),
-      },
-    };
-    const totalBlock = currentBlocked + chiSpent;
-    const damageDealt = Math.max(0, abilityDamage - totalBlock);
-    const adjustedOutcome: DefenseCalculationResult = {
-      ...defenseOutcome,
-      totalBlock,
-      damageDealt,
-      finalDefenderHp: Math.max(0, defender.hp - damageDealt),
-      modifiersApplied: [
-        ...defenseOutcome.modifiersApplied,
-        {
-          id: "chi_spent_block",
-          source: "Chi",
-          blockBonus: chiSpent,
-          reflectBonus: 0,
-          logDetail: `<<resource:Chi>> +${chiSpent}`,
-        },
-      ],
-    };
-    return {
-      defenderAfter,
-      outcome: adjustedOutcome,
-      chiSpent,
-    };
-  };
-
   const handleAiAbilityControllerAction = useCallback(
     () => {},
     []
@@ -290,15 +225,7 @@ export function useDefenseActions({
           effectiveAbility,
           defenseRoll.roll
         );
-        manualDefense = {
-          reduced: defenseOutcome.totalBlock,
-          reflect: defenseOutcome.totalReflect,
-          roll: defenseOutcome.defenseRoll,
-          label: defender.hero.name,
-          chiUsed: 0,
-        };
-
-        const chiAdjustment = applyReactiveChiDefense({
+        const chiAdjustment = adjustDefenseWithChi({
           defender,
           abilityDamage: effectiveAbility.damage,
           defenseOutcome,
@@ -309,18 +236,16 @@ export function useDefenseActions({
         });
         defenseChiSpent = chiAdjustment.chiSpent;
         defenderForResolution = chiAdjustment.defenderAfter;
-        defenseOutcome = chiAdjustment.outcome;
+        defenseOutcome = chiAdjustment.defenseOutcome;
         if (defenseChiSpent > 0) {
           setPlayer("ai", defenderForResolution);
           consumeTurnChi("ai", defenseChiSpent);
-          manualDefense = manualDefense
-            ? {
-                ...manualDefense,
-                reduced: defenseOutcome.totalBlock,
-                chiUsed: (manualDefense.chiUsed ?? 0) + defenseChiSpent,
-              }
-            : undefined;
         }
+        manualDefense = buildManualDefenseLog({
+          outcome: defenseOutcome,
+          defenderName: defender.hero.name,
+          chiSpent: defenseChiSpent,
+        });
       }
 
       const resolution = resolveAttack({
@@ -386,7 +311,7 @@ export function useDefenseActions({
     aiActiveAbilities,
     attackChiSpend,
     clearAttackChiSpend,
-    applyReactiveChiDefense,
+
     performAiActiveAbility,
     dice,
     logPlayerAttackStart,
@@ -429,7 +354,7 @@ export function useDefenseActions({
         defenseChiSpend,
         turnChiAvailable[defenderSide] ?? 0
       );
-      const chiAdjustment = applyReactiveChiDefense({
+      const chiAdjustment = adjustDefenseWithChi({
         defender,
         abilityDamage: effectiveAbility.damage,
         defenseOutcome,
@@ -437,18 +362,16 @@ export function useDefenseActions({
       });
       const chiSpend = chiAdjustment.chiSpent;
       const defenderAfterChi = chiAdjustment.defenderAfter;
-      defenseOutcome = chiAdjustment.outcome;
+      defenseOutcome = chiAdjustment.defenseOutcome;
       if (chiSpend > 0) {
         setPlayer(attackPayload.defender, defenderAfterChi);
         consumeTurnChi(defenderSide, chiSpend);
       }
-      const manualDefensePayload: ManualDefenseLog = {
-        reduced: defenseOutcome.totalBlock,
-        reflect: defenseOutcome.totalReflect,
-        roll,
-        label: defender.hero.name,
-        chiUsed: chiSpend,
-      };
+      const manualDefensePayload = buildManualDefenseLog({
+        outcome: defenseOutcome,
+        defenderName: defender.hero.name,
+        chiSpent: chiSpend,
+      });
       const manualEvasive = manualEvasiveRef.current ?? undefined;
       const resolution = resolveAttack({
         source: "ai",
@@ -514,7 +437,7 @@ export function useDefenseActions({
     pendingAttack,
     clearDefenseChiSpend,
     defenseChiSpend,
-    applyReactiveChiDefense,
+
     setPhase,
     popDamage,
     pushLog,
