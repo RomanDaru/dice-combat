@@ -218,7 +218,7 @@ export function useDefenseActions({
         const defenseRoll = defender.hero.defense.roll(defender.tokens);
         defenseRollValue = defenseRoll.roll;
         patchAiDefense({ defenseRoll: defenseRoll.roll });
-        defenseOutcome = calculateDefenseOutcome(
+        const baseOutcome = calculateDefenseOutcome(
           attacker,
           defender,
           effectiveAbility,
@@ -227,7 +227,7 @@ export function useDefenseActions({
         const defensePlan = buildDefensePlan({
           defender,
           abilityDamage: effectiveAbility.damage,
-          defenseOutcome,
+          defenseOutcome: baseOutcome,
           defenseRoll: defenseRoll.roll,
           requestedChi: Math.min(
             defender.tokens.chi ?? 0,
