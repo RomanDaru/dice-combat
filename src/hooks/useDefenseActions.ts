@@ -16,6 +16,7 @@ import { useGame } from "../context/GameContext";
 import { useActiveAbilities } from "./useActiveAbilities";
 import { ActiveAbilityIds } from "../game/activeAbilities";
 import { useLatest } from "./useLatest";
+import type { GameFlowEvent } from "./useTurnController";
 
 type UseDefenseActionsArgs = {
   turn: Side;
@@ -260,6 +261,7 @@ export function useDefenseActions({
             reflect: number;
             roll: number;
             label?: string;
+            chiUsed?: number;
           }
         | undefined;
       let defenseChiSpent = 0;
