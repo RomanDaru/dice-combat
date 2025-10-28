@@ -21,6 +21,7 @@ import { useDefenseActions } from "../hooks/useDefenseActions";
 import { useGameFlow } from "../hooks/useTurnController";
 import { useActiveAbilities } from "../hooks/useActiveAbilities";
 import { useRollAnimator } from "../hooks/useRollAnimator";
+import { useLatest } from "../hooks/useLatest";
 import { bestAbility, detectCombos, rollDie } from "../game/combos";
 import type {
   ActiveAbility,
@@ -72,7 +73,7 @@ const GameControllerContext = createContext<ControllerContext | null>(null);
 
 export const GameController = ({ children }: { children: ReactNode }) => {
   const { state, dispatch } = useGame();
-  const stateRef = useRef<GameState>(state);
+  const latestState = useLatest(state);
   const [attackChiSpend, setAttackChiSpend] = useState(0);
   const [defenseChiSpend, setDefenseChiSpend] = useState(0);
   const [turnChiAvailable, setTurnChiAvailable] = useState<
@@ -82,10 +83,6 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     ai: state.players.ai.tokens.chi ?? 0,
   });
 
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
-
   const updateAttackChiSpend = useCallback(
     (value: number | ((prev: number) => number)) => {
       setAttackChiSpend((prev) => {
@@ -93,7 +90,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
           typeof value === "function"
             ? (value as (prev: number) => number)(prev)
             : value;
-        const maxTokens = stateRef.current.players.you.tokens.chi ?? 0;
+        const maxTokens = latestState.current.players.you.tokens.chi ?? 0;
         const turnLimit = turnChiAvailable.you ?? 0;
         return Math.max(0, Math.min(next, maxTokens, turnLimit));
       });
@@ -108,7 +105,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
           typeof value === "function"
             ? (value as (prev: number) => number)(prev)
             : value;
-        const maxTokens = stateRef.current.players.you.tokens.chi ?? 0;
+        const maxTokens = latestState.current.players.you.tokens.chi ?? 0;
         const turnLimit = turnChiAvailable.you ?? 0;
         return Math.max(0, Math.min(next, maxTokens, turnLimit));
       });
@@ -144,7 +141,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     (value: number[] | ((prev: number[]) => number[])) => {
       const next =
         typeof value === "function"
-          ? (value as (prev: number[]) => number[])(stateRef.current.dice)
+          ? (value as (prev: number[]) => number[])(latestState.current.dice)
           : value;
       dispatch({ type: "SET_DICE", dice: next });
     },
@@ -155,7 +152,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     (value: boolean[] | ((prev: boolean[]) => boolean[])) => {
       const next =
         typeof value === "function"
-          ? (value as (prev: boolean[]) => boolean[])(stateRef.current.held)
+          ? (value as (prev: boolean[]) => boolean[])(latestState.current.held)
           : value;
       dispatch({ type: "SET_HELD", held: next });
     },
@@ -173,7 +170,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     (value: number | ((prev: number) => number)) => {
       const next =
         typeof value === "function"
-          ? (value as (prev: number) => number)(stateRef.current.rollsLeft)
+          ? (value as (prev: number) => number)(latestState.current.rollsLeft)
           : value;
       dispatch({ type: "SET_ROLLS_LEFT", rollsLeft: next });
     },
@@ -181,7 +178,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   );
 
   const { animateRoll: animatePlayerRoll } = useRollAnimator({
-    stateRef,
+    stateRef: latestState,
     setDice,
     setRolling,
     setRollsLeft,
@@ -439,8 +436,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       delayMs: 0,
       afterReady: () => {
         window.setTimeout(() => {
-          const aiState = stateRef.current.players.ai;
-          const youState = stateRef.current.players.you;
+          const aiState = latestState.current.players.ai;
+          const youState = latestState.current.players.you;
           if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
             return;
           aiPlay();
@@ -450,7 +447,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   }, [aiPlay, rolling, sendFlowEvent, turn]);
 
   const handleReset = useCallback(() => {
-    const current = stateRef.current;
+    const current = latestState.current;
     dispatch({
       type: "RESET",
       payload: {
@@ -485,8 +482,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
             side: "ai",
             afterReady: () => {
               window.setTimeout(() => {
-                const aiState = stateRef.current.players.ai;
-                const youState = stateRef.current.players.you;
+                const aiState = latestState.current.players.ai;
+                const youState = latestState.current.players.you;
                 if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
                   return;
                 aiPlay();

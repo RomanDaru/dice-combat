@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { rollDie } from "../game/combos";
-import type { GameState } from "../game/state";
 import { useGame } from "../context/GameContext";
+import { useLatest } from "./useLatest";
 
 type UseAiDiceAnimatorArgs = {
   rollDurationMs?: number;
@@ -16,11 +16,7 @@ export function useAiDiceAnimator({
   tickIntervalMs = DEFAULT_TICK_INTERVAL,
 }: UseAiDiceAnimatorArgs = {}) {
   const { state, dispatch } = useGame();
-  const stateRef = useRef<GameState>(state);
-
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
+  const latestState = useLatest(state);
 
   const animatePreviewRoll = useCallback(
     (
@@ -31,7 +27,7 @@ export function useAiDiceAnimator({
     ) => {
       dispatch({ type: "SET_AI_PREVIEW_ROLLING", rolling: true });
       const rerollMask = heldMask.map((held) => !held);
-      let previewDice = [...stateRef.current.aiPreview.dice];
+      let previewDice = [...latestState.current.aiPreview.dice];
       const interval = window.setInterval(() => {
         previewDice = previewDice.map((value, index) =>
           rerollMask[index] ? rollDie() : value
