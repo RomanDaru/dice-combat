@@ -48,6 +48,7 @@ export type Phase =
   | "roll"
   | "attack"
   | "defense"
+  | "end"
   | "finished";
 
 export type Tokens = { burn: number; chi: number; evasive: number };
