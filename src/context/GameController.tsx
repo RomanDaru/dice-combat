@@ -20,7 +20,8 @@ import { useStatusManager } from "../hooks/useStatusManager";
 import { useDefenseActions } from "../hooks/useDefenseActions";
 import { useGameFlow } from "../hooks/useTurnController";
 import { useActiveAbilities } from "../hooks/useActiveAbilities";
-import { bestAbility, detectCombos, rollDie } from "../game/combos";
+import { useRollAnimator } from "../hooks/useRollAnimator";
+import { bestAbility, detectCombos } from "../game/combos";
 import type {
   ActiveAbility,
   ActiveAbilityContext,
@@ -179,6 +180,14 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     [dispatch]
   );
 
+  const { animateRoll: animatePlayerRoll } = useRollAnimator({
+    stateRef,
+    setDice,
+    setRolling,
+    setRollsLeft,
+    durationMs: ROLL_ANIM_MS,
+  });
+
   const setFloatDamage = useCallback(
     (side: Side, value: GameState["fx"]["floatDamage"][Side]) => {
       dispatch({ type: "SET_FLOAT_DAMAGE", side, value });
@@ -314,15 +323,6 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     }
   }, [isDefenseTurn]);
 
-  const timersRef = useRef<number | null>(null);
-  useEffect(() => {
-    return () => {
-      if (timersRef.current) {
-        window.clearInterval(timersRef.current);
-      }
-    };
-  }, []);
-
   const { resetRoll, animateDefenseDie, restoreDiceAfterDefense } =
     useDiceAnimator({ defenseDieIndex: DEF_DIE_INDEX });
   const { animatePreviewRoll } = useAiDiceAnimator({
@@ -404,35 +404,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       return;
     }
     const mask = held.map((h) => !h);
-    setRolling(mask);
-    const start = Date.now();
-    let workingDice = [...stateRef.current.dice];
-    if (timersRef.current) window.clearInterval(timersRef.current);
-    timersRef.current = window.setInterval(() => {
-      workingDice = workingDice.map((value, idx) =>
-        mask[idx] ? rollDie() : value
-      );
-      setDice([...workingDice]);
-      if (Date.now() - start > ROLL_ANIM_MS) {
-        if (timersRef.current) window.clearInterval(timersRef.current);
-        workingDice = workingDice.map((value, idx) =>
-          mask[idx] ? rollDie() : value
-        );
-        setDice([...workingDice]);
-        setRolling([false, false, false, false, false]);
-        setRollsLeft((n) => n - 1);
-      }
-    }, 100);
-  }, [
-    held,
-    isDefenseTurn,
-    rollsLeft,
-    setDice,
-    setRolling,
-    setRollsLeft,
-    statusActive,
-    turn,
-  ]);
+    animatePlayerRoll(mask);
+  }, [animatePlayerRoll, held, isDefenseTurn, rollsLeft, statusActive, turn]);
 
   const onToggleHold = useCallback(
     (index: number) => {
