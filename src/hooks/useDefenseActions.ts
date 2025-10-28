@@ -453,8 +453,8 @@ export function useDefenseActions({
         attackerSide: attackPayload.attacker,
         defenderSide: attackPayload.defender,
         attacker,
-        defenderAfterChi,
-        effectiveAbility,
+        defender: defenderAfterChi,
+        ability: effectiveAbility,
         attackChiSpend: attackPayload.modifiers?.chiAttackSpend ?? 0,
         attackChiApplied: true,
         defense: {
