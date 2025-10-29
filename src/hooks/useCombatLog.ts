@@ -1,22 +1,23 @@
-import { useCallback } from "react";
-import type { Ability } from "../game/types";
+﻿import { useCallback } from "react";
+import type { DefensiveAbility, OffensiveAbility } from "../game/types";
 import { useGame } from "../context/GameContext";
 import {
   buildAttackResolutionLines,
   formatDice,
   indentLog,
-  ManualDefenseLog,
   ManualEvasiveLog,
 } from "../game/logging/combatLog";
 
 type LogOptions = { blankLineBefore?: boolean; blankLineAfter?: boolean };
 
+type AbilityLogTarget = OffensiveAbility | DefensiveAbility;
+
 const abilityTag = (value: string) => `<<ability:${value}>>`;
-const formatAbilityName = (ability: Ability) =>
-  abilityTag(ability.label ?? ability.combo);
+const formatAbilityName = (ability: AbilityLogTarget) =>
+  abilityTag(ability.displayName ?? ability.label ?? ability.combo);
 
 export { buildAttackResolutionLines, indentLog };
-export type { ManualDefenseLog, ManualEvasiveLog };
+export type { ManualEvasiveLog };
 
 export function useCombatLog() {
   const { dispatch } = useGame();
@@ -31,9 +32,9 @@ export function useCombatLog() {
   );
 
   const logPlayerAttackStart = useCallback(
-    (diceValues: number[], ability: Ability, attackerName: string) => {
+    (diceValues: number[], ability: OffensiveAbility, attackerName: string) => {
       pushLog(
-        `[Hod] ${attackerName} útočí: ${formatDice(diceValues)} -> ${formatAbilityName(
+        `[Roll] ${attackerName} attacks: ${formatDice(diceValues)} -> ${formatAbilityName(
           ability
         )}.`,
         { blankLineBefore: true }
@@ -45,7 +46,7 @@ export function useCombatLog() {
   const logPlayerNoCombo = useCallback(
     (diceValues: number[], attackerName: string) => {
       pushLog(
-        `[Hod] ${attackerName} útočí: ${formatDice(diceValues)} -> žiadna kombinácia.`,
+        `[Roll] ${attackerName} attacks: ${formatDice(diceValues)} -> no combo.`,
         { blankLineBefore: true }
       );
     },
@@ -53,15 +54,15 @@ export function useCombatLog() {
   );
 
   const logAiAttackRoll = useCallback(
-    (diceValues: number[], ability: Ability) => {
-      pushLog(indentLog(`AI hod: ${formatDice(diceValues)} -> ${formatAbilityName(ability)}.`));
+    (diceValues: number[], ability: OffensiveAbility) => {
+      pushLog(indentLog(`AI roll: ${formatDice(diceValues)} -> ${formatAbilityName(ability)}.`));
     },
     [pushLog]
   );
 
   const logAiNoCombo = useCallback(
     (diceValues: number[]) => {
-      pushLog(indentLog(`AI hod: ${formatDice(diceValues)} -> žiadna kombinácia.`));
+      pushLog(indentLog(`AI roll: ${formatDice(diceValues)} -> no combo.`));
     },
     [pushLog]
   );

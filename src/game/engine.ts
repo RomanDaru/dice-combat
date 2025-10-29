@@ -1,95 +1,44 @@
-import {
-  Ability,
-  DefenseCalculationResult,
-  DefenseModifierInfo,
-  PlayerState,
-} from "./types";
-import { DefenseModifierRegistry } from "./defenseModifiers";
-import { applyBurnStacks, MAX_BURN_STACKS } from "./statuses/burn";
+﻿import type { OffensiveAbility, PlayerState, Tokens } from "./types";
+import type { ResolvedDefenseState } from "./combat/types";
+import { applyBurnStacks } from "./statuses/burn";
 
-export function calculateDefenseOutcome(
-  attacker: PlayerState,
-  defender: PlayerState,
-  ability: Ability,
-  defenseRoll: number
-): DefenseCalculationResult {
-  const threatenedDamage = ability.damage;
-  const baseDefense = defender.hero.defense.fromRoll({
-    roll: defenseRoll,
-    tokens: defender.tokens,
-  });
-  const baseBlock = baseDefense.reduced;
-  const baseReflect = baseDefense.reflect;
-  const modifiersApplied: DefenseModifierInfo[] = [];
-
-  let totalBlock = baseBlock;
-  let totalReflect = baseReflect;
-
-  DefenseModifierRegistry.forEach((modifier) => {
-    if (!modifier.shouldApply(defender, defenseRoll)) return;
-    const bonus = modifier.calculateBonus(defender, defenseRoll);
-    if (!bonus) return;
-    totalBlock += bonus.blockBonus;
-    totalReflect += bonus.reflectBonus;
-    modifiersApplied.push(bonus);
-  });
-
-  const clampedBlock = Math.max(0, totalBlock);
-  const clampedReflect = Math.max(0, totalReflect);
-  const damageDealt = Math.max(0, threatenedDamage - clampedBlock);
-  const finalAttackerHp = Math.max(0, attacker.hp - clampedReflect);
-  const finalDefenderHp = Math.max(0, defender.hp - damageDealt);
-
-  return {
-    threatenedDamage,
-    defenseRoll,
-    baseBlock,
-    baseBlockLog: `Base Block ${baseBlock}`,
-    modifiersApplied,
-    totalBlock: clampedBlock,
-    totalReflect: clampedReflect,
-    damageDealt,
-    finalAttackerHp,
-    finalDefenderHp,
-    maxAttackerHp: attacker.hero.maxHp,
-    maxDefenderHp: defender.hero.maxHp,
-    attackerName: attacker.hero.name,
-    defenderName: defender.hero.name,
+type ApplyAttackOptions = {
+  defense?: ResolvedDefenseState | null;
+  manualEvasive?: {
+    used: boolean;
+    success: boolean;
+    roll: number;
+    label?: string;
+    alreadySpent?: boolean;
   };
-}
+};
+
+const clampChi = (value: number) => Math.max(0, Math.min(3, value));
+
+const applyDefenseTokens = (tokens: Tokens, gains: Partial<Tokens>): Tokens => {
+  if (!gains || Object.keys(gains).length === 0) return tokens;
+  return {
+    burn: Math.max(0, (tokens.burn ?? 0) + (gains.burn ?? 0)),
+    chi: clampChi((tokens.chi ?? 0) + (gains.chi ?? 0)),
+    evasive: Math.max(0, (tokens.evasive ?? 0) + (gains.evasive ?? 0)),
+  };
+};
 
 export function applyAttack(
   attacker: PlayerState,
   defender: PlayerState,
-  ab: Ability,
-  opts?: {
-    manualDefense?: {
-      reduced: number;
-      reflect: number;
-      roll: number;
-      label?: string;
-      baseReduced?: number;
-      chiUsed?: number;
-    };
-    manualEvasive?: {
-      used: boolean;
-      success: boolean;
-      roll: number;
-      label?: string;
-      alreadySpent?: boolean;
-    };
-  }
+  ability: OffensiveAbility,
+  opts: ApplyAttackOptions = {}
 ): [PlayerState, PlayerState, string[]] {
   const notes: string[] = [];
-  const apply = ab.apply ?? {};
-  const incoming = ab.damage;
+  const applyEffects = ability.apply ?? {};
+  const incomingDamage = ability.damage;
   const attackerStart = attacker;
   const defenderStart = defender;
 
-  // Manual evasive handling (roll performed outside the engine).
-  if (incoming > 0 && opts?.manualEvasive && opts.manualEvasive.used) {
+  if (incomingDamage > 0 && opts.manualEvasive && opts.manualEvasive.used) {
     const ev = opts.manualEvasive;
-    const label = ev.label ?? 'Def';
+    const label = ev.label ?? defender.hero.name;
     if (!ev.alreadySpent && defender.tokens.evasive > 0) {
       defender = {
         ...defender,
@@ -99,82 +48,102 @@ export function applyAttack(
         },
       };
     }
-    const evMessage = `${label} Evasive roll: ${ev.roll} -> ${
-      ev.success ? 'Attack fully dodged (Evasive).' : 'Evasive failed.'
+    const message = `${label} Evasive roll: ${ev.roll} -> ${
+      ev.success ? "Attack fully dodged (Evasive)." : "Evasive failed."
     }`;
     if (ev.success) {
-      return [{ ...attacker }, { ...defender }, [evMessage]];
+      return [{ ...attacker }, { ...defender }, [message]];
     }
-    notes.push(evMessage);
+    notes.push(message);
   }
 
-  let reduced = 0;
-  let reflect = 0;
-  if (incoming > 0) {
-    if (opts?.manualDefense) {
-      reduced = opts.manualDefense.reduced;
-      reflect = opts.manualDefense.reflect;
-      notes.push(`${opts.manualDefense.label ?? 'DEF'} defense roll: ${opts.manualDefense.roll}`);
-    } else {
-      const d = defender.hero.defense.roll(defender.tokens);
-      reduced = d.reduced;
-      reflect = d.reflect;
-      notes.push(`${defender.hero.name} defense roll: ${d.roll}`);
-    }
-  }
+  const defenseState = opts.defense ?? null;
+  const block = defenseState?.block ?? 0;
+  const reflect = defenseState?.reflect ?? 0;
+  const heal = defenseState?.heal ?? 0;
+  const retaliatePercent = defenseState?.retaliatePercent ?? 0;
+  const defenseTokens = defenseState?.appliedTokens ?? {};
 
-  const dealt = Math.max(0, incoming - reduced);
-  const blocked = Math.min(incoming, Math.max(0, reduced));
+  const blocked = Math.min(incomingDamage, Math.max(0, block));
+  const damageDealt = Math.max(0, incomingDamage - blocked);
+  const retaliateDamage = retaliatePercent
+    ? Math.floor(incomingDamage * retaliatePercent)
+    : 0;
 
-  const currentBurn = defender.tokens.burn ?? 0;
-  const burnGain = apply.burn ?? 0;
-  const nextBurn = applyBurnStacks(currentBurn, burnGain);
+  let defenderTokens = applyDefenseTokens(defender.tokens, defenseTokens);
+  const burnBefore = defenderTokens.burn ?? 0;
+  const nextBurn = applyBurnStacks(burnBefore, applyEffects.burn ?? 0);
+  defenderTokens = { ...defenderTokens, burn: nextBurn };
 
-  const nextDef: PlayerState = {
-    ...defender,
-    hp: defender.hp - dealt,
-    tokens: {
-      ...defender.tokens,
-      burn: nextBurn,
-    },
-  };
-
-  const nextAtt: PlayerState = {
-    ...attacker,
-    hp: attacker.hp - reflect,
-    tokens: {
-      ...attacker.tokens,
-      chi: Math.min(3, attacker.tokens.chi + (apply.chi ?? 0)),
-      evasive: attacker.tokens.evasive + (apply.evasive ?? 0),
-    },
-  };
-
-  notes.push(
-    `Hit for ${dealt} dmg (blocked ${blocked})${reflect ? `, reflected ${reflect}` : ''}.`,
+  const defenderHpAfter = Math.min(
+    defender.hero.maxHp,
+    Math.max(0, defender.hp - damageDealt) + heal
   );
 
-  const chiGain = Math.max(0, nextAtt.tokens.chi - attackerStart.tokens.chi);
+  const nextDefender: PlayerState = {
+    ...defender,
+    hp: defenderHpAfter,
+    tokens: defenderTokens,
+  };
+
+  const attackerHpAfter = Math.max(
+    0,
+    attacker.hp - reflect - retaliateDamage
+  );
+
+  const nextAttacker: PlayerState = {
+    ...attacker,
+    hp: attackerHpAfter,
+    tokens: {
+      ...attacker.tokens,
+      chi: clampChi((attacker.tokens.chi ?? 0) + (applyEffects.chi ?? 0)),
+      evasive: Math.max(0, (attacker.tokens.evasive ?? 0) + (applyEffects.evasive ?? 0)),
+      burn: attacker.tokens.burn ?? 0,
+    },
+  };
+
+  const reflectTotal = reflect + retaliateDamage;
+  const summaryParts = [`Hit for ${damageDealt} dmg (blocked ${blocked}).`];
+  if (reflectTotal > 0) {
+    summaryParts.push(`Reflected ${reflectTotal}.`);
+  }
+  if (heal > 0) {
+    summaryParts.push(`Healed ${heal}.`);
+  }
+  notes.push(summaryParts.join(" "));
+
+  const chiGain = Math.max(
+    0,
+    nextAttacker.tokens.chi - (attackerStart.tokens.chi ?? 0)
+  );
   if (chiGain > 0) {
     notes.push(`${attacker.hero.id} gains Chi (+${chiGain}).`);
   }
 
   const evasiveGain = Math.max(
     0,
-    nextAtt.tokens.evasive - attackerStart.tokens.evasive,
+    nextAttacker.tokens.evasive - (attackerStart.tokens.evasive ?? 0)
   );
   if (evasiveGain > 0) {
     notes.push(`${attacker.hero.id} gains Evasive (+${evasiveGain}).`);
   }
 
-  const burnBefore = defenderStart.tokens.burn ?? 0;
-  const burnAfter = nextDef.tokens.burn ?? 0;
-  if (burnAfter > burnBefore) {
+  const burnDelta = nextDefender.tokens.burn - (defenderStart.tokens.burn ?? 0);
+  if (burnDelta > 0) {
     notes.push(
-      `${defender.hero.id} gains Burn (${burnAfter} stack${
-        burnAfter > 1 ? 's' : ''
-      }).`,
+      `${defender.hero.id} gains Burn (${nextDefender.tokens.burn} stack${
+        nextDefender.tokens.burn > 1 ? "s" : ""
+      }).`
     );
   }
 
-  return [nextAtt, nextDef, notes];
+  if (defenseState?.selection.selected) {
+    const abilityName =
+      defenseState.selection.selected.ability.displayName ??
+      defenseState.selection.selected.ability.label ??
+      defenseState.selection.selected.ability.combo;
+    notes.push(`Defense used: ${abilityName}.`);
+  }
+
+  return [nextAttacker, nextDefender, notes];
 }

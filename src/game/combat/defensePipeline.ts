@@ -1,45 +1,48 @@
-import type { PlayerState } from "../types";
-import type { ChiDefenseAdjustment, DefensePlanResult } from "./types";
-import type { DefenseCalculationResult } from "../types";
-import type { ManualEvasiveLog } from "../logging/combatLog";
-import { buildManualDefenseLog } from "../logging/defenseLogs";
+﻿import type { PlayerState } from "../types";
+import type {
+  BaseDefenseResolution,
+  DefensePlanResult,
+  ResolvedDefenseState,
+} from "./types";
 
 type AdjustDefenseWithChiArgs = {
   defender: PlayerState;
-  abilityDamage: number;
-  defenseOutcome: DefenseCalculationResult;
+  incomingDamage: number;
+  baseResolution: BaseDefenseResolution;
   requestedChi: number;
 };
 
-/**
- * Applies reactive chi spending to an existing defense outcome.
- * The calculation mirrors the previous hook logic, but keeps it pure so it can be reused.
- */
-export function adjustDefenseWithChi({
+export const adjustDefenseWithChi = ({
   defender,
-  abilityDamage,
-  defenseOutcome,
+  incomingDamage,
+  baseResolution,
   requestedChi,
-}: AdjustDefenseWithChiArgs): ChiDefenseAdjustment {
+}: AdjustDefenseWithChiArgs): {
+  defenderAfter: PlayerState;
+  resolution: ResolvedDefenseState;
+} => {
   const availableChi = defender.tokens.chi ?? 0;
   if (availableChi <= 0 || requestedChi <= 0) {
     return {
       defenderAfter: defender,
-      defenseOutcome,
-      chiSpent: 0,
+      resolution: {
+        ...baseResolution,
+        chiSpent: 0,
+      },
     };
   }
 
   const chiBudget = Math.min(requestedChi, availableChi);
-  const currentBlocked = defenseOutcome.totalBlock;
-  const remainingDamage = Math.max(0, abilityDamage - currentBlocked);
+  const remainingDamage = Math.max(0, incomingDamage - baseResolution.block);
   const chiSpent = Math.min(chiBudget, remainingDamage);
 
   if (chiSpent <= 0) {
     return {
       defenderAfter: defender,
-      defenseOutcome,
-      chiSpent: 0,
+      resolution: {
+        ...baseResolution,
+        chiSpent: 0,
+      },
     };
   }
 
@@ -51,73 +54,44 @@ export function adjustDefenseWithChi({
     },
   };
 
-  const totalBlock = currentBlocked + chiSpent;
-  const damageDealt = Math.max(0, abilityDamage - totalBlock);
-  const modifiersApplied = [
-    ...defenseOutcome.modifiersApplied,
-    {
-      id: "chi_spent_block",
-      source: "Chi",
-      blockBonus: chiSpent,
-      reflectBonus: 0,
-      logDetail: `<<resource:Chi>> +${chiSpent}`,
-    },
-  ];
-
-  const adjustedOutcome: DefenseCalculationResult = {
-    ...defenseOutcome,
-    totalBlock,
-    damageDealt,
-    finalDefenderHp: Math.max(0, defender.hp - damageDealt),
-    modifiersApplied,
+  const resolution: ResolvedDefenseState = {
+    ...baseResolution,
+    block: baseResolution.block + chiSpent,
+    chiSpent,
   };
 
   return {
     defenderAfter,
-    defenseOutcome: adjustedOutcome,
-    chiSpent,
+    resolution,
   };
-}
+};
 
 type BuildDefensePlanArgs = {
   defender: PlayerState;
-  abilityDamage: number;
-  defenseOutcome: DefenseCalculationResult;
-  defenseRoll?: number;
+  incomingDamage: number;
+  baseResolution: BaseDefenseResolution;
   requestedChi: number;
-  manualEvasive?: ManualEvasiveLog;
 };
 
-export function buildDefensePlan({
+export const buildDefensePlan = ({
   defender,
-  abilityDamage,
-  defenseOutcome,
-  defenseRoll,
+  incomingDamage,
+  baseResolution,
   requestedChi,
-  manualEvasive,
-}: BuildDefensePlanArgs): DefensePlanResult {
-  const chiAdjustment = adjustDefenseWithChi({
+}: BuildDefensePlanArgs): DefensePlanResult => {
+  const { defenderAfter, resolution } = adjustDefenseWithChi({
     defender,
-    abilityDamage,
-    defenseOutcome,
+    incomingDamage,
+    baseResolution,
     requestedChi,
   });
 
-  const manualDefense = buildManualDefenseLog({
-    outcome: chiAdjustment.defenseOutcome,
-    defenderName: defender.hero.name,
-    chiSpent: chiAdjustment.chiSpent,
-  });
-
   return {
-    defenderAfter: chiAdjustment.defenderAfter,
-    defense: {
-      defenseRoll,
-      manualDefense,
-      defenseOutcome: chiAdjustment.defenseOutcome,
-      manualEvasive,
-      defenseChiSpend: chiAdjustment.chiSpent,
-    },
-    chiSpent: chiAdjustment.chiSpent,
+    defenderAfter,
+    defense: resolution,
   };
-}
+};
+
+
+
+

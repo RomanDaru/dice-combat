@@ -1,4 +1,5 @@
-import { Ability, Combo, Hero } from './types';
+import { getOffensiveAbilities } from './abilityBoards';
+import { OffensiveAbility, Combo, Hero } from './types';
 
 export const rollDie = () => 1 + Math.floor(Math.random() * 6);
 
@@ -29,9 +30,10 @@ export function detectCombos(dice: number[]) {
   } as Record<Combo, boolean>;
 }
 
-export function bestAbility(hero: Hero, dice: number[]): Ability | null {
+export function bestAbility(hero: Hero, dice: number[]): OffensiveAbility | null {
   const found = detectCombos(dice);
-  const legal = hero.abilities.filter((a) => found[a.combo]);
+  const abilities = getOffensiveAbilities(hero);
+  const legal = abilities.filter((ability) => found[ability.combo]);
   if (!legal.length) return null;
   return legal.sort((a, b) => {
     if (!!b.ultimate !== !!a.ultimate) return (b.ultimate ? 1 : 0) - (a.ultimate ? 1 : 0);

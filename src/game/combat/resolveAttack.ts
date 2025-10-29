@@ -1,4 +1,4 @@
-import { applyAttack } from "../engine";
+﻿import { applyAttack } from "../engine";
 import type { AttackContext, AttackResolution } from "./types";
 import { buildAttackResolutionLines } from "../logging/combatLog";
 
@@ -24,7 +24,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     defender,
     effectiveAbility,
     {
-      manualDefense: defense.manualDefense,
+      defense: defense.resolution ?? null,
       manualEvasive: defense.manualEvasive,
     }
   );
@@ -38,13 +38,9 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     defenderBefore: defender,
     defenderAfter: nextDefender,
     incomingDamage: effectiveAbility.damage,
-    defenseRoll: defense.defenseRoll,
-    manualDefense: defense.manualDefense,
+    defense: defense.resolution ?? null,
     manualEvasive: defense.manualEvasive,
-    reflectedDamage: reflectDealt,
-    defenseOutcome: defense.defenseOutcome,
     attackChiSpent: attackChiSpend,
-    defenseChiSpent: defense.defenseChiSpend,
   });
 
   const outcome: AttackResolution["outcome"] =

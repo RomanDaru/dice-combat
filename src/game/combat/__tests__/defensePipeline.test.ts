@@ -1,25 +1,21 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { adjustDefenseWithChi, buildDefensePlan } from "../defensePipeline";
 import { HEROES } from "../../heroes";
-import type { DefenseCalculationResult, PlayerState } from "../../types";
+import type { BaseDefenseResolution } from "../types";
+import type { PlayerState } from "../../types";
+import { selectDefenseOptionByCombo, resolveDefenseSelection } from "../defenseBoard";
 
-const createDefenseOutcome = (
-  overrides: Partial<DefenseCalculationResult>
-): DefenseCalculationResult => ({
-  threatenedDamage: 6,
-  defenseRoll: 4,
-  baseBlock: 2,
-  baseBlockLog: "Base Block 2",
-  modifiersApplied: [],
-  totalBlock: 2,
-  totalReflect: 0,
-  damageDealt: 4,
-  finalAttackerHp: 20,
-  finalDefenderHp: 16,
-  maxAttackerHp: 20,
-  maxDefenderHp: 20,
-  attackerName: "Attacker",
-  defenderName: "Defender",
+const createBaseResolution = (
+  overrides: Partial<BaseDefenseResolution> = {}
+): BaseDefenseResolution => ({
+  selection: {
+    roll: { dice: [1, 2, 3, 4, 5], combos: [], options: [] },
+    selected: null,
+  },
+  block: 2,
+  reflect: 0,
+  heal: 0,
+  appliedTokens: {},
   ...overrides,
 });
 
@@ -32,58 +28,54 @@ const createPlayer = (chi: number): PlayerState => ({
 describe("defensePipeline", () => {
   it("conserves outcome when no chi is spent", () => {
     const defender = createPlayer(0);
-    const outcome = createDefenseOutcome({});
+    const baseResolution = createBaseResolution();
 
     const result = adjustDefenseWithChi({
       defender,
-      abilityDamage: 6,
-      defenseOutcome: outcome,
+      incomingDamage: 6,
+      baseResolution,
       requestedChi: 2,
     });
 
-    expect(result.chiSpent).toBe(0);
+    expect(result.resolution.chiSpent).toBe(0);
     expect(result.defenderAfter.tokens.chi).toBe(0);
-    expect(result.defenseOutcome.totalBlock).toBe(outcome.totalBlock);
-    expect(result.defenseOutcome.damageDealt).toBe(outcome.damageDealt);
+    expect(result.resolution.block).toBe(baseResolution.block);
   });
 
   it("spends chi to reduce incoming damage", () => {
     const defender = createPlayer(3);
-    const outcome = createDefenseOutcome({});
+    const baseResolution = createBaseResolution();
 
     const result = adjustDefenseWithChi({
       defender,
-      abilityDamage: 6,
-      defenseOutcome: outcome,
+      incomingDamage: 6,
+      baseResolution,
       requestedChi: 2,
     });
 
-    expect(result.chiSpent).toBe(2);
+    expect(result.resolution.chiSpent).toBe(2);
     expect(result.defenderAfter.tokens.chi).toBe(1);
-    expect(result.defenseOutcome.totalBlock).toBe(4);
-    expect(result.defenseOutcome.damageDealt).toBe(2);
-    expect(result.defenseOutcome.modifiersApplied.at(-1)?.id).toBe(
-      "chi_spent_block"
-    );
+    expect(result.resolution.block).toBe(4);
   });
 
-  it("builds defense plan with manual defense log", () => {
+  it("builds defense plan with chi spend applied", () => {
     const defender = createPlayer(2);
-    const outcome = createDefenseOutcome({});
+    const baseResolution = resolveDefenseSelection(
+      selectDefenseOptionByCombo(
+        { dice: [1, 1, 1, 1, 1], combos: [], options: [] },
+        null
+      )
+    );
 
     const plan = buildDefensePlan({
       defender,
-      abilityDamage: 6,
-      defenseOutcome: outcome,
-      defenseRoll: 3,
+      incomingDamage: 6,
+      baseResolution,
       requestedChi: 1,
     });
 
-    expect(plan.chiSpent).toBe(1);
+    expect(plan.defense.chiSpent).toBe(1);
     expect(plan.defenderAfter.tokens.chi).toBe(1);
-    expect(plan.defense.manualDefense?.chiUsed).toBe(1);
-    expect(plan.defense.defenseChiSpend).toBe(1);
-    expect(plan.defense.defenseRoll).toBe(3);
   });
 });
 

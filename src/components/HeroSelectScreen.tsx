@@ -5,12 +5,15 @@ import styles from "./HeroSelectScreen.module.css";
 import PyromancerPreview from "../assets/Pyromancer_Animated1.mp4";
 import ShadowMonkPreview from "../assets/Shadow_Monk_Animated.mp4";
 import { getHeroEffectIds } from "../game/heroes";
+import { getOffensiveAbilities } from "../game/abilityBoards";
 import { getEffectDefinition } from "../game/effects";
 
 const AbilityPreviewList = ({ hero }: { hero: Hero }) => {
+  const abilities = getOffensiveAbilities(hero);
+
   return (
     <div className={styles.abilityList}>
-      {hero.abilities.map((ability) => {
+      {abilities.map((ability) => {
         const effects: string[] = [];
         if (ability.apply?.burn) effects.push(`Burn +${ability.apply.burn}`);
         if (ability.apply?.chi) effects.push(`Chi +${ability.apply.chi}`);
@@ -25,15 +28,17 @@ const AbilityPreviewList = ({ hero }: { hero: Hero }) => {
                   "badge",
                   ability.ultimate
                     ? styles.abilityBadgeUlt
-                    : styles.abilityBadgeSkill
-                )}>
-                {ability.ultimate ? "ULT" : "SK"}
-              </span>
-              <span>{ability.label ?? ability.combo}</span>
-            </div>
-            <div className={styles.abilityStats}>
-              <span className={clsx("num", styles.damageText)}>
-                {ability.damage} dmg
+                : styles.abilityBadgeSkill
+            )}>
+            {ability.ultimate ? "ULT" : "SK"}
+          </span>
+          <span>
+            {ability.displayName ?? ability.label ?? ability.combo}
+          </span>
+        </div>
+        <div className={styles.abilityStats}>
+          <span className={clsx("num", styles.damageText)}>
+            {ability.damage} dmg
               </span>
               {effects.length > 0 && (
                 <span className={styles.effectText}>{effects.join(", ")}</span>

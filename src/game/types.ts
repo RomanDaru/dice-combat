@@ -1,24 +1,35 @@
-import type { GameDispatch, GameState } from "./state";
+﻿import type { GameDispatch, GameState } from "./state";
 
 export type Combo =
   | "5OAK" | "4OAK" | "FULL_HOUSE" | "3OAK" | "PAIR_PAIR" | "SMALL_STRAIGHT" | "LARGE_STRAIGHT";
 
-export type Ability = {
+export type AbilityPresentation = {
+  label?: string;
+  displayName?: string;
+  iconId?: string;
+  tooltip?: string;
+};
+
+export type OffensiveAbility = AbilityPresentation & {
   combo: Combo;
   damage: number;
   ultimate?: boolean;
   apply?: Partial<{ burn: number; chi: number; evasive: number }>;
-  label?: string;
 };
+
+export type DefensiveAbility = AbilityPresentation & {
+  combo: Combo;
+  block?: number;
+  reflect?: number;
+  heal?: number;
+  retaliatePercent?: number;
+  apply?: Partial<{ burn: number; chi: number; evasive: number }>;
+};
+
+export type OffensiveAbilityBoard = Partial<Record<Combo, OffensiveAbility>>;
+export type DefensiveAbilityBoard = Partial<Record<Combo, DefensiveAbility>>;
 
 export type HeroId = string;
-
-export type DefenseRoll = { roll: number; reduced: number; reflect: number };
-export type DefenseFromRoll = (input: { roll: number; tokens: Tokens }) => {
-  reduced: number;
-  reflect: number;
-};
-export type DefenseRoller = (tokens: Tokens) => DefenseRoll;
 
 export type AiDecisionContext = {
   dice: number[];
@@ -31,11 +42,8 @@ export interface Hero {
   id: HeroId;
   name: string;
   maxHp: number;
-  abilities: Ability[];
-  defense: {
-    fromRoll: DefenseFromRoll;
-    roll: DefenseRoller;
-  };
+  offensiveBoard: OffensiveAbilityBoard;
+  defensiveBoard: DefensiveAbilityBoard;
   ai: {
     chooseHeld: (context: AiDecisionContext) => boolean[];
   };
@@ -54,31 +62,6 @@ export type Phase =
 export type Tokens = { burn: number; chi: number; evasive: number };
 export type PlayerState = { hero: Hero; hp: number; tokens: Tokens };
 export type TestResult = { name: string; pass: boolean; details?: string };
-
-export type DefenseModifierInfo = {
-  id: string;
-  source: string;
-  blockBonus: number;
-  reflectBonus: number;
-  logDetail: string;
-};
-
-export type DefenseCalculationResult = {
-  threatenedDamage: number;
-  defenseRoll: number;
-  baseBlock: number;
-  baseBlockLog: string;
-  modifiersApplied: DefenseModifierInfo[];
-  totalBlock: number;
-  totalReflect: number;
-  damageDealt: number;
-  finalAttackerHp: number;
-  finalDefenderHp: number;
-  maxAttackerHp: number;
-  maxDefenderHp: number;
-  attackerName: string;
-  defenderName: string;
-};
 
 export type ActiveAbilityPhase = "upkeep" | "roll" | "attack" | "defense" | "end";
 
@@ -122,3 +105,5 @@ export type ActiveAbility = {
   canUse: (context: ActiveAbilityContext) => boolean;
   execute: (context: ActiveAbilityContext) => ActiveAbilityOutcome | void;
 };
+
+

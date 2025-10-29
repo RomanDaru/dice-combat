@@ -102,6 +102,30 @@ export function useDiceAnimator({ defenseDieIndex }: UseDiceAnimatorArgs) {
     [defenseDieIndex, latestState, setDice, setRolling, setSavedDiceForDefense]
   );
 
+  const animateDefenseRoll = useCallback(
+    (onDone: (dice: number[]) => void, duration = 700) => {
+      if (!latestState.current.savedDefenseDice) {
+        setSavedDiceForDefense([...latestState.current.dice]);
+      }
+      const mask = [true, true, true, true, true];
+      setRolling(mask);
+      let workingDice = [...latestState.current.dice];
+      const startedAt = Date.now();
+      const timer = window.setInterval(() => {
+        workingDice = workingDice.map(() => rollDie());
+        setDice([...workingDice]);
+        if (Date.now() - startedAt > duration) {
+          window.clearInterval(timer);
+          const result = Array.from({ length: 5 }, () => rollDie());
+          setDice(result);
+          setRolling([false, false, false, false, false]);
+          window.setTimeout(() => onDone(result), 50);
+        }
+      }, 90);
+    },
+    [latestState, setDice, setRolling, setSavedDiceForDefense]
+  );
+
   const restoreDiceAfterDefense = useCallback(() => {
     const savedDice = latestState.current.savedDefenseDice;
     if (savedDice) {
@@ -115,6 +139,7 @@ export function useDiceAnimator({ defenseDieIndex }: UseDiceAnimatorArgs) {
   return {
     resetRoll,
     animateDefenseDie,
+    animateDefenseRoll,
     restoreDiceAfterDefense,
   };
 }

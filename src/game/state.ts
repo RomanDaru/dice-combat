@@ -1,8 +1,6 @@
-import { Ability } from "./types";
 import type { StatusId } from "./statuses";
 import { HEROES } from "./heroes";
-import { Hero, Phase, PlayerState, Side } from "./types";
-import { Tokens } from "./types";
+import { Hero, Phase, PlayerState, Side, OffensiveAbility, Tokens, Combo } from "./types";
 
 type FloatDamage = { val: number; kind: "hit" | "reflect" };
 
@@ -19,7 +17,7 @@ export type PendingAttack = {
   attacker: Side;
   defender: Side;
   dice: number[];
-  ability: Ability;
+  ability: OffensiveAbility;
   modifiers?: {
     chiAttackSpend?: number;
   };
@@ -44,6 +42,8 @@ export type AiPreviewState = {
 export type AiDefenseState = {
   inProgress: boolean;
   defenseRoll: number | null;
+  defenseDice: number[] | null;
+  defenseCombo: Combo | null;
   evasiveRoll: number | null;
 };
 
@@ -116,6 +116,8 @@ export function createInitialState(
     aiDefense: {
       inProgress: false,
       defenseRoll: null,
+      defenseDice: null,
+      defenseCombo: null,
       evasiveRoll: null,
     },
     pendingAttack: null,

@@ -14,6 +14,9 @@ export function PlayerActionPanel() {
     onConfirmAttack,
     onEndTurnNoAttack,
     onUserDefenseRoll,
+    onChooseDefenseOption,
+    onConfirmDefense,
+    onUserEvasiveRoll,
     performStatusClearRoll,
     activeAbilities,
     onPerformActiveAbility,
@@ -29,6 +32,9 @@ export function PlayerActionPanel() {
     showDcLogo,
     ability,
     defenseDieIndex,
+    defenseRoll,
+    defenseSelection,
+    awaitingDefenseSelection,
   } = useGameData();
 
   const {
@@ -55,8 +61,11 @@ export function PlayerActionPanel() {
 
   const canInteract = turn === "you" && !isDefenseTurn && !statusActive;
   const aiEvasiveRoll = aiDefense.evasiveRoll;
-  const aiDefenseRoll = aiDefense.defenseRoll;
-  const aiDefenseSim = aiDefense.inProgress;
+  const aiDefenseDice = aiDefense.defenseDice;
+  const aiDefenseCombo = aiDefense.defenseCombo;
+  const aiDefenseBlock = aiDefense.defenseRoll;
+  const aiDefenseSim =
+    aiDefense.inProgress || !!aiDefenseDice || aiEvasiveRoll !== null;
   const isDefensePhase =
     isDefenseTurn || statusActive || phase === "defense";
   const incomingAttack = isDefenseTurn && pendingAttack ? pendingAttack : null;
@@ -70,6 +79,7 @@ export function PlayerActionPanel() {
   const canAdjustAttackChi =
     canInteract && spendableChi > 0 && turn === "you";
   const canAdjustDefenseChi = isDefenseTurn && spendableChi > 0;
+  const hasDefenseCombos = Boolean(defenseRoll && defenseRoll.options.length);
 
   const adjustAttackChi = (delta: number) => {
     setAttackChiSpend((prev) => {
@@ -100,8 +110,25 @@ export function PlayerActionPanel() {
       );
     }
 
+    if (isDefenseTurn && defenseRoll) {
+      const noCombos = defenseRoll.options.length === 0;
+      return (
+        <div className={styles.infoHighlight}>
+          Defense roll: {defenseRoll.dice.join(" ")} --{" "}
+          {noCombos
+            ? "No defensive combos available. Block 0 damage."
+            : awaitingDefenseSelection
+            ? "Select a defensive ability or confirm to resolve."
+            : "Waiting for attack resolution."}
+        </div>
+      );
+    }
+
     if (incomingAttack && incomingAbility) {
-      const abilityName = incomingAbility.label ?? incomingAbility.combo;
+      const abilityName =
+        incomingAbility.displayName ??
+        incomingAbility.label ??
+        incomingAbility.combo;
       const attackerName = attackerHero?.name ?? "Opponent";
       return (
         <div className={styles.infoDefense}>
@@ -125,16 +152,13 @@ export function PlayerActionPanel() {
     if (ability) {
       return (
         <div className={styles.infoHighlight}>
-          <b>Best ability:</b> {ability.label ?? ability.combo} ({ability.damage} dmg)
+          <b>Best ability:</b>{" "}
+          {ability.displayName ?? ability.label ?? ability.combo} (
+          {ability.damage} dmg)
         </div>
       );
     }
-
-    return (
-      <div className={styles.infoMuted}>
-        No combo available
-      </div>
-    );
+    return null;
   };
 
   const statusCard =
@@ -182,15 +206,25 @@ export function PlayerActionPanel() {
       <div className={styles.defenseIndicators}>
         {aiEvasiveRoll !== null && (
           <div className='badge indigo'>
-            AI Evasive: <b>{aiEvasiveRoll}</b>
+            AI Evasive Roll: <b>{aiEvasiveRoll}</b>
           </div>
         )}
-        {aiDefenseRoll !== null && (
+        {aiDefenseDice && (
           <div className='badge indigo'>
-            AI Defense: <b>{aiDefenseRoll}</b>
+            AI Defense Roll: <b>{aiDefenseDice.join(" ")}</b>
           </div>
         )}
-        {aiEvasiveRoll === null && aiDefenseRoll === null && (
+        {aiDefenseCombo && (
+          <div className='badge indigo'>
+            AI Defense Combo: <b>{aiDefenseCombo}</b>
+          </div>
+        )}
+        {aiDefenseBlock !== null && (
+          <div className='badge indigo'>
+            AI Blocks: <b>{aiDefenseBlock}</b>
+          </div>
+        )}
+        {!aiDefenseDice && aiEvasiveRoll === null && (
           <div>AI defense in progress...</div>
         )}
       </div>
@@ -203,7 +237,13 @@ export function PlayerActionPanel() {
           : "AI rolls automatically"
       }).`
     : isDefenseTurn
-    ? "Adjust Chi spend if needed, then click Defense Roll or an active ability to respond."
+    ? defenseRoll
+      ? defenseRoll.options.length === 0
+        ? "No defensive combos available. Confirm defense to block 0 damage."
+        : awaitingDefenseSelection
+        ? "Select a defensive ability (or skip) and press Confirm Defense."
+        : "Defense locked in. Waiting for resolution."
+      : "Roll your defense dice to reveal available abilities."
     : "Tip: Confirm attack becomes available after the first Roll.";
   const showRollButton = !isDefenseTurn;
   const rollDisabled =
@@ -258,9 +298,29 @@ export function PlayerActionPanel() {
         {!statusActive &&
           (isDefenseTurn ? (
             <>
-              <button className='btn success' onClick={onUserDefenseRoll}>
-                Defense Roll
+              <button
+                className='btn success'
+                onClick={onUserDefenseRoll}
+                disabled={Boolean(defenseRoll)}>
+                {defenseRoll ? "Defense Rolled" : "Defense Roll"}
               </button>
+              {defenseRoll && (
+                <>
+                  {hasDefenseCombos && (
+                    <button
+                      className='btn'
+                      onClick={() => onChooseDefenseOption(null)}>
+                      Skip ability
+                    </button>
+                  )}
+                  <button
+                    className='btn success'
+                    onClick={onConfirmDefense}
+                    disabled={!awaitingDefenseSelection}>
+                    Confirm Defense
+                  </button>
+                </>
+              )}
             </>
           ) : (
             <>
@@ -329,3 +389,6 @@ export function PlayerActionPanel() {
     </div>
   );
 }
+
+
+

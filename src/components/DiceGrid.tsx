@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 type DiceGridProps = {
   dice: number[];
@@ -30,7 +30,7 @@ export default function DiceGrid({
   return (
     <div className='grid-5'>
       {dice.map((value, index) => {
-        const isDefenseDie = index === defIndex && isDefensePhase;
+        const isDefenseDie = defIndex >= 0 && index === defIndex && isDefensePhase;
         const isHeld = isAi ? Boolean(aiSimHeld?.[index]) : Boolean(held[index]);
         const rollingState = Array.isArray(rolling)
           ? rolling[index]
@@ -101,3 +101,4 @@ export default function DiceGrid({
     </div>
   );
 }
+

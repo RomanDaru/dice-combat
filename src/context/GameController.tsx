@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   createContext,
   useCallback,
   useContext,
@@ -10,7 +10,8 @@ import React, {
 } from "react";
 import { useGame } from "./GameContext";
 import type { GameState, InitialRollState } from "../game/state";
-import type { Ability, Phase, Side } from "../game/types";
+import type { OffensiveAbility, Phase, Side, Combo } from "../game/types";
+import type { DefenseRollResult } from "../game/combat/types";
 
 import { useCombatLog } from "../hooks/useCombatLog";
 import { useDiceAnimator } from "../hooks/useDiceAnimator";
@@ -34,8 +35,13 @@ const ROLL_ANIM_MS = 1300;
 const AI_ROLL_ANIM_MS = 900;
 const AI_STEP_MS = 2000;
 
+type PlayerDefenseState = {
+  roll: DefenseRollResult;
+  selectedCombo: Combo | null;
+};
+
 type ComputedData = {
-  ability: Ability | null;
+  ability: OffensiveAbility | null;
   readyForActing: ReturnType<typeof detectCombos>;
   readyForAI: ReturnType<typeof detectCombos>;
   isDefenseTurn: boolean;
@@ -44,6 +50,9 @@ type ComputedData = {
   defenseDieIndex: number;
   phase: Phase;
   initialRoll: InitialRollState;
+  defenseRoll: DefenseRollResult | null;
+  defenseSelection: Combo | null;
+  awaitingDefenseSelection: boolean;
 };
 
 type ControllerContext = {
@@ -64,6 +73,8 @@ type ControllerContext = {
   onConfirmAttack: () => void;
   onUserDefenseRoll: () => void;
   onUserEvasiveRoll: () => void;
+  onChooseDefenseOption: (combo: Combo | null) => void;
+  onConfirmDefense: () => void;
   activeAbilities: ActiveAbility[];
   onPerformActiveAbility: (abilityId: string) => boolean;
 };
@@ -82,6 +93,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     you: state.players.you.tokens.chi ?? 0,
     ai: state.players.ai.tokens.chi ?? 0,
   });
+  const [playerDefenseState, setPlayerDefenseState] =
+    useState<PlayerDefenseState | null>(null);
 
   const updateAttackChiSpend = useCallback(
     (value: number | ((prev: number) => number)) => {
@@ -320,8 +333,12 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     }
   }, [isDefenseTurn]);
 
-  const { resetRoll, animateDefenseDie, restoreDiceAfterDefense } =
-    useDiceAnimator({ defenseDieIndex: DEF_DIE_INDEX });
+  const {
+    resetRoll,
+    animateDefenseDie,
+    animateDefenseRoll,
+    restoreDiceAfterDefense,
+  } = useDiceAnimator({ defenseDieIndex: DEF_DIE_INDEX });
   const { animatePreviewRoll } = useAiDiceAnimator({
     rollDurationMs: AI_ROLL_ANIM_MS,
   });
@@ -346,30 +363,38 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     turnChiAvailable,
     consumeTurnChi,
   });
-  const { onConfirmAttack, onUserDefenseRoll, onUserEvasiveRoll } =
-    useDefenseActions({
-      turn,
-      rolling,
-      ability,
-      dice,
-      you: players.you,
-      pendingAttack,
-      logPlayerNoCombo,
-      logPlayerAttackStart,
-      pushLog,
-      animateDefenseDie,
-      popDamage,
-      restoreDiceAfterDefense,
-      sendFlowEvent,
-      aiPlay,
-      aiStepDelay: AI_STEP_MS,
-      attackChiSpend,
-      defenseChiSpend,
-      clearAttackChiSpend,
-      clearDefenseChiSpend,
-      turnChiAvailable,
-      consumeTurnChi,
-    });
+  const {
+    onConfirmAttack,
+    onUserDefenseRoll,
+    onChooseDefenseOption,
+    onConfirmDefense,
+    onUserEvasiveRoll,
+  } = useDefenseActions({
+    turn,
+    rolling,
+    ability,
+    dice,
+    you: players.you,
+    pendingAttack,
+    logPlayerNoCombo,
+    logPlayerAttackStart,
+    pushLog,
+    animateDefenseDie,
+    animateDefenseRoll,
+    popDamage,
+    restoreDiceAfterDefense,
+    sendFlowEvent,
+    aiPlay,
+    aiStepDelay: AI_STEP_MS,
+    attackChiSpend,
+    defenseChiSpend,
+    clearAttackChiSpend,
+    clearDefenseChiSpend,
+    turnChiAvailable,
+    consumeTurnChi,
+    playerDefenseState,
+    setPlayerDefenseState,
+  });
 
   const handleAbilityControllerAction = useCallback(
     (
@@ -514,9 +539,12 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       isDefenseTurn,
       statusActive,
       showDcLogo,
-      defenseDieIndex: DEF_DIE_INDEX,
+      defenseDieIndex: isDefenseTurn ? -1 : DEF_DIE_INDEX,
       phase,
       initialRoll,
+      defenseRoll: playerDefenseState?.roll ?? null,
+      defenseSelection: playerDefenseState?.selectedCombo ?? null,
+      awaitingDefenseSelection: !!playerDefenseState,
     }),
     [
       ability,
@@ -527,6 +555,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       showDcLogo,
       phase,
       initialRoll,
+      playerDefenseState,
     ]
   );
 
@@ -548,6 +577,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       performStatusClearRoll,
       onConfirmAttack,
       onUserDefenseRoll,
+      onChooseDefenseOption,
+      onConfirmDefense,
       onUserEvasiveRoll,
       activeAbilities,
       onPerformActiveAbility,
@@ -567,6 +598,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       turnChiAvailable,
       consumeTurnChi,
       onUserDefenseRoll,
+      onChooseDefenseOption,
+      onConfirmDefense,
       onUserEvasiveRoll,
       performStatusClearRoll,
       popDamage,
@@ -601,3 +634,5 @@ export const useGameController = () => {
 };
 
 export { DEF_DIE_INDEX };
+
+

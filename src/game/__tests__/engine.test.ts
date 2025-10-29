@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyAttack } from '../engine';
+import { getOffensiveAbilities } from '../abilityBoards';
 import { createInitialState } from '../state';
 import { HEROES } from '../heroes';
 
@@ -14,8 +15,9 @@ const createPlayers = () => {
 describe('applyAttack', () => {
   it('applies damage, burn, and respects manual defense', () => {
     const { pyro, monk } = createPlayers();
-    const inferno =
-      pyro.hero.abilities.find((ab) => ab.combo === 'LARGE_STRAIGHT')!;
+    const inferno = getOffensiveAbilities(pyro.hero).find(
+      (ab) => ab.combo === 'LARGE_STRAIGHT',
+    )!;
 
     const [nextPyro, nextMonk, notes] = applyAttack(pyro, monk, inferno, {
       manualDefense: { reduced: 2, reflect: 0, roll: 5, label: 'Monk' },
@@ -29,8 +31,9 @@ describe('applyAttack', () => {
 
   it('awards chi when ability grants it', () => {
     const { pyro, monk } = createPlayers();
-    const chiStrike =
-      monk.hero.abilities.find((ab) => ab.combo === 'FULL_HOUSE')!;
+    const chiStrike = getOffensiveAbilities(monk.hero).find(
+      (ab) => ab.combo === 'FULL_HOUSE',
+    )!;
 
     const [nextMonk, nextPyro] = applyAttack(monk, pyro, chiStrike, {
       manualDefense: { reduced: 3, reflect: 0, roll: 6, label: 'Pyro' },
@@ -46,8 +49,9 @@ describe('applyAttack', () => {
       ...monk,
       tokens: { ...monk.tokens, evasive: 1 },
     };
-    const fireball =
-      pyro.hero.abilities.find((ab) => ab.combo === '3OAK')!;
+    const fireball = getOffensiveAbilities(pyro.hero).find(
+      (ab) => ab.combo === '3OAK',
+    )!;
 
     const [nextPyro, nextMonk, notes] = applyAttack(
       pyro,

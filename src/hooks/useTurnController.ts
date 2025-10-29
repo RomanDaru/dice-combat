@@ -67,7 +67,13 @@ export function useGameFlow({
       dispatch({ type: "SET_PHASE", phase: "upkeep" });
       dispatch({ type: "SET_PENDING_ATTACK", attack: null });
       patchAiPreview({ active: false, rolling: false });
-      patchAiDefense({ inProgress: false, defenseRoll: null, evasiveRoll: null });
+      patchAiDefense({
+        inProgress: false,
+        defenseRoll: null,
+        defenseDice: null,
+        defenseCombo: null,
+        evasiveRoll: null,
+      });
       resetRoll();
 
       dispatch({ type: "SET_PLAYER", side: next, player: turnResult.updatedPlayer });

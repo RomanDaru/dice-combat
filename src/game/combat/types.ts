@@ -1,9 +1,37 @@
-import type { Ability, PlayerState, Side } from "../types";
+﻿import type { Combo, DefensiveAbility, OffensiveAbility, PlayerState, Side, Tokens } from "../types";
 import type { GameState } from "../state";
-import type { DefenseCalculationResult } from "../types";
-import type { ManualDefenseLog, ManualEvasiveLog } from "../logging/combatLog";
+import type { ManualEvasiveLog } from "../logging/combatLog";
 
 export type AttackSource = "player" | "ai";
+
+export type DefenseBoardOption = {
+  combo: Combo;
+  ability: DefensiveAbility;
+};
+
+export type DefenseRollResult = {
+  dice: number[];
+  combos: Combo[];
+  options: DefenseBoardOption[];
+};
+
+export type DefenseSelection = {
+  roll: DefenseRollResult;
+  selected: DefenseBoardOption | null;
+};
+
+export type BaseDefenseResolution = {
+  selection: DefenseSelection;
+  block: number;
+  reflect: number;
+  heal: number;
+  appliedTokens: Partial<Tokens>;
+  retaliatePercent?: number;
+};
+
+export type ResolvedDefenseState = BaseDefenseResolution & {
+  chiSpent: number;
+};
 
 export type AttackContext = {
   source: AttackSource;
@@ -11,15 +39,12 @@ export type AttackContext = {
   defenderSide: Side;
   attacker: PlayerState;
   defender: PlayerState;
-  ability: Ability;
+  ability: OffensiveAbility;
   attackChiSpend: number;
   attackChiApplied: boolean;
   defense: {
-    defenseRoll?: number;
-    manualDefense?: ManualDefenseLog;
-    defenseOutcome?: DefenseCalculationResult;
+    resolution: ResolvedDefenseState | null;
     manualEvasive?: ManualEvasiveLog;
-    defenseChiSpend: number;
   };
 };
 
@@ -47,28 +72,7 @@ export type EvasiveAttemptPlan = {
   alreadySpent?: boolean;
 };
 
-export type ChiDefenseAdjustment = {
-  defenderAfter: PlayerState;
-  defenseOutcome: DefenseCalculationResult;
-  chiSpent: number;
-};
-
-export type DefensePreparationInput = {
-  attacker: PlayerState;
-  defender: PlayerState;
-  ability: Ability;
-  defenseRoll: number;
-  requestedChi: number;
-};
-
-export type DefensePreparationOutput = {
-  outcome: DefenseCalculationResult;
-  manualDefense: ManualDefenseLog;
-  chiAdjustment: ChiDefenseAdjustment;
-};
-
 export type DefensePlanResult = {
   defenderAfter: PlayerState;
-  defense: AttackContext["defense"];
-  chiSpent: number;
+  defense: ResolvedDefenseState;
 };

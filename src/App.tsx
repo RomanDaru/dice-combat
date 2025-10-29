@@ -8,20 +8,22 @@ import { GameContext } from "./context/GameContext";
 import type { Hero } from "./game/types";
 import PyromancerPortrait from "./assets/Pyromancer_Hero.png";
 import ShadowMonkPortrait from "./assets/Shadow_Monk_Hero.png";
+import TrainingDummyPortrait from "./assets/TrainingDummy_Hero.png";
 
 const HERO_IMAGES: Record<string, string> = {
   Pyromancer: PyromancerPortrait,
   "Shadow Monk": ShadowMonkPortrait,
+  "Training Dummy": TrainingDummyPortrait,
 };
 
 export default function App() {
-  const [state, dispatch] = useReducer(
-    gameReducer,
-    undefined,
-    () => createInitialState(HEROES.Pyromancer, HEROES["Shadow Monk"])
+  const [state, dispatch] = useReducer(gameReducer, undefined, () =>
+    createInitialState(HEROES.Pyromancer, HEROES["Shadow Monk"])
   );
 
-  const [screen, setScreen] = useState<"intro" | "hero-select" | "game">("intro");
+  const [screen, setScreen] = useState<"intro" | "hero-select" | "game">(
+    "intro"
+  );
 
   const heroOptions: HeroOption[] = useMemo(
     () =>
@@ -57,9 +59,7 @@ export default function App() {
       />
     );
   } else {
-    content = (
-      <BattleScreen onBackToHeroSelect={handleOpenHeroSelect} />
-    );
+    content = <BattleScreen onBackToHeroSelect={handleOpenHeroSelect} />;
   }
 
   return (
