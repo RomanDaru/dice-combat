@@ -23,7 +23,12 @@ import { useGameFlow } from "../hooks/useTurnController";
 import { useActiveAbilities } from "../hooks/useActiveAbilities";
 import { useRollAnimator } from "../hooks/useRollAnimator";
 import { useLatest } from "../hooks/useLatest";
-import { bestAbility, detectCombos, rollDie } from "../game/combos";
+import {
+  bestAbility,
+  detectCombos,
+  rollDie,
+  selectedAbilityForHero,
+} from "../game/combos";
 import type {
   ActiveAbility,
   ActiveAbilityContext,
@@ -45,6 +50,8 @@ type PlayerDefenseState = {
 
 type ComputedData = {
   ability: OffensiveAbility | null;
+  suggestedAbility: OffensiveAbility | null;
+  selectedAttackCombo: Combo | null;
   readyForActing: ReturnType<typeof detectCombos>;
   readyForAI: ReturnType<typeof detectCombos>;
   isDefenseTurn: boolean;
@@ -68,6 +75,7 @@ type ControllerContext = {
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
   onRoll: () => void;
   onToggleHold: (index: number) => void;
+  onSelectAttackCombo: (combo: Combo | null) => void;
   onEndTurnNoAttack: () => void;
   handleReset: () => void;
   startInitialRoll: () => void;
@@ -99,6 +107,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   });
   const [playerDefenseState, setPlayerDefenseState] =
     useState<PlayerDefenseState | null>(null);
+  const [playerAttackSelection, setPlayerAttackSelection] =
+    useState<Combo | null>(null);
 
   const updateAttackChiSpend = useCallback(
     (value: number | ((prev: number) => number)) => {
@@ -237,16 +247,39 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     logAiNoCombo,
   } = useCombatLog();
 
-  const acting = turn === "you" ? players.you : players.ai;
-  const ability = useMemo(
-    () => bestAbility(acting.hero, dice),
-    [acting.hero, dice]
-  );
   const readyForActing = useMemo(() => detectCombos(dice), [dice]);
   const readyForAI = useMemo(
     () => detectCombos(aiPreview.dice),
     [aiPreview.dice]
   );
+  const suggestedAbility = useMemo(
+    () => bestAbility(players.you.hero, dice),
+    [players.you.hero, dice]
+  );
+  const playerSelectedAbility = useMemo(
+    () =>
+      selectedAbilityForHero(players.you.hero, dice, playerAttackSelection),
+    [dice, playerAttackSelection, players.you.hero]
+  );
+  const ability = useMemo(
+    () =>
+      turn === "you"
+        ? playerSelectedAbility ?? suggestedAbility
+        : suggestedAbility,
+    [playerSelectedAbility, suggestedAbility, turn]
+  );
+  useEffect(() => {
+    if (turn !== "you") {
+      setPlayerAttackSelection(null);
+      return;
+    }
+    if (
+      playerAttackSelection &&
+      !readyForActing[playerAttackSelection]
+    ) {
+      setPlayerAttackSelection(null);
+    }
+  }, [playerAttackSelection, readyForActing, turn]);
   const isDefenseTurn = !!pendingAttack && pendingAttack.defender === "you";
   const initialRoll = state.initialRoll;
   const phase = state.phase;
@@ -492,6 +525,14 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     [setHeld, turn]
   );
 
+  const onSelectAttackCombo = useCallback(
+    (combo: Combo | null) => {
+      if (turn !== "you" || statusActive || isDefenseTurn) return;
+      setPlayerAttackSelection(combo);
+    },
+    [isDefenseTurn, statusActive, turn]
+  );
+
   useEffect(() => {
     if (
       pendingStatusClear &&
@@ -578,6 +619,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const dataValue: ComputedData = useMemo(
     () => ({
       ability,
+      suggestedAbility,
+      selectedAttackCombo: playerAttackSelection,
       readyForActing,
       readyForAI,
       isDefenseTurn,
@@ -592,6 +635,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     }),
     [
       ability,
+      suggestedAbility,
+      playerAttackSelection,
       readyForActing,
       readyForAI,
       isDefenseTurn,
@@ -614,6 +659,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       popDamage,
       onRoll,
       onToggleHold,
+      onSelectAttackCombo,
       onEndTurnNoAttack,
       handleReset,
       startInitialRoll,
@@ -639,6 +685,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       onPerformActiveAbility,
       onRoll,
       onToggleHold,
+      onSelectAttackCombo,
       turnChiAvailable,
       consumeTurnChi,
       onUserDefenseRoll,

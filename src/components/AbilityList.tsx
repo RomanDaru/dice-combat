@@ -177,14 +177,22 @@ export default function AbilityList({ side }: AbilityListProps) {
     defenseRoll,
     defenseSelection,
     awaitingDefenseSelection,
+    selectedAttackCombo,
+    statusActive,
   } = useGameData();
-  const { onChooseDefenseOption } = useGameController();
+  const { onChooseDefenseOption, onSelectAttackCombo } = useGameController();
 
   const player = state?.players?.[side];
   if (!player) return null;
 
   const hero = player.hero;
   const showingDefenseBoard = side === "you" && isDefenseTurn;
+  const canSelectOffense =
+    side === "you" &&
+    state.turn === "you" &&
+    !isDefenseTurn &&
+    !statusActive &&
+    !state.rolling.some(Boolean);
 
   const offenseAbilities = useMemo(() => getOffensiveAbilities(hero), [hero]);
   const defenseAbilities = useMemo(() => getDefensiveAbilities(hero), [hero]);
@@ -232,9 +240,9 @@ export default function AbilityList({ side }: AbilityListProps) {
             })
           : (offenseAbilities as OffensiveAbility[]).map((ability) => {
               const ready = !!readyCombos[ability.combo];
-              // v útoku sa nekliká? Ak áno, doplň vlastnú logiku
-              const selected = false;
-              const canSelect = false;
+              const selected =
+                side === "you" && selectedAttackCombo === ability.combo;
+              const canSelect = side === "you" && canSelectOffense && ready;
               return (
                 <OffenseRow
                   key={ability.combo}
@@ -242,7 +250,10 @@ export default function AbilityList({ side }: AbilityListProps) {
                   ready={ready}
                   selected={selected}
                   canSelect={canSelect}
-                  onSelect={() => {}}
+                  onSelect={() => {
+                    if (!canSelect) return;
+                    onSelectAttackCombo(selected ? null : ability.combo);
+                  }}
                 />
               );
             })}

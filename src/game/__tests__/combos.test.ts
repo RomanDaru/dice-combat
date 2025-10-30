@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectCombos, bestAbility } from '../combos';
+import { detectCombos, bestAbility, selectedAbilityForHero } from '../combos';
 import { HEROES } from '../heroes';
 
 describe('detectCombos', () => {
@@ -37,6 +37,10 @@ describe('detectCombos', () => {
 
   it('detects three-of-a-kind', () => {
     expect(detectCombos([3, 3, 3, 4, 5])['3OAK']).toBe(true);
+  });
+
+  it('flags three-of-a-kind alongside full house', () => {
+    expect(detectCombos([2, 2, 2, 6, 6])['3OAK']).toBe(true);
   });
 
   it('detects double pair', () => {
@@ -87,3 +91,25 @@ describe('bestAbility', () => {
   });
 });
 
+describe('selectedAbilityForHero', () => {
+  const pyro = HEROES.Pyromancer;
+
+  it('returns the requested combo when the roll qualifies', () => {
+    const ability = selectedAbilityForHero(pyro, [2, 2, 2, 6, 6], 'FULL_HOUSE');
+    expect(ability?.combo).toBe('FULL_HOUSE');
+    expect(ability?.damage).toBe(8);
+  });
+
+  it('returns null when the roll no longer supports the combo', () => {
+    expect(selectedAbilityForHero(pyro, [1, 2, 3, 4, 6], '3OAK')).toBeNull();
+  });
+
+  it('allows selecting lower combo within a full house', () => {
+    const ability = selectedAbilityForHero(pyro, [2, 2, 2, 6, 6], '3OAK');
+    expect(ability?.combo).toBe('3OAK');
+  });
+
+  it('returns null when no selection provided', () => {
+    expect(selectedAbilityForHero(pyro, [2, 2, 2, 6, 6], null)).toBeNull();
+  });
+});

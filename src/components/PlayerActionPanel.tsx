@@ -31,6 +31,8 @@ export function PlayerActionPanel() {
     isDefenseTurn,
     showDcLogo,
     ability,
+    suggestedAbility,
+    selectedAttackCombo,
     defenseDieIndex,
     defenseRoll,
     defenseSelection,
@@ -149,12 +151,42 @@ export function PlayerActionPanel() {
       );
     }
 
-    if (ability) {
+    const abilityToShow = ability ?? suggestedAbility;
+    if (abilityToShow) {
+      const isSelected =
+        Boolean(
+          selectedAttackCombo &&
+            ability &&
+            ability.combo === selectedAttackCombo
+        ) && turn === "you";
+      const label = isSelected ? "Selected ability" : "Suggested ability";
+      const primary = isSelected ? ability : abilityToShow;
+      const primaryName =
+        primary?.displayName ?? primary?.label ?? primary?.combo;
+      const primaryDamage =
+        primary?.damage != null ? `${primary.damage} dmg` : null;
+
       return (
         <div className={styles.infoHighlight}>
-          <b>Best ability:</b>{" "}
-          {ability.displayName ?? ability.label ?? ability.combo} (
-          {ability.damage} dmg)
+          <div>
+            <b>{label}:</b>{" "}
+            {primaryName}
+            {primaryDamage ? ` (${primaryDamage})` : ""}
+          </div>
+          {isSelected &&
+            suggestedAbility &&
+            ability &&
+            suggestedAbility.combo !== ability.combo && (
+              <div className={styles.infoMuted}>
+                Suggested alternative:{" "}
+                {suggestedAbility.displayName ??
+                  suggestedAbility.label ??
+                  suggestedAbility.combo}
+                {suggestedAbility.damage != null
+                  ? ` (${suggestedAbility.damage} dmg)`
+                  : ""}
+              </div>
+            )}
         </div>
       );
     }
@@ -244,7 +276,17 @@ export function PlayerActionPanel() {
         ? "Select a defensive ability (or skip) and press Confirm Defense."
         : "Defense locked in. Waiting for resolution."
       : "Roll your defense dice to reveal available abilities."
-    : "Tip: Confirm attack becomes available after the first Roll.";
+    : turn !== "you"
+    ? "Waiting for the opponent to complete their turn."
+    : rollsLeft === 3
+    ? "Roll once to reveal available abilities."
+    : !ability
+    ? "No combos yet—roll again or pass the turn."
+    : selectedAttackCombo &&
+      ability &&
+      ability.combo === selectedAttackCombo
+    ? "Selected ability is ready. Press Confirm Attack when you're set."
+    : "Click an ability card to lock it in, or Confirm Attack to use the suggestion.";
   const showRollButton = !isDefenseTurn;
   const rollDisabled =
     turn !== "you" || statusActive || rollsLeft <= 0 || rolling.some(Boolean);
