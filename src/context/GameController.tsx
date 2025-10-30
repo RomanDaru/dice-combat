@@ -57,6 +57,7 @@ type ComputedData = {
   isDefenseTurn: boolean;
   statusActive: boolean;
   showDcLogo: boolean;
+  diceTrayVisible: boolean;
   defenseDieIndex: number;
   phase: Phase;
   initialRoll: InitialRollState;
@@ -76,6 +77,8 @@ type ControllerContext = {
   onRoll: () => void;
   onToggleHold: (index: number) => void;
   onSelectAttackCombo: (combo: Combo | null) => void;
+  openDiceTray: () => void;
+  closeDiceTray: () => void;
   onEndTurnNoAttack: () => void;
   handleReset: () => void;
   startInitialRoll: () => void;
@@ -109,6 +112,9 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     useState<PlayerDefenseState | null>(null);
   const [playerAttackSelection, setPlayerAttackSelection] =
     useState<Combo | null>(null);
+  const [diceTrayVisible, setDiceTrayVisible] = useState(false);
+  const openDiceTray = useCallback(() => setDiceTrayVisible(true), []);
+  const closeDiceTray = useCallback(() => setDiceTrayVisible(false), []);
 
   const updateAttackChiSpend = useCallback(
     (value: number | ((prev: number) => number)) => {
@@ -280,6 +286,11 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       setPlayerAttackSelection(null);
     }
   }, [playerAttackSelection, readyForActing, turn]);
+  useEffect(() => {
+    if (state.phase !== "roll" || turn !== "you") {
+      setDiceTrayVisible(false);
+    }
+  }, [state.phase, turn]);
   const isDefenseTurn = !!pendingAttack && pendingAttack.defender === "you";
   const initialRoll = state.initialRoll;
   const phase = state.phase;
@@ -511,9 +522,18 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     if (turn !== "you" || rollsLeft <= 0 || statusActive || isDefenseTurn) {
       return;
     }
+    openDiceTray();
     const mask = held.map((h) => !h);
     animatePlayerRoll(mask);
-  }, [animatePlayerRoll, held, isDefenseTurn, rollsLeft, statusActive, turn]);
+  }, [
+    animatePlayerRoll,
+    held,
+    isDefenseTurn,
+    openDiceTray,
+    rollsLeft,
+    statusActive,
+    turn,
+  ]);
 
   const onToggleHold = useCallback(
     (index: number) => {
@@ -576,6 +596,12 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   }, [state.phase]);
 
   useEffect(() => {
+    if (state.phase !== "roll" || turn !== "you") {
+      closeDiceTray();
+    }
+  }, [state.phase, closeDiceTray, turn]);
+
+  useEffect(() => {
     if (
       !initialStartRef.current &&
       state.phase === "upkeep" &&
@@ -626,6 +652,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       isDefenseTurn,
       statusActive,
       showDcLogo,
+      diceTrayVisible,
       defenseDieIndex: isDefenseTurn ? -1 : DEF_DIE_INDEX,
       phase,
       initialRoll,
@@ -642,6 +669,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       isDefenseTurn,
       statusActive,
       showDcLogo,
+      diceTrayVisible,
       phase,
       initialRoll,
       playerDefenseState,
@@ -660,6 +688,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       onRoll,
       onToggleHold,
       onSelectAttackCombo,
+      openDiceTray,
+      closeDiceTray,
       onEndTurnNoAttack,
       handleReset,
       startInitialRoll,
@@ -686,6 +716,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       onRoll,
       onToggleHold,
       onSelectAttackCombo,
+      openDiceTray,
+      closeDiceTray,
       turnChiAvailable,
       consumeTurnChi,
       onUserDefenseRoll,

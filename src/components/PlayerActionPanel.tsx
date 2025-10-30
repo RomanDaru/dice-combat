@@ -1,7 +1,6 @@
 import React from "react";
 import clsx from "clsx";
 import TurnProgress from "./TurnProgress";
-import DiceGrid from "./DiceGrid";
 import { useGame } from "../context/GameContext";
 import { useGameController, useGameData } from "../context/GameController";
 import styles from "./PlayerActionPanel.module.css";
@@ -10,7 +9,6 @@ export function PlayerActionPanel() {
   const { state } = useGame();
   const {
     onRoll,
-    onToggleHold,
     onConfirmAttack,
     onEndTurnNoAttack,
     onUserDefenseRoll,
@@ -25,26 +23,25 @@ export function PlayerActionPanel() {
     setAttackChiSpend,
     setDefenseChiSpend,
     turnChiAvailable,
+    openDiceTray,
+    closeDiceTray,
   } = useGameController();
   const {
     statusActive,
     isDefenseTurn,
-    showDcLogo,
     ability,
     suggestedAbility,
     selectedAttackCombo,
-    defenseDieIndex,
     defenseRoll,
     defenseSelection,
     awaitingDefenseSelection,
+    diceTrayVisible,
   } = useGameData();
 
   const {
     phase,
-    dice,
-    held,
-    rolling,
     rollsLeft,
+    rolling,
     turn,
     pendingAttack,
     pendingStatusClear,
@@ -68,8 +65,6 @@ export function PlayerActionPanel() {
   const aiDefenseBlock = aiDefense.defenseRoll;
   const aiDefenseSim =
     aiDefense.inProgress || !!aiDefenseDice || aiEvasiveRoll !== null;
-  const isDefensePhase =
-    isDefenseTurn || statusActive || phase === "defense";
   const incomingAttack = isDefenseTurn && pendingAttack ? pendingAttack : null;
   const incomingAbility = incomingAttack?.ability;
   const threatenedDamage = incomingAbility?.damage ?? null;
@@ -281,7 +276,7 @@ export function PlayerActionPanel() {
     : rollsLeft === 3
     ? "Roll once to reveal available abilities."
     : !ability
-    ? "No combos yet—roll again or pass the turn."
+    ? "No combos yet—open the dice tray and roll again or pass the turn."
     : selectedAttackCombo &&
       ability &&
       ability.combo === selectedAttackCombo
@@ -290,21 +285,12 @@ export function PlayerActionPanel() {
   const showRollButton = !isDefenseTurn;
   const rollDisabled =
     turn !== "you" || statusActive || rollsLeft <= 0 || rolling.some(Boolean);
+  const trayToggleDisabled =
+    turn !== "you" || statusActive || rolling.some(Boolean);
 
   return (
     <div className='row'>
       <TurnProgress phase={phase} />
-      <DiceGrid
-        dice={dice}
-        held={held}
-        rolling={rolling}
-        canInteract={canInteract}
-        onToggleHold={onToggleHold}
-        defIndex={defenseDieIndex}
-        showDcLogo={showDcLogo}
-        isDefensePhase={isDefensePhase}
-        statusActive={statusActive}
-      />
       <div className={styles.actionRow}>
         {showRollButton && (
           <button
@@ -314,6 +300,18 @@ export function PlayerActionPanel() {
             Roll ({rollsLeft})
           </button>
         )}
+        <button
+          className='btn'
+          onClick={() => {
+            if (diceTrayVisible) {
+              closeDiceTray();
+            } else {
+              openDiceTray();
+            }
+          }}
+          disabled={trayToggleDisabled}>
+          {diceTrayVisible ? "Hide Dice Tray" : "Open Dice Tray"}
+        </button>
         {canAdjustAttackChi && (
           <div className={styles.chiSpendControl}>
             <span className={styles.chiSpendLabel}>Chi for attack</span>
@@ -419,15 +417,14 @@ export function PlayerActionPanel() {
                 title={activeAbility.description ?? activeAbility.label}>
                 {activeAbility.label}
               </button>
-            ))}
+              ))}
           </div>
         )}
       </div>
 
+      <div className={styles.helperText}>{helperText}</div>
       {statusCard}
       {defenseIndicators}
-
-      <div className={styles.helperText}>{helperText}</div>
     </div>
   );
 }

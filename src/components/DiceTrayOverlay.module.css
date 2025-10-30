@@ -1,0 +1,56 @@
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 12, 25, 0.68);
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.tray {
+  pointer-events: auto;
+  width: min(520px, 90%);
+  padding: clamp(18px, 3vw, 28px);
+  border-radius: clamp(18px, 2vw, 24px);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(8, 11, 27, 0.9);
+  box-shadow: 0 28px 48px rgba(7, 11, 20, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2vw, 18px);
+  align-items: center;
+}
+
+.header {
+  font-size: clamp(16px, 2vw, 20px);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #e0f2fe;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.diceWrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.helper {
+  font-size: 12px;
+  color: rgba(226, 232, 240, 0.75);
+  text-align: center;
+}

@@ -15,6 +15,7 @@ import {
 import { useGame } from "../context/GameContext";
 import DefaultBoard from "../assets/Default_Board.png";
 import PyromancerBoard from "../assets/Pyromancer_Board.png";
+import { DiceTrayOverlay } from "../components/DiceTrayOverlay";
 import styles from "./BattleScreen.module.css";
 
 type BattleScreenProps = {
@@ -267,6 +268,7 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
         <div
           className={styles.boardWrap}
           style={{ backgroundImage: `url(${boardImage})` }}>
+          <DiceTrayOverlay />
           <div className={styles.boardContent}>
             <div className={styles.turnRow}>
               <TurnIndicator turn={turn} />
