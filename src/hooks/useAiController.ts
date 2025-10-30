@@ -18,6 +18,7 @@ type UseAiControllerArgs = {
   aiStepDelay: number;
   turnChiAvailable: Record<Side, number>;
   consumeTurnChi: (side: Side, amount: number) => void;
+  onAiNoCombo: () => void;
 };
 
 export function useAiController({
@@ -28,6 +29,7 @@ export function useAiController({
   aiStepDelay,
   turnChiAvailable,
   consumeTurnChi,
+  onAiNoCombo,
 }: UseAiControllerArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
@@ -140,12 +142,7 @@ export function useAiController({
           if (!ab) {
             setAiSimActive(false);
             logAiNoCombo(finalDice);
-            sendFlowEvent({
-              type: "TURN_END",
-              next: "you",
-              delayMs: 600,
-              prePhase: "end",
-            });
+            onAiNoCombo();
             return;
           }
           let chiAttackSpend = 0;

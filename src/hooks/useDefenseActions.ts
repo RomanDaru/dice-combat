@@ -20,9 +20,15 @@ import type {
   PlayerState,
   Side,
   Combo,
+  ActiveAbilityContext,
+  ActiveAbilityOutcome,
 } from "../game/types";
 import type { DefenseRollResult } from "../game/combat/types";
 import { ManualEvasiveLog } from "./useCombatLog";
+import {
+  resolvePassTurn,
+  type TurnEndResolution,
+} from "../game/flow/turnEnd";
 
 type PlayerDefenseState = {
   roll: DefenseRollResult;
@@ -66,6 +72,10 @@ type UseDefenseActionsArgs = {
   setPlayerDefenseState: Dispatch<
     SetStateAction<PlayerDefenseState | null>
   >;
+  applyTurnEndResolution: (
+    resolution: TurnEndResolution,
+    logOptions?: { blankLineBefore?: boolean; blankLineAfter?: boolean }
+  ) => void;
 };
 
 export function useDefenseActions({
@@ -93,10 +103,12 @@ export function useDefenseActions({
   aiStepDelay,
   playerDefenseState,
   setPlayerDefenseState,
+  applyTurnEndResolution,
 }: UseDefenseActionsArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
   const manualEvasiveRef = useRef<ManualEvasiveLog | null>(null);
+  const aiEvasiveRequestedRef = useRef(false);
 
   const setPhase = useCallback(
     (phase: GameState["phase"]) => {
@@ -105,7 +117,17 @@ export function useDefenseActions({
     [sendFlowEvent]
   );
 
-  const handleAiAbilityControllerAction = useCallback(() => {}, []);
+  const handleAiAbilityControllerAction = useCallback(
+    (
+      action: NonNullable<ActiveAbilityOutcome["controllerAction"]>,
+      _context: ActiveAbilityContext
+    ) => {
+      if (action.type === "USE_EVASIVE") {
+        aiEvasiveRequestedRef.current = true;
+      }
+    },
+    []
+  );
 
   const { abilities: aiActiveAbilities, performAbility: performAiActiveAbility } =
     useActiveAbilities({
@@ -223,6 +245,7 @@ export function useDefenseActions({
     if (!selectedAbility) {
       clearAttackChiSpend();
       logPlayerNoCombo(dice, you.hero.name);
+      applyTurnEndResolution(resolvePassTurn({ side: "you" }));
       return;
     }
 
@@ -278,7 +301,11 @@ export function useDefenseActions({
       let manualEvasive: ManualEvasiveLog | undefined;
       let aiShouldAttemptEvasive = false;
       if (aiEvasiveAbility) {
-        aiShouldAttemptEvasive = performAiActiveAbility(aiEvasiveAbility.id);
+        aiEvasiveRequestedRef.current = false;
+        const executed = performAiActiveAbility(aiEvasiveAbility.id);
+        if (executed && aiEvasiveRequestedRef.current) {
+          aiShouldAttemptEvasive = true;
+        }
       } else if (defender.tokens.evasive > 0) {
         aiShouldAttemptEvasive = true;
       }
@@ -301,6 +328,8 @@ export function useDefenseActions({
         };
         setPlayer("ai", defender);
       }
+
+      aiEvasiveRequestedRef.current = false;
 
       if (manualEvasive?.success) {
         const resolution = resolveAttack({

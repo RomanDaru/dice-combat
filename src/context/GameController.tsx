@@ -29,11 +29,14 @@ import type {
   ActiveAbilityContext,
   ActiveAbilityOutcome,
 } from "../game/types";
+import { resolvePassTurn, type TurnEndResolution } from "../game/flow/turnEnd";
 
 const DEF_DIE_INDEX = 2;
 const ROLL_ANIM_MS = 1300;
 const AI_ROLL_ANIM_MS = 900;
 const AI_STEP_MS = 2000;
+const AI_PASS_FOLLOW_UP_MS = 450;
+const AI_PASS_EVENT_DELAY_MS = 600;
 
 type PlayerDefenseState = {
   roll: DefenseRollResult;
@@ -85,6 +88,7 @@ const GameControllerContext = createContext<ControllerContext | null>(null);
 export const GameController = ({ children }: { children: ReactNode }) => {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
+  const aiPlayRef = useRef<() => void>(() => {});
   const [attackChiSpend, setAttackChiSpend] = useState(0);
   const [defenseChiSpend, setDefenseChiSpend] = useState(0);
   const [turnChiAvailable, setTurnChiAvailable] = useState<
@@ -347,6 +351,42 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     pushLog,
     popDamage,
   });
+
+  const applyTurnEndResolution = useCallback(
+    (
+      resolution: TurnEndResolution,
+      logOptions?: { blankLineBefore?: boolean; blankLineAfter?: boolean }
+    ) => {
+      if (resolution.logs.length) {
+        pushLog(resolution.logs, logOptions);
+      }
+      resolution.events.forEach((event) => {
+        const afterReady =
+          event.followUp === "trigger_ai_turn"
+            ? () => {
+                window.setTimeout(() => {
+                  const snapshot = latestState.current;
+                  const aiState = snapshot.players.ai;
+                  const youState = snapshot.players.you;
+                  if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
+                    return;
+                  aiPlayRef.current();
+                }, AI_PASS_FOLLOW_UP_MS);
+              }
+            : undefined;
+
+        sendFlowEvent({
+          type: event.type,
+          next: event.payload.next,
+          delayMs: event.payload.delayMs,
+          prePhase: event.payload.prePhase,
+          afterReady,
+        });
+      });
+    },
+    [latestState, pushLog, sendFlowEvent]
+  );
+
   const { performStatusClearRoll } = useStatusManager({
     pushLog,
     animateDefenseDie,
@@ -362,7 +402,19 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     aiStepDelay: AI_STEP_MS,
     turnChiAvailable,
     consumeTurnChi,
+    onAiNoCombo: () => {
+      applyTurnEndResolution(
+        resolvePassTurn({
+          side: "ai",
+          delayMs: AI_PASS_EVENT_DELAY_MS,
+        })
+      );
+    },
   });
+
+  useEffect(() => {
+    aiPlayRef.current = aiPlay;
+  }, [aiPlay]);
   const {
     onConfirmAttack,
     onUserDefenseRoll,
@@ -394,6 +446,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     consumeTurnChi,
     playerDefenseState,
     setPlayerDefenseState,
+    applyTurnEndResolution,
   });
 
   const handleAbilityControllerAction = useCallback(
@@ -454,22 +507,13 @@ export const GameController = ({ children }: { children: ReactNode }) => {
 
   const onEndTurnNoAttack = useCallback(() => {
     if (turn !== "you" || rolling.some(Boolean)) return;
-    sendFlowEvent({ type: "SET_PHASE", phase: "end" });
-    sendFlowEvent({
-      type: "TURN_END",
-      next: "ai",
-      delayMs: 0,
-      afterReady: () => {
-        window.setTimeout(() => {
-          const aiState = latestState.current.players.ai;
-          const youState = latestState.current.players.you;
-          if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
-            return;
-          aiPlay();
-        }, 450);
-      },
+    const heroName = players.you.hero.name;
+    const resolution = resolvePassTurn({
+      side: "you",
+      message: `[Turn] ${heroName} ends the turn.`,
     });
-  }, [aiPlay, rolling, sendFlowEvent, turn]);
+    applyTurnEndResolution(resolution, { blankLineBefore: true });
+  }, [applyTurnEndResolution, players.you.hero.name, rolling, turn]);
 
   const handleReset = useCallback(() => {
     const current = latestState.current;

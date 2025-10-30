@@ -3,6 +3,10 @@ import { applyAttack } from '../engine';
 import { getOffensiveAbilities } from '../abilityBoards';
 import { createInitialState } from '../state';
 import { HEROES } from '../heroes';
+import type {
+  DefenseRollResult,
+  ResolvedDefenseState,
+} from '../combat/types';
 
 const createPlayers = () => {
   const state = createInitialState(HEROES.Pyromancer, HEROES['Shadow Monk']);
@@ -12,15 +16,34 @@ const createPlayers = () => {
   };
 };
 
+const emptyDefenseRoll: DefenseRollResult = {
+  dice: [],
+  combos: [],
+  options: [],
+};
+
+const buildDefense = (
+  overrides: Partial<ResolvedDefenseState>,
+): ResolvedDefenseState => ({
+  selection: { roll: emptyDefenseRoll, selected: null },
+  block: 0,
+  reflect: 0,
+  heal: 0,
+  appliedTokens: {},
+  retaliatePercent: 0,
+  chiSpent: 0,
+  ...overrides,
+});
+
 describe('applyAttack', () => {
-  it('applies damage, burn, and respects manual defense', () => {
+  it('applies damage, burn, and respects block', () => {
     const { pyro, monk } = createPlayers();
     const inferno = getOffensiveAbilities(pyro.hero).find(
       (ab) => ab.combo === 'LARGE_STRAIGHT',
     )!;
 
     const [nextPyro, nextMonk, notes] = applyAttack(pyro, monk, inferno, {
-      manualDefense: { reduced: 2, reflect: 0, roll: 5, label: 'Monk' },
+      defense: buildDefense({ block: 2 }),
     });
 
     expect(nextMonk.hp).toBe(monk.hp - (inferno.damage - 2));
@@ -36,7 +59,7 @@ describe('applyAttack', () => {
     )!;
 
     const [nextMonk, nextPyro] = applyAttack(monk, pyro, chiStrike, {
-      manualDefense: { reduced: 3, reflect: 0, roll: 6, label: 'Pyro' },
+      defense: buildDefense({ block: 3 }),
     });
 
     expect(nextMonk.tokens.chi).toBe(1);
