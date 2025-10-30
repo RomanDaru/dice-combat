@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import clsx from "clsx";
 import { useGame } from "../context/GameContext";
 import { useGameData, useGameController } from "../context/GameController";
 import {
@@ -7,7 +8,8 @@ import {
 } from "../game/abilityBoards";
 import { getEffectDefinition } from "../game/effects";
 import type { Combo, DefensiveAbility, OffensiveAbility } from "../game/types";
-import { DefenseRow, OffenseRow } from "./AbilityRows";
+import { DefenseRow } from "./AbilityRows";
+import abilityStyles from "./AbilityIcons.module.css";
 
 type ApplyMap = {
   burn?: number;
@@ -26,13 +28,11 @@ function buildEffects(apply?: ApplyMap) {
     { key: "evasive" as const, fallbackName: "Evasive", fallbackIcon: "E" },
   ];
   const out: string[] = [];
-  for (const d of defs) {
-    const val = apply?.[d.key];
+  for (const def of defs) {
+    const val = apply?.[def.key];
     if (val) {
-      const def = getEffectDefinition(d.key);
-      out.push(
-        `${def?.icon ?? d.fallbackIcon} ${def?.name ?? d.fallbackName} +${val}`
-      );
+      const meta = getEffectDefinition(def.key);
+      out.push(`${meta?.icon ?? def.fallbackIcon} ${meta?.name ?? def.fallbackName} +${val}`);
     }
   }
   return out;
@@ -54,71 +54,93 @@ export function PlayerAbilityList() {
   const player = state.players.you;
   const hero = player.hero;
 
-  const showingDefenseBoard = isDefenseTurn;
   const offenseAbilities = useMemo(() => getOffensiveAbilities(hero), [hero]);
   const defenseAbilities = useMemo(() => getDefensiveAbilities(hero), [hero]);
 
   const readyCombos = useMemo<Partial<Record<Combo, boolean>>>(() => {
-    if (showingDefenseBoard) {
-      const m: Partial<Record<Combo, boolean>> = {};
-      defenseRoll?.options.forEach((o) => {
-        m[o.combo] = true;
+    if (isDefenseTurn) {
+      const map: Partial<Record<Combo, boolean>> = {};
+      defenseRoll?.options.forEach((option) => {
+        map[option.combo] = true;
       });
-      return m;
+      return map;
     }
     return { ...(readyForActing ?? {}) };
-  }, [showingDefenseBoard, defenseRoll, readyForActing]);
+  }, [defenseRoll, isDefenseTurn, readyForActing]);
 
-  const title = showingDefenseBoard
-    ? `Defensive Abilities (${hero.name})`
-    : `Your Abilities (${hero.name})`;
+  if (isDefenseTurn) {
+    return (
+      <div className='card'>
+        <div className='label'>{`Defensive Abilities (${hero.name})`}</div>
+        <div style={{ display: "grid", gap: 6 }}>
+          {(defenseAbilities as DefensiveAbility[]).map((ability) => {
+            const ready = !!readyCombos[ability.combo];
+            const selected = defenseSelection === ability.combo;
+            const canSelect = awaitingDefenseSelection && ready;
+            return (
+              <DefenseRow
+                key={ability.combo}
+                ability={ability}
+                ready={ready}
+                selected={selected}
+                canSelect={!!canSelect}
+                onSelect={() => onChooseDefenseOption(ability.combo)}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   const canSelectOffense =
-    state.turn === "you" &&
-    !isDefenseTurn &&
-    !statusActive &&
-    !state.rolling.some(Boolean);
+    state.turn === "you" && !statusActive && !state.rolling.some(Boolean);
 
   return (
-    <div className='card'>
-      <div className='label'>{title}</div>
+    <div className={abilityStyles.panel}>
+      <div className={abilityStyles.title}>{`Your Abilities (${hero.name})`}</div>
+      <div className={abilityStyles.grid}>
+        {(offenseAbilities as OffensiveAbility[]).map((ability) => {
+          const ready = !!readyCombos[ability.combo];
+          const selected = selectedAttackCombo === ability.combo;
+          const canSelect = canSelectOffense && ready;
+          const effectsText = formatEffects(buildEffects(ability.apply));
+          const abilityName =
+            ability.displayName ?? ability.label ?? ability.combo;
+          const iconLabel = abilityName
+            .split(/[^A-Za-z0-9]+/)
+            .filter(Boolean)
+            .map((part) => part[0]!.toUpperCase())
+            .join("")
+            .slice(0, 2);
 
-      <div style={{ display: "grid", gap: 6 }}>
-        {showingDefenseBoard
-          ? (defenseAbilities as DefensiveAbility[]).map((ability) => {
-              const ready = !!readyCombos[ability.combo];
-              const selected = defenseSelection === ability.combo;
-              const canSelect = awaitingDefenseSelection && ready;
-              return (
-                <DefenseRow
-                  key={ability.combo}
-                  ability={ability}
-                  ready={ready}
-                  selected={!!selected}
-                  canSelect={!!canSelect}
-                  onSelect={() => onChooseDefenseOption(ability.combo)}
-                />
-              );
-            })
-          : (offenseAbilities as OffensiveAbility[]).map((ability) => {
-              const ready = !!readyCombos[ability.combo];
-              const selected = selectedAttackCombo === ability.combo;
-              const canSelect = canSelectOffense && ready;
-              const effectsText = formatEffects(buildEffects(ability.apply));
-              return (
-                <OffenseRow
-                  key={ability.combo}
-                  ability={ability}
-                  ready={ready}
-                  selected={selected}
-                  canSelect={canSelect}
-                  effectsText={effectsText}
-                  onSelect={() =>
-                    onSelectAttackCombo(selected ? null : ability.combo)
-                  }
-                />
-              );
-            })}
+          const tooltipParts = [abilityName];
+          if (ability.damage != null) tooltipParts.push(`${ability.damage} dmg`);
+          if (effectsText) tooltipParts.push(effectsText);
+
+          return (
+            <button
+              key={ability.combo}
+              type='button'
+              className={clsx(
+                abilityStyles.iconButton,
+                ready && abilityStyles.ready,
+                selected && abilityStyles.selected,
+                ability.ultimate && abilityStyles.ultimate
+              )}
+              onClick={() =>
+                onSelectAttackCombo(selected ? null : ability.combo)
+              }
+              disabled={!canSelect}
+              title={tooltipParts.join(" - ")}
+            >
+              <span className={abilityStyles.iconLabel}>{iconLabel}</span>
+              {ability.ultimate && (
+                <span className={abilityStyles.smallBadge}>ULT</span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

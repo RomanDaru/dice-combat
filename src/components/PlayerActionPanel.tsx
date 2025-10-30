@@ -73,8 +73,7 @@ export function PlayerActionPanel() {
     incomingAttack && state.players[incomingAttack.attacker]
       ? state.players[incomingAttack.attacker].hero
       : null;
-  const canAdjustAttackChi =
-    canInteract && spendableChi > 0 && turn === "you";
+  const canAdjustAttackChi = canInteract && spendableChi > 0 && turn === "you";
   const canAdjustDefenseChi = isDefenseTurn && spendableChi > 0;
   const hasDefenseCombos = Boolean(defenseRoll && defenseRoll.options.length);
 
@@ -98,11 +97,11 @@ export function PlayerActionPanel() {
         <div className={styles.infoHighlight}>
           {pendingStatusClear?.roll !== undefined
             ? `Status roll: ${pendingStatusClear.roll} ${
-                pendingStatusClear.success
-                  ? "-> Burn cleared"
-                  : "-> Burn stays"
+                pendingStatusClear.success ? "-> Burn cleared" : "-> Burn stays"
               }`
-            : `Burn ${pendingStatusClear?.stacks ?? 0} stack(s) - roll 5-6 to clear.`}
+            : `Burn ${
+                pendingStatusClear?.stacks ?? 0
+              } stack(s) - roll 5-6 to clear.`}
         </div>
       );
     }
@@ -164,8 +163,7 @@ export function PlayerActionPanel() {
       return (
         <div className={styles.infoHighlight}>
           <div>
-            <b>{label}:</b>{" "}
-            {primaryName}
+            <b>{label}:</b> {primaryName}
             {primaryDamage ? ` (${primaryDamage})` : ""}
           </div>
           {isSelected &&
@@ -188,74 +186,67 @@ export function PlayerActionPanel() {
     return null;
   };
 
-  const statusCard =
-    statusActive &&
-    pendingStatusClear && (
-      <div className={clsx("card", styles.statusCard)}>
-        <div className={styles.statusHeader}>
-          <span className='badge indigo'>
-            {pendingStatusClear.side === "you"
-              ? you.hero.name
-              : ai.hero.name}
-          </span>
-          <span>Burn stacks: {pendingStatusClear.stacks}</span>
-        </div>
-        <div className={styles.statusActions}>
-          {pendingStatusClear.side === "you" ? (
-            <button
-              className='btn success'
-              onClick={() => performStatusClearRoll("you")}>
-              Status Roll
-            </button>
-          ) : (
-            <div className={styles.statusInfoColumn}>
-              <div className={styles.statusInfoText}>
-                {pendingStatusClear.rolling
-                  ? "AI is rolling..."
-                  : "AI will roll automatically."}
-              </div>
-            </div>
-          )}
-          {pendingStatusClear.roll !== undefined && (
-            <div className={styles.statusRollText}>
-              Roll: <b>{pendingStatusClear.roll}</b>{" "}
-              {pendingStatusClear.success
-                ? "-> Burn cleared"
-                : "-> Burn sticks"}
-            </div>
-          )}
-        </div>
+  const statusCard = statusActive && pendingStatusClear && (
+    <div className={clsx("card", styles.statusCard)}>
+      <div className={styles.statusHeader}>
+        <span className='badge indigo'>
+          {pendingStatusClear.side === "you" ? you.hero.name : ai.hero.name}
+        </span>
+        <span>Burn stacks: {pendingStatusClear.stacks}</span>
       </div>
-    );
+      <div className={styles.statusActions}>
+        {pendingStatusClear.side === "you" ? (
+          <button
+            className='btn success'
+            onClick={() => performStatusClearRoll("you")}>
+            Status Roll
+          </button>
+        ) : (
+          <div className={styles.statusInfoColumn}>
+            <div className={styles.statusInfoText}>
+              {pendingStatusClear.rolling
+                ? "AI is rolling..."
+                : "AI will roll automatically."}
+            </div>
+          </div>
+        )}
+        {pendingStatusClear.roll !== undefined && (
+          <div className={styles.statusRollText}>
+            Roll: <b>{pendingStatusClear.roll}</b>{" "}
+            {pendingStatusClear.success ? "-> Burn cleared" : "-> Burn sticks"}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
-  const defenseIndicators =
-    aiDefenseSim && (
-      <div className={styles.defenseIndicators}>
-        {aiEvasiveRoll !== null && (
-          <div className='badge indigo'>
-            AI Evasive Roll: <b>{aiEvasiveRoll}</b>
-          </div>
-        )}
-        {aiDefenseDice && (
-          <div className='badge indigo'>
-            AI Defense Roll: <b>{aiDefenseDice.join(" ")}</b>
-          </div>
-        )}
-        {aiDefenseCombo && (
-          <div className='badge indigo'>
-            AI Defense Combo: <b>{aiDefenseCombo}</b>
-          </div>
-        )}
-        {aiDefenseBlock !== null && (
-          <div className='badge indigo'>
-            AI Blocks: <b>{aiDefenseBlock}</b>
-          </div>
-        )}
-        {!aiDefenseDice && aiEvasiveRoll === null && (
-          <div>AI defense in progress...</div>
-        )}
-      </div>
-    );
+  const defenseIndicators = aiDefenseSim && (
+    <div className={styles.defenseIndicators}>
+      {aiEvasiveRoll !== null && (
+        <div className='badge indigo'>
+          AI Evasive Roll: <b>{aiEvasiveRoll}</b>
+        </div>
+      )}
+      {aiDefenseDice && (
+        <div className='badge indigo'>
+          AI Defense Roll: <b>{aiDefenseDice.join(" ")}</b>
+        </div>
+      )}
+      {aiDefenseCombo && (
+        <div className='badge indigo'>
+          AI Defense Combo: <b>{aiDefenseCombo}</b>
+        </div>
+      )}
+      {aiDefenseBlock !== null && (
+        <div className='badge indigo'>
+          AI Blocks: <b>{aiDefenseBlock}</b>
+        </div>
+      )}
+      {!aiDefenseDice && aiEvasiveRoll === null && (
+        <div>AI defense in progress...</div>
+      )}
+    </div>
+  );
 
   const helperText = statusActive
     ? `Upkeep burn check: roll 5-6 to clear Burn (${
@@ -277,9 +268,7 @@ export function PlayerActionPanel() {
     ? "Roll once to reveal available abilities."
     : !ability
     ? "No combos yet—open the dice tray and roll again or pass the turn."
-    : selectedAttackCombo &&
-      ability &&
-      ability.combo === selectedAttackCombo
+    : selectedAttackCombo && ability && ability.combo === selectedAttackCombo
     ? "Selected ability is ready. Press Confirm Attack when you're set."
     : "Click an ability card to lock it in, or Confirm Attack to use the suggestion.";
   const showRollButton = !isDefenseTurn;
@@ -417,7 +406,7 @@ export function PlayerActionPanel() {
                 title={activeAbility.description ?? activeAbility.label}>
                 {activeAbility.label}
               </button>
-              ))}
+            ))}
           </div>
         )}
       </div>
@@ -428,6 +417,3 @@ export function PlayerActionPanel() {
     </div>
   );
 }
-
-
-

@@ -1,13 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { PlayerAbilityList } from "../components/PlayerAbilityList";
 import { PlayerPanel } from "../components/PlayerPanel";
 import { PlayerActionPanel } from "../components/PlayerActionPanel";
-import { AiPreviewPanel } from "../components/AiPreviewPanel";
 import { CombatLogPanel } from "../components/CombatLogPanel";
-import { TipsPanel } from "../components/TipsPanel";
-import { TurnIndicator } from "../components/TurnIndicator";
 import { OpponentAbilityList } from "../components/OpponentAbilityList";
 import {
   GameController,
@@ -39,6 +35,77 @@ const phaseLabelFor = (phase: string): string => {
     default:
       return "Standoff";
   }
+};
+
+type SettingsMenuProps = {
+  onReset: () => void;
+  onHeroSelect: () => void;
+};
+
+const SettingsMenu = ({ onReset, onHeroSelect }: SettingsMenuProps) => {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointer = (event: MouseEvent | TouchEvent) => {
+      if (!menuRef.current) return;
+      if (menuRef.current.contains(event.target as Node)) return;
+      setOpen(false);
+    };
+
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointer);
+    document.addEventListener("touchstart", handlePointer);
+    document.addEventListener("keydown", handleKey);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointer);
+      document.removeEventListener("touchstart", handlePointer);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  const handleAction = (cb: () => void) => {
+    cb();
+    setOpen(false);
+  };
+
+  return (
+    <div className={styles.settingsMenu} ref={menuRef}>
+      <button
+        type='button'
+        className={styles.settingsButton}
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup='true'
+        aria-expanded={open}
+        aria-label='Toggle settings menu'>
+        {"\u2699"}
+      </button>
+      {open && (
+        <div className={styles.settingsDropdown}>
+          <button
+            type='button'
+            className={styles.settingsItem}
+            onClick={() => handleAction(onReset)}>
+            Reset Battle
+          </button>
+          <button
+            type='button'
+            className={styles.settingsItem}
+            onClick={() => handleAction(onHeroSelect)}>
+            Hero Select
+          </button>
+        </div>
+      )}
+    </div>
+  );
 };
 
 const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
@@ -184,67 +251,69 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
   if (phase === "standoff") {
     return (
       <div className={styles.root}>
-        <div className={styles.headerRow}>
-          <h1 className={styles.title}>
-            <span className={styles.brandBadge}>DC</span> Fantasy Dice Combat
-          </h1>
-          <div className={styles.headerActions}>
-            <button className='btn' onClick={handleReset}>
-              Reset Battle
-            </button>
-            <button className='btn' onClick={onBackToHeroSelect}>
-              Hero Select
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.standoffShell}>
-          <div className={styles.standoffCard}>
-            <p>{standoffMessage}</p>
-            <div className={styles.standoffDiceRow}>
-              <div className={styles.diceColumn}>
-                <span className='label'>You</span>
-                <div
-                  className={clsx(
-                    styles.diceFace,
-                    initialRoll.inProgress && styles.diceRolling
-                  )}>
-                  {displayRolls.you ?? "-"}
-                </div>
-              </div>
-              <div className={styles.diceColumn}>
-                <span className='label'>AI</span>
-                <div
-                  className={clsx(
-                    styles.diceFace,
-                    initialRoll.inProgress && styles.diceRolling
-                  )}>
-                  {displayRolls.ai ?? "-"}
+        <div className={styles.main}>
+          <div className={styles.boardColumn}>
+            <div
+              className={styles.boardWrap}
+              style={{ backgroundImage: `url(${boardImage})` }}>
+              <DiceTrayOverlay />
+              <div className={styles.boardContent}>
+                <div className={styles.standoffShell}>
+                  <div className={styles.standoffCard}>
+                    <p>{standoffMessage}</p>
+                    <div className={styles.standoffDiceRow}>
+                      <div className={styles.diceColumn}>
+                        <span className='label'>You</span>
+                        <div
+                          className={clsx(
+                            styles.diceFace,
+                            initialRoll.inProgress && styles.diceRolling
+                          )}>
+                          {displayRolls.you ?? "-"}
+                        </div>
+                      </div>
+                      <div className={styles.diceColumn}>
+                        <span className='label'>AI</span>
+                        <div
+                          className={clsx(
+                            styles.diceFace,
+                            initialRoll.inProgress && styles.diceRolling
+                          )}>
+                          {displayRolls.ai ?? "-"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={styles.standoffActions}>
+                      <button
+                        className='btn success'
+                        onClick={startInitialRoll}
+                        disabled={rollButtonDisabled}>
+                        {rollButtonLabel}
+                      </button>
+                      {showConfirm && (
+                        <button
+                          className='btn primary'
+                          onClick={confirmInitialRoll}>
+                          Start the battle
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            <div className={styles.standoffActions}>
-              <button
-                className='btn success'
-                onClick={startInitialRoll}
-                disabled={rollButtonDisabled}>
-                {rollButtonLabel}
-              </button>
-              {showConfirm && (
-                <button className='btn primary' onClick={confirmInitialRoll}>
-                  Start the battle
-                </button>
-              )}
-              <button className='btn' onClick={handleReset}>
-                Reset Battle
-              </button>
-            </div>
           </div>
-        </div>
-
-        <div className={styles.sidePanels}>
-          <CombatLogPanel />
-          <TipsPanel />
+          <aside className={styles.utilityColumn}>
+            <SettingsMenu
+              onReset={handleReset}
+              onHeroSelect={onBackToHeroSelect}
+            />
+            <div className={styles.utilityStack}>
+              <div className={clsx(styles.utilityItem, styles.utilityItemLog)}>
+                <CombatLogPanel />
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     );
@@ -252,93 +321,83 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
 
   return (
     <div className={styles.root}>
-      <div className={styles.headerRow}>
-        <h1 className={styles.title}>
-          <span className={styles.brandBadge}>DC</span> Fantasy Dice Combat
-        </h1>
-        <div className={styles.headerActions}>
-          <button className='btn' onClick={handleReset}>
-            Reset Battle
-          </button>
-          <button className='btn' onClick={onBackToHeroSelect}>
-            Hero Select
-          </button>
-        </div>
-      </div>
-
       <div className={styles.main}>
-        <div
-          className={styles.boardWrap}
-          style={{ backgroundImage: `url(${boardImage})` }}>
-          <DiceTrayOverlay />
-          <div className={styles.boardContent}>
-            <div className={styles.turnRow}>
-              <TurnIndicator turn={turn} />
-              <div className={styles.turnMeta}>
-                <span className={styles.roundPill}>Round {roundNumber}</span>
-                <span className={styles.phasePill}>
-                  {phaseLabelFor(phase)}
-                </span>
-                <span className={styles.turnSummary}>{turnSummary}</span>
-              </div>
+        <div className={styles.boardColumn}>
+          <div
+            className={styles.boardWrap}
+            style={{ backgroundImage: `url(${boardImage})` }}>
+            <DiceTrayOverlay />
+            <div className={styles.boardContent}>
+              {winnerName ? (
+                <div className={styles.winnerBoard}>
+                  <h2>Winner: {winnerName}</h2>
+                  <div className={styles.winnerActions}>
+                    <button className='btn success' onClick={handleReset}>
+                      Play Again
+                    </button>
+                    <button className='btn' onClick={onBackToHeroSelect}>
+                      Hero Select
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.boardSplit}>
+                  <div className={clsx(styles.boardHalf, styles.opponentHalf)}>
+                    <div className={styles.halfHeader}>
+                      <span>Opponent</span>
+                    </div>
+                    <div className={styles.halfBody}>
+                      <div className={styles.hudRow}>
+                        <PlayerPanel side='ai' />
+                      </div>
+                      <div className={styles.abilityCenter}>
+                        <OpponentAbilityList />
+                      </div>
+                    </div>
+                  </div>
+                  <div className={styles.turnRow}>
+                    <div className={styles.turnMeta}>
+                      <span className={styles.roundPill}>
+                        Round {roundNumber}
+                      </span>
+                      <span className={styles.phasePill}>
+                        {phaseLabelFor(phase)}
+                      </span>
+                      <span className={styles.turnSummary}>{turnSummary}</span>
+                      <div className={styles.controlsRow}>
+                        <PlayerActionPanel />
+                      </div>
+                    </div>
+                  </div>
+                  <div className={clsx(styles.boardHalf, styles.playerHalf)}>
+                    <div className={styles.halfHeader}>
+                      <span>You</span>
+                    </div>
+                    <div className={styles.halfBody}>
+                      <div className={styles.hudRow}>
+                        <PlayerPanel side='you' />
+                      </div>
+                      <div className={styles.abilityCenter}>
+                        <PlayerAbilityList />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-
-            {winnerName ? (
-              <div className={styles.winnerBoard}>
-                <h2>Winner: {winnerName}</h2>
-                <div className={styles.winnerActions}>
-                  <button className='btn success' onClick={handleReset}>
-                    Play Again
-                  </button>
-                  <button className='btn' onClick={onBackToHeroSelect}>
-                    Hero Select
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className={styles.boardSplit}>
-                <div className={clsx(styles.boardHalf, styles.opponentHalf)}>
-                  <div className={styles.halfHeader}>
-                    <span>Opponent</span>
-                  </div>
-                  <div className={styles.halfBody}>
-                    <div className={styles.hudRow}>
-                      <PlayerPanel side="ai" />
-                    </div>
-                    <div className={styles.abilityCenter}>
-                      <OpponentAbilityList />
-                    </div>
-                    <div className={styles.controlsRow}>
-                      <AiPreviewPanel />
-                    </div>
-                  </div>
-                </div>
-
-                <div className={clsx(styles.boardHalf, styles.playerHalf)}>
-                  <div className={styles.halfHeader}>
-                    <span>You</span>
-                  </div>
-                  <div className={styles.halfBody}>
-                    <div className={styles.hudRow}>
-                      <PlayerPanel side="you" />
-                    </div>
-                    <div className={styles.abilityCenter}>
-                      <PlayerAbilityList />
-                    </div>
-                    <div className={styles.controlsRow}>
-                      <PlayerActionPanel />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
-
-        <div className={styles.sidePanels}>
-          <CombatLogPanel />
-          <TipsPanel />
-        </div>
+        <aside className={styles.utilityColumn}>
+          <SettingsMenu
+            onReset={handleReset}
+            onHeroSelect={onBackToHeroSelect}
+          />
+          <div className={styles.utilityStack}>
+            <div className={clsx(styles.utilityItem, styles.utilityItemLog)}>
+              <CombatLogPanel />
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );
