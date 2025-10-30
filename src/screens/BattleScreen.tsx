@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { PlayerAbilityList } from "../components/PlayerAbilityList";
 import { PlayerPanel } from "../components/PlayerPanel";
@@ -7,6 +8,7 @@ import { AiPreviewPanel } from "../components/AiPreviewPanel";
 import { CombatLogPanel } from "../components/CombatLogPanel";
 import { TipsPanel } from "../components/TipsPanel";
 import { TurnIndicator } from "../components/TurnIndicator";
+import { OpponentAbilityList } from "../components/OpponentAbilityList";
 import {
   GameController,
   useGameController,
@@ -294,21 +296,39 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
                 </div>
               </div>
             ) : (
-              <div className={styles.boardGrid}>
-                <div className={styles.hudColumn}>
-                  <div className={clsx(styles.hudCard, styles.opponentCard)}>
-                    <PlayerPanel side="ai" />
+              <div className={styles.boardSplit}>
+                <div className={clsx(styles.boardHalf, styles.opponentHalf)}>
+                  <div className={styles.halfHeader}>
+                    <span>Opponent</span>
                   </div>
-                  <div className={styles.hudCard}>
-                    <AiPreviewPanel />
-                  </div>
-                  <div className={clsx(styles.hudCard, styles.playerCard)}>
-                    <PlayerPanel side="you" />
+                  <div className={styles.halfBody}>
+                    <div className={styles.hudRow}>
+                      <PlayerPanel side="ai" />
+                    </div>
+                    <div className={styles.abilityCenter}>
+                      <OpponentAbilityList />
+                    </div>
+                    <div className={styles.controlsRow}>
+                      <AiPreviewPanel />
+                    </div>
                   </div>
                 </div>
-                <div className={styles.uiColumn}>
-                  <PlayerActionPanel />
-                  <PlayerAbilityList />
+
+                <div className={clsx(styles.boardHalf, styles.playerHalf)}>
+                  <div className={styles.halfHeader}>
+                    <span>You</span>
+                  </div>
+                  <div className={styles.halfBody}>
+                    <div className={styles.hudRow}>
+                      <PlayerPanel side="you" />
+                    </div>
+                    <div className={styles.abilityCenter}>
+                      <PlayerAbilityList />
+                    </div>
+                    <div className={styles.controlsRow}>
+                      <PlayerActionPanel />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

@@ -1,5 +1,4 @@
 import React from "react";
-import { OpponentAbilityList } from "./OpponentAbilityList";
 import DiceGrid from "./DiceGrid";
 import { useGame } from "../context/GameContext";
 import styles from "./AiPreviewPanel.module.css";
@@ -10,24 +9,22 @@ export function AiPreviewPanel() {
 
   return (
     <div className={styles.preview}>
-      <OpponentAbilityList />
-      <div className={styles.dicePanel}>
-        <DiceGrid
-          dice={dice}
-          held={[]}
-          rolling={rolling}
-          canInteract={false}
-          onToggleHold={() => {}}
-          defIndex={-1}
-          showDcLogo={false}
-          isDefensePhase={false}
-          statusActive={false}
-          isAi={true}
-          aiSimHeld={held}
-        />
-        <div className={styles.infoText}>
-          AI abilities highlight according to this preview roll sequence.
-        </div>
+      <div className={styles.header}>AI Preview</div>
+      <DiceGrid
+        dice={dice}
+        held={[]}
+        rolling={rolling}
+        canInteract={false}
+        onToggleHold={() => {}}
+        defIndex={-1}
+        showDcLogo={false}
+        isDefensePhase={false}
+        statusActive={false}
+        isAi={true}
+        aiSimHeld={held}
+      />
+      <div className={styles.infoText}>
+        AI abilities highlight according to this preview roll sequence.
       </div>
     </div>
   );
