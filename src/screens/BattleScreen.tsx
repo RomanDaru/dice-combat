@@ -7,17 +7,35 @@ import { AiPreviewPanel } from "../components/AiPreviewPanel";
 import { CombatLogPanel } from "../components/CombatLogPanel";
 import { TipsPanel } from "../components/TipsPanel";
 import { TurnIndicator } from "../components/TurnIndicator";
-import Section from "../components/Section";
 import {
   GameController,
   useGameController,
   useGameData,
 } from "../context/GameController";
 import { useGame } from "../context/GameContext";
+import DefaultBoard from "../assets/Default_Board.png";
+import PyromancerBoard from "../assets/Pyromancer_Board.png";
 import styles from "./BattleScreen.module.css";
 
 type BattleScreenProps = {
   onBackToHeroSelect: () => void;
+};
+
+const phaseLabelFor = (phase: string): string => {
+  switch (phase) {
+    case "upkeep":
+      return "Upkeep Phase";
+    case "roll":
+      return "Roll Phase";
+    case "attack":
+      return "Attack Phase";
+    case "defense":
+      return "Defense Phase";
+    case "end":
+      return "End Phase";
+    default:
+      return "Standoff";
+  }
 };
 
 const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
@@ -25,6 +43,27 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
   const { handleReset, startInitialRoll, confirmInitialRoll } =
     useGameController();
   const { phase, initialRoll } = useGameData();
+  const { players, turn, round } = state;
+  const you = players.you;
+  const ai = players.ai;
+  const roundNumber = round <= 0 ? 1 : round;
+  const turnSummary =
+    turn === "you" ? `${you.hero.name} to act` : `${ai.hero.name} to act`;
+  const winnerSide =
+    you.hp <= 0 && ai.hp <= 0
+      ? "draw"
+      : you.hp <= 0
+      ? ("ai" as const)
+      : ai.hp <= 0
+      ? ("you" as const)
+      : null;
+  const winnerName =
+    winnerSide === "you"
+      ? you.hero.name
+      : winnerSide === "ai"
+      ? ai.hero.name
+      : null;
+
   const [displayRolls, setDisplayRolls] = useState<{
     you: number | null;
     ai: number | null;
@@ -96,20 +135,20 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
 
   const standoffMessage = useMemo(() => {
     if (initialRoll.inProgress) {
-      return "Hádzanie o iniciatívu prebieha...";
+      return "Rolling for initiative...";
     }
     if (initialRoll.awaitingConfirmation && initialRoll.winner) {
       return initialRoll.winner === "you"
-        ? "Vyhrávaš iniciatívu – začínaš ty."
-        : "AI získala iniciatívu – priprav sa na obranu.";
+        ? "You won the initiative. Confirm to begin the fight."
+        : "The AI won the initiative. Brace for defense.";
     }
     if (initialRoll.tie) {
-      return "Remíza! Hodíte si ešte raz.";
+      return "It's a tie! Roll again.";
     }
     if (initialRoll.you !== null && initialRoll.ai !== null) {
-      return `Výsledok: Ty ${initialRoll.you} vs AI ${initialRoll.ai}.`;
+      return `Result: You ${initialRoll.you} vs AI ${initialRoll.ai}.`;
     }
-    return "Hoď kockou o iniciatívu. Vyšší hod začne bitku.";
+    return "Roll to see who starts.";
   }, [
     initialRoll.ai,
     initialRoll.awaitingConfirmation,
@@ -124,134 +163,160 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
   const rollButtonLabel = initialRoll.inProgress
     ? "Rolling..."
     : initialRoll.tie
-    ? "Hoď znova"
-    : "Hoď o iniciatívu";
+    ? "Roll again"
+    : "Roll initiative";
   const showConfirm =
     !initialRoll.inProgress &&
     initialRoll.awaitingConfirmation &&
     initialRoll.winner !== null;
 
-  const { players, turn } = state;
-  const you = players.you;
-  const ai = players.ai;
-  const winner = you.hp <= 0 ? ai.hero.id : ai.hp <= 0 ? you.hero.id : null;
+  const boardImage = useMemo(() => {
+    const heroId = players.you?.hero?.id;
+    if (heroId === "Pyromancer") {
+      return PyromancerBoard;
+    }
+    return DefaultBoard;
+  }, [players.you?.hero?.id]);
 
   if (phase === "standoff") {
-    const { inProgress, you: youRoll, ai: aiRoll, tie } = initialRoll;
     return (
-      <div className='container'>
-        <div className='row'>
-          <div className='row'>
-            <div className={styles.headerRow}>
-              <h1 className={styles.title}>
-                <span className={styles.brandBadge}>DC</span>{" "}
-                Fantasy Dice Combat
-              </h1>
-              <button className='btn' onClick={onBackToHeroSelect}>
-                Back to Hero Select
-              </button>
-            </div>
-            <Section title='Roll for Initiative'>
-              <div className={styles.standoffLayout}>
-                <p>{standoffMessage}</p>
-                <div className={styles.standoffDiceRow}>
-                  <div className={styles.diceColumn}>
-                    <span className='label'>Ty</span>
-                    <div
-                      className={clsx(
-                        styles.diceFace,
-                        initialRoll.inProgress && styles.diceRolling
-                      )}>
-                      {displayRolls.you ?? "-"}
-                    </div>
-                  </div>
-                  <div className={styles.diceColumn}>
-                    <span className='label'>AI</span>
-                    <div
-                      className={clsx(
-                        styles.diceFace,
-                        initialRoll.inProgress && styles.diceRolling
-                      )}>
-                      {displayRolls.ai ?? "-"}
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.standoffActions}>
-                  <button
-                    className='btn success'
-                    onClick={startInitialRoll}
-                    disabled={rollButtonDisabled}>
-                    {rollButtonLabel}
-                  </button>
-                  {showConfirm && (
-                    <button className='btn primary' onClick={confirmInitialRoll}>
-                      Začať bitku
-                    </button>
-                  )}
-                  <button className='btn' onClick={handleReset}>
-                    Reset Battle
-                  </button>
+      <div className={styles.root}>
+        <div className={styles.headerRow}>
+          <h1 className={styles.title}>
+            <span className={styles.brandBadge}>DC</span> Fantasy Dice Combat
+          </h1>
+          <div className={styles.headerActions}>
+            <button className='btn' onClick={handleReset}>
+              Reset Battle
+            </button>
+            <button className='btn' onClick={onBackToHeroSelect}>
+              Hero Select
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.standoffShell}>
+          <div className={styles.standoffCard}>
+            <p>{standoffMessage}</p>
+            <div className={styles.standoffDiceRow}>
+              <div className={styles.diceColumn}>
+                <span className='label'>You</span>
+                <div
+                  className={clsx(
+                    styles.diceFace,
+                    initialRoll.inProgress && styles.diceRolling
+                  )}>
+                  {displayRolls.you ?? "-"}
                 </div>
               </div>
-            </Section>
+              <div className={styles.diceColumn}>
+                <span className='label'>AI</span>
+                <div
+                  className={clsx(
+                    styles.diceFace,
+                    initialRoll.inProgress && styles.diceRolling
+                  )}>
+                  {displayRolls.ai ?? "-"}
+                </div>
+              </div>
+            </div>
+            <div className={styles.standoffActions}>
+              <button
+                className='btn success'
+                onClick={startInitialRoll}
+                disabled={rollButtonDisabled}>
+                {rollButtonLabel}
+              </button>
+              {showConfirm && (
+                <button className='btn primary' onClick={confirmInitialRoll}>
+                  Start the battle
+                </button>
+              )}
+              <button className='btn' onClick={handleReset}>
+                Reset Battle
+              </button>
+            </div>
           </div>
+        </div>
+
+        <div className={styles.sidePanels}>
+          <CombatLogPanel />
+          <TipsPanel />
         </div>
       </div>
     );
   }
 
   return (
-    <div className='container'>
-      <div className='row'>
-        <div className='row'>
-          <div className={styles.headerRow}>
-            <h1 className={styles.title}>
-              <span className={styles.brandBadge}>
-                DC
-              </span>{" "}
-              Fantasy Dice Combat
-            </h1>
-            <button className='btn' onClick={handleReset}>
-              Reset
-            </button>
-          </div>
+    <div className={styles.root}>
+      <div className={styles.headerRow}>
+        <h1 className={styles.title}>
+          <span className={styles.brandBadge}>DC</span> Fantasy Dice Combat
+        </h1>
+        <div className={styles.headerActions}>
+          <button className='btn' onClick={handleReset}>
+            Reset Battle
+          </button>
+          <button className='btn' onClick={onBackToHeroSelect}>
+            Hero Select
+          </button>
+        </div>
+      </div>
 
-          <div className='row grid-2'>
-            <PlayerPanel side="you" />
-            <PlayerPanel side="ai" />
-          </div>
+      <div className={styles.main}>
+        <div
+          className={styles.boardWrap}
+          style={{ backgroundImage: `url(${boardImage})` }}>
+          <div className={styles.boardContent}>
+            <div className={styles.turnRow}>
+              <TurnIndicator turn={turn} />
+              <div className={styles.turnMeta}>
+                <span className={styles.roundPill}>Round {roundNumber}</span>
+                <span className={styles.phasePill}>
+                  {phaseLabelFor(phase)}
+                </span>
+                <span className={styles.turnSummary}>{turnSummary}</span>
+              </div>
+            </div>
 
-          <Section title={`Kolo: ${turn === "you" ? "Ty to" : "AI hraje"}`}>
-            {winner ? (
-              <div className={styles.winnerMessage}>
-                Vitaz: <b>{winner}</b>
+            {winnerName ? (
+              <div className={styles.winnerBoard}>
+                <h2>Winner: {winnerName}</h2>
                 <div className={styles.winnerActions}>
                   <button className='btn success' onClick={handleReset}>
                     Play Again
                   </button>
                   <button className='btn' onClick={onBackToHeroSelect}>
-                    Back to Hero Select
+                    Hero Select
                   </button>
                 </div>
               </div>
             ) : (
-              <div className='row'>
-                <TurnIndicator turn={turn} />
-
-                <div className='row grid-2'>
-                  <PlayerAbilityList />
-
-                  <PlayerActionPanel />
+              <div className={styles.boardGrid}>
+                <div className={styles.hudColumn}>
+                  <div className={clsx(styles.hudCard, styles.opponentCard)}>
+                    <PlayerPanel side="ai" />
+                  </div>
+                  <div className={styles.hudCard}>
+                    <AiPreviewPanel />
+                  </div>
+                  <div className={clsx(styles.hudCard, styles.playerCard)}>
+                    <PlayerPanel side="you" />
+                  </div>
                 </div>
-
-                <AiPreviewPanel />
+                <div className={styles.uiColumn}>
+                  <PlayerActionPanel />
+                  <PlayerAbilityList />
+                </div>
               </div>
             )}
-          </Section>
+          </div>
         </div>
 
-        <CombatLogPanel />
-        <TipsPanel />
+        <div className={styles.sidePanels}>
+          <CombatLogPanel />
+          <TipsPanel />
+        </div>
       </div>
     </div>
   );

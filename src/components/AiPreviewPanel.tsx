@@ -9,9 +9,9 @@ export function AiPreviewPanel() {
   const { dice, rolling, held } = state.aiPreview;
 
   return (
-    <div className='row grid-2'>
+    <div className={styles.preview}>
       <OpponentAbilityList />
-      <div className='row'>
+      <div className={styles.dicePanel}>
         <DiceGrid
           dice={dice}
           held={[]}
