@@ -1,5 +1,5 @@
 import React from "react";
-import AbilityList from "./AbilityList";
+import { OpponentAbilityList } from "./OpponentAbilityList";
 import DiceGrid from "./DiceGrid";
 import { useGame } from "../context/GameContext";
 import styles from "./AiPreviewPanel.module.css";
@@ -10,7 +10,7 @@ export function AiPreviewPanel() {
 
   return (
     <div className='row grid-2'>
-      <AbilityList side="ai" />
+      <OpponentAbilityList />
       <div className='row'>
         <DiceGrid
           dice={dice}

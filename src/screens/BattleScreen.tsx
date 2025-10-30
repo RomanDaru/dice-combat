@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import AbilityList from "../components/AbilityList";
+import { PlayerAbilityList } from "../components/PlayerAbilityList";
 import { PlayerPanel } from "../components/PlayerPanel";
 import { PlayerActionPanel } from "../components/PlayerActionPanel";
 import { AiPreviewPanel } from "../components/AiPreviewPanel";
@@ -239,7 +239,7 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
                 <TurnIndicator turn={turn} />
 
                 <div className='row grid-2'>
-                  <AbilityList side="you" />
+                  <PlayerAbilityList />
 
                   <PlayerActionPanel />
                 </div>
