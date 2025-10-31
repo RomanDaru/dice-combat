@@ -16,6 +16,7 @@ export function PlayerPanel({ side }: PlayerPanelProps) {
   const player = state.players[side];
   const shake = state.fx.shake[side];
   const floatDamage = state.fx.floatDamage[side];
+  const impactActive = Boolean(floatDamage) && !shake;
   const active = state.turn === side;
   const title =
     side === "you"
@@ -25,7 +26,11 @@ export function PlayerPanel({ side }: PlayerPanelProps) {
   return (
     <Section title={title} active={active}>
       <div
-        className={clsx(styles.panelContainer, shake && "shake-card")}>
+        className={clsx(
+          styles.panelContainer,
+          shake && "shake-card",
+          impactActive && styles.impactPop
+        )}>
         <div className='row'>
           <HPBar hp={player.hp} max={player.hero.maxHp} />
           <div className={styles.statusRow}>

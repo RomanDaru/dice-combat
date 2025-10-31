@@ -36,6 +36,7 @@ export function PlayerActionPanel() {
     defenseSelection,
     awaitingDefenseSelection,
     diceTrayVisible,
+    impactLocked,
   } = useGameData();
 
   const {
@@ -58,7 +59,8 @@ export function PlayerActionPanel() {
   const attackChiValue = Math.max(0, Math.min(attackChiSpend, spendableChi));
   const defenseChiValue = Math.max(0, Math.min(defenseChiSpend, spendableChi));
 
-  const canInteract = turn === "you" && !isDefenseTurn && !statusActive;
+  const canInteract =
+    turn === "you" && !isDefenseTurn && !statusActive && !impactLocked;
   const aiEvasiveRoll = aiDefense.evasiveRoll;
   const aiDefenseDice = aiDefense.defenseDice;
   const aiDefenseCombo = aiDefense.defenseCombo;
@@ -74,7 +76,8 @@ export function PlayerActionPanel() {
       ? state.players[incomingAttack.attacker].hero
       : null;
   const canAdjustAttackChi = canInteract && spendableChi > 0 && turn === "you";
-  const canAdjustDefenseChi = isDefenseTurn && spendableChi > 0;
+  const canAdjustDefenseChi =
+    isDefenseTurn && spendableChi > 0 && !impactLocked;
   const hasDefenseCombos = Boolean(defenseRoll && defenseRoll.options.length);
   const { pushLog } = useCombatLog();
   const lastThreatLog = useRef<string | null>(null);
@@ -135,7 +138,8 @@ export function PlayerActionPanel() {
         {pendingStatusClear.side === "you" ? (
           <button
             className='btn success'
-            onClick={() => performStatusClearRoll("you")}>
+            onClick={() => performStatusClearRoll("you")}
+            disabled={impactLocked}>
             Status Roll
           </button>
         ) : (
@@ -187,13 +191,25 @@ export function PlayerActionPanel() {
 
   const showRollButton = !isDefenseTurn;
   const rollDisabled =
-    turn !== "you" || statusActive || rollsLeft <= 0 || rolling.some(Boolean);
+    turn !== "you" ||
+    statusActive ||
+    rollsLeft <= 0 ||
+    rolling.some(Boolean) ||
+    impactLocked;
   const trayToggleDisabled =
-    turn !== "you" || statusActive || rolling.some(Boolean);
+    turn !== "you" ||
+    statusActive ||
+    rolling.some(Boolean) ||
+    impactLocked;
+
+  const actionRowClass = clsx(
+    styles.actionRow,
+    impactLocked && styles.actionRowLocked
+  );
 
   return (
     <div className={styles.panel}>
-      <div className={styles.actionRow}>
+      <div className={actionRowClass}>
         {showRollButton && (
           <button
             className='btn primary'
@@ -224,7 +240,7 @@ export function PlayerActionPanel() {
                 type='button'
                 className={styles.chiStepperBtn}
                 onClick={() => adjustAttackChi(-1)}
-                disabled={attackChiValue <= 0}>
+                disabled={attackChiValue <= 0 || impactLocked}>
                 -
               </button>
               <span className={styles.chiValue}>{attackChiValue}</span>
@@ -232,7 +248,7 @@ export function PlayerActionPanel() {
                 type='button'
                 className={styles.chiStepperBtn}
                 onClick={() => adjustAttackChi(1)}
-                disabled={attackChiValue >= spendableChi}>
+                disabled={attackChiValue >= spendableChi || impactLocked}>
                 +
               </button>
               <span className={styles.chiMax}>/ {spendableChi}</span>
@@ -245,7 +261,7 @@ export function PlayerActionPanel() {
               <button
                 className='btn success'
                 onClick={onUserDefenseRoll}
-                disabled={Boolean(defenseRoll)}>
+                disabled={Boolean(defenseRoll) || impactLocked}>
                 {defenseRoll ? "Defense Rolled" : "Defense Roll"}
               </button>
               {defenseRoll && (
@@ -253,14 +269,15 @@ export function PlayerActionPanel() {
                   {hasDefenseCombos && (
                     <button
                       className='btn'
-                      onClick={() => onChooseDefenseOption(null)}>
+                      onClick={() => onChooseDefenseOption(null)}
+                      disabled={impactLocked}>
                       Skip ability
                     </button>
                   )}
                   <button
                     className='btn success'
                     onClick={onConfirmDefense}
-                    disabled={!awaitingDefenseSelection}>
+                    disabled={!awaitingDefenseSelection || impactLocked}>
                     Confirm Defense
                   </button>
                 </>
@@ -271,7 +288,7 @@ export function PlayerActionPanel() {
               <button
                 className='btn success'
                 onClick={onConfirmAttack}
-                disabled={turn !== "you" || rollsLeft === 3}
+                disabled={turn !== "you" || rollsLeft === 3 || impactLocked}
                 title={
                   rollsLeft === 3
                     ? "Roll at least once before attacking"
@@ -282,7 +299,7 @@ export function PlayerActionPanel() {
               <button
                 className='btn'
                 onClick={onEndTurnNoAttack}
-                disabled={turn !== "you"}>
+                disabled={turn !== "you" || impactLocked}>
                 Pass Turn
               </button>
             </>
@@ -295,7 +312,7 @@ export function PlayerActionPanel() {
                 type='button'
                 className={styles.chiStepperBtn}
                 onClick={() => adjustDefenseChi(-1)}
-                disabled={defenseChiValue <= 0}>
+                disabled={defenseChiValue <= 0 || impactLocked}>
                 -
               </button>
               <span className={styles.chiValue}>{defenseChiValue}</span>
@@ -303,7 +320,7 @@ export function PlayerActionPanel() {
                 type='button'
                 className={styles.chiStepperBtn}
                 onClick={() => adjustDefenseChi(1)}
-                disabled={defenseChiValue >= spendableChi}>
+                disabled={defenseChiValue >= spendableChi || impactLocked}>
                 +
               </button>
               <span className={styles.chiMax}>/ {spendableChi}</span>
@@ -317,6 +334,7 @@ export function PlayerActionPanel() {
                 key={activeAbility.id}
                 className='btn'
                 onClick={() => onPerformActiveAbility(activeAbility.id)}
+                disabled={impactLocked}
                 title={activeAbility.description ?? activeAbility.label}>
                 {activeAbility.label}
               </button>

@@ -69,6 +69,12 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
+  transition: opacity 0.15s ease;
+}
+
+.actionRowLocked {
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 .activeAbilityRow {
@@ -133,3 +139,4 @@
   font-size: 12px;
   color: #bae6fd;
 }
+

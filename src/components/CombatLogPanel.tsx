@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
+import clsx from "clsx";
 import Section from "./Section";
 import { useGame } from "../context/GameContext";
 import styles from "./CombatLogPanel.module.css";
@@ -62,6 +63,31 @@ const isRoundHeader = (text: string) => /^--- Kolo \d+ ---$/.test(text.trim());
 export function CombatLogPanel() {
   const { state } = useGame();
   const { log } = state;
+  const [highlightIndex, setHighlightIndex] = useState<number | null>(null);
+  const highlightTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!log.length) return;
+    const latestIdx = log.length - 1;
+    const latestText = log[latestIdx]?.t?.trim();
+    if (!latestText) return;
+    setHighlightIndex(latestIdx);
+    if (highlightTimerRef.current !== null) {
+      window.clearTimeout(highlightTimerRef.current);
+    }
+    highlightTimerRef.current = window.setTimeout(() => {
+      setHighlightIndex(null);
+      highlightTimerRef.current = null;
+    }, 1100);
+  }, [log]);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current !== null) {
+        window.clearTimeout(highlightTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <Section title='Combat Log'>
@@ -76,9 +102,12 @@ export function CombatLogPanel() {
 
           const lines = text.split("\n");
           const header = isRoundHeader(trimmed);
-          const entryClass = header
-            ? `${styles.entry} ${styles.roundHeader}`
-            : styles.entry;
+          const highlight = !header && idx === highlightIndex;
+          const entryClass = clsx(
+            styles.entry,
+            header && styles.roundHeader,
+            highlight && styles.entryHighlight
+          );
 
           return (
             <div key={idx} className={entryClass}>

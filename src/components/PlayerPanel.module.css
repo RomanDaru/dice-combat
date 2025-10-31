@@ -16,3 +16,14 @@
   align-items: center;
   justify-content: center;
 }
+
+.impactPop {
+  animation: player-impact-pop 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .impactPop {
+    animation: none;
+  }
+}
+

@@ -66,6 +66,7 @@ type ComputedData = {
   defenseRoll: DefenseRollResult | null;
   defenseSelection: Combo | null;
   awaitingDefenseSelection: boolean;
+  impactLocked: boolean;
 };
 
 type ControllerContext = {
@@ -128,6 +129,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const [diceTrayVisible, setDiceTrayVisible] = useState(false);
   const openDiceTray = useCallback(() => setDiceTrayVisible(true), []);
   const closeDiceTray = useCallback(() => setDiceTrayVisible(false), []);
+  const [impactLocked, setImpactLocked] = useState(false);
+  const impactTimerRef = useRef<number | null>(null);
 
   const updateAttackChiSpend = useCallback(
     (value: number | ((prev: number) => number)) => {
@@ -170,6 +173,33 @@ export const GameController = ({ children }: { children: ReactNode }) => {
 
   const clearAttackChiSpend = useCallback(() => setAttackChiSpend(0), []);
   const clearDefenseChiSpend = useCallback(() => setDefenseChiSpend(0), []);
+
+  const triggerImpactLock = useCallback((kind: "hit" | "reflect") => {
+    if (impactTimerRef.current !== null) {
+      window.clearTimeout(impactTimerRef.current);
+    }
+    setImpactLocked(true);
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+      try {
+        navigator.vibrate(kind === "hit" ? 80 : 50);
+      } catch {
+        // ignore vibration errors
+      }
+    }
+    impactTimerRef.current = window.setTimeout(() => {
+      setImpactLocked(false);
+      impactTimerRef.current = null;
+    }, 180);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (impactTimerRef.current !== null) {
+        window.clearTimeout(impactTimerRef.current);
+      }
+    },
+    []
+  );
 
   const {
     players,
@@ -250,13 +280,16 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     (side: Side, amount: number, kind: "hit" | "reflect" = "hit") => {
       const payload = { val: amount, kind } as const;
       setFloatDamage(side, payload);
+      if (amount > 0) {
+        triggerImpactLock(kind);
+      }
       if (kind === "hit") {
         setShake(side, true);
         window.setTimeout(() => setShake(side, false), 450);
       }
       window.setTimeout(() => setFloatDamage(side, null), 1300);
     },
-    [setFloatDamage, setShake]
+    [setFloatDamage, setShake, triggerImpactLock]
   );
 
   const {
@@ -694,6 +727,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       defenseRoll: playerDefenseState?.roll ?? null,
       defenseSelection: playerDefenseState?.selectedCombo ?? null,
       awaitingDefenseSelection: !!playerDefenseState,
+      impactLocked,
     }),
     [
       ability,
@@ -708,6 +742,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       phase,
       initialRoll,
       playerDefenseState,
+      impactLocked,
     ]
   );
 
