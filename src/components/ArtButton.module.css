@@ -1,0 +1,59 @@
+.btn {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #111827;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  border: none;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.btn:not(:disabled):active {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+.large {
+  width: 250px;
+  height: 80px;
+  font-size: 18px;
+}
+
+.medium {
+  width: 200px;
+  height: 60px;
+  font-size: 16px;
+}
+
+.square {
+  width: 96px;
+  height: 96px;
+  font-size: 14px;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  padding: 0 16px;
+  text-align: center;
+  line-height: 1.1;
+}

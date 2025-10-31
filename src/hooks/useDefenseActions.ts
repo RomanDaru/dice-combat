@@ -342,10 +342,13 @@ export function useDefenseActions({
 
       const runDefenseRoll = (
         defenderState: PlayerState,
-        manualEvasive?: ManualEvasiveLog
+        manualEvasive?: ManualEvasiveLog,
+        { showTray = false }: { showTray?: boolean } = {}
       ) => {
         setPhase("defense");
-        openDiceTray();
+        if (showTray) {
+          openDiceTray();
+        }
         animateDefenseRoll((rolledDice) => {
           const defenseRollResult = evaluateDefenseRoll(
             defenderState.hero,
@@ -399,7 +402,6 @@ export function useDefenseActions({
 
       if (aiShouldAttemptEvasive && defender.tokens.evasive > 0) {
         setPhase("defense");
-        openDiceTray();
         animateDefenseDie((roll) => {
           const consumedDefender: PlayerState = {
             ...defender,

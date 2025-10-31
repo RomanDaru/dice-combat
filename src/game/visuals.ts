@@ -21,6 +21,12 @@ import ShadowMonkDiceFace5 from "../assets/ShadowMonk_Dices/ShadowMonk_Dice_5_12
 import ShadowMonkDiceFace6 from "../assets/ShadowMonk_Dices/ShadowMonk_Dice_6_128.png";
 import TrainingDummyPortrait from "../assets/TrainingDummy_Hero.png";
 import TrainingDummyTray from "../assets/TrainingDummy_Trazy.png";
+import TrainingDummyDiceFace1 from "../assets/TrainingDummy_Dices/TrainingDummy_Dice_1.png";
+import TrainingDummyDiceFace2 from "../assets/TrainingDummy_Dices/TrainingDummy_Dice_2.png";
+import TrainingDummyDiceFace3 from "../assets/TrainingDummy_Dices/TrainingDummy_Dice_3.png";
+import TrainingDummyDiceFace4 from "../assets/TrainingDummy_Dices/TrainingDummy_Dice_4.png";
+import TrainingDummyDiceFace5 from "../assets/TrainingDummy_Dices/TrainingDummy_Dice_5.png";
+import TrainingDummyDiceFace6 from "../assets/TrainingDummy_Dices/TrainingDummy_Dice_6.png";
 
 export const HERO_SKIN_IDS = {
   DEFAULT: "default",
@@ -100,6 +106,16 @@ export const HERO_SKINS: Record<HeroSkinId, HeroSkin> = {
     label: "Training Dummy",
     portrait: TrainingDummyPortrait,
     tray: TrainingDummyTray,
+    diceSet: {
+      faces: [
+        TrainingDummyDiceFace1,
+        TrainingDummyDiceFace2,
+        TrainingDummyDiceFace3,
+        TrainingDummyDiceFace4,
+        TrainingDummyDiceFace5,
+        TrainingDummyDiceFace6,
+      ],
+    },
   },
 };
 

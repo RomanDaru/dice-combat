@@ -412,32 +412,18 @@ body {
 
 .welcome-primary,
 .welcome-secondary {
-  border-radius: 12px;
   border: none;
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  background: none;
+  padding: 0;
+  font: inherit;
 }
 
 .welcome-primary {
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
-  color: #f9fafb;
-  box-shadow: 0 14px 40px rgba(99, 102, 241, 0.4);
-  width: auto;
   min-width: 200px;
 }
 
-.welcome-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 44px rgba(99, 102, 241, 0.5);
-}
-
 .welcome-secondary {
-  background: rgba(30, 41, 59, 0.65);
-  color: #e5e7eb;
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  min-width: 180px;
 }
 
 .hero-card {
@@ -557,15 +543,6 @@ body {
   height: 100%;
   object-fit: contain;
   pointer-events: none;
-}
-
-@media (max-width: 600px) {
-  .welcome-overlay {
-    padding: 24px 12px;
-  }
-  .welcome-primary {
-    min-width: 160px;
-  }
 }
 
 @media (max-width: 600px) {

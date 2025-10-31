@@ -1,6 +1,7 @@
 import React from "react";
-import IntroPoster from "../assets/IntroScreen.jpg";
 import IntroVideo from "../assets/IntroBackground_Animated.mp4";
+import IntroPoster from "../assets/IntroScreen.jpg";
+import { ArtButton } from "../components/ArtButton";
 
 type IntroScreenProps = {
   onBegin: () => void;
@@ -23,9 +24,12 @@ export function IntroScreen({ onBegin }: IntroScreenProps) {
         <div className='welcome-body'>
           <p className='welcome-subtext'>Prepare for battle!</p>
           <div className='welcome-action'>
-            <button type='button' className='welcome-primary' onClick={onBegin}>
+            <ArtButton
+              variant='large'
+              className='welcome-primary'
+              onClick={onBegin}>
               Select Hero
-            </button>
+            </ArtButton>
           </div>
         </div>
       </div>

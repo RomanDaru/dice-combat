@@ -11,7 +11,16 @@ type AiPreviewPanelProps = {
 
 export function AiPreviewPanel({ trayImage, diceImages }: AiPreviewPanelProps) {
   const { state } = useGame();
-  const { dice, rolling, held } = state.aiPreview;
+  const { aiPreview, aiDefense, dice: sharedDice } = state;
+
+  const usingDefense =
+    aiDefense.inProgress || (aiDefense.defenseDice && aiDefense.defenseDice.length > 0);
+
+  const displayDice = usingDefense
+    ? aiDefense.defenseDice ?? sharedDice
+    : aiPreview.dice;
+  const displayRolling = usingDefense ? aiDefense.inProgress : aiPreview.rolling;
+  const displayHeld = usingDefense ? [false, false, false, false, false] : aiPreview.held;
   const style = trayImage
     ? ({ ["--tray-image" as const]: `url(${trayImage})` } as CSSProperties)
     : undefined;
@@ -22,9 +31,9 @@ export function AiPreviewPanel({ trayImage, diceImages }: AiPreviewPanelProps) {
       style={style}>
       <div className={styles.content}>
         <DiceGrid
-          dice={dice}
-          held={[]}
-          rolling={rolling}
+          dice={displayDice}
+          held={displayHeld}
+          rolling={displayRolling}
           canInteract={false}
           onToggleHold={() => {}}
           defIndex={-1}
@@ -32,7 +41,7 @@ export function AiPreviewPanel({ trayImage, diceImages }: AiPreviewPanelProps) {
           isDefensePhase={false}
           statusActive={false}
           isAi={true}
-          aiSimHeld={held}
+          aiSimHeld={displayHeld}
           diceImages={diceImages}
         />
       </div>

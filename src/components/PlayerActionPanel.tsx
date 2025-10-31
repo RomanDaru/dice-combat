@@ -121,92 +121,7 @@ export function PlayerActionPanel() {
     });
   };
 
-  const renderInfoBanner = () => {
-    if (statusActive) {
-      return (
-        <div className={styles.infoHighlight}>
-          {pendingStatusClear?.roll !== undefined
-            ? `Status roll: ${pendingStatusClear.roll} ${
-                pendingStatusClear.success ? "-> Burn cleared" : "-> Burn stays"
-              }`
-            : `Burn ${
-                pendingStatusClear?.stacks ?? 0
-              } stack(s) - roll 5-6 to clear.`}
-        </div>
-      );
-    }
-
-    if (isDefenseTurn && defenseRoll) {
-      const noCombos = defenseRoll.options.length === 0;
-      return (
-        <div className={styles.infoHighlight}>
-          Defense roll: {defenseRoll.dice.join(" ")} --{" "}
-          {noCombos
-            ? "No defensive combos available. Block 0 damage."
-            : awaitingDefenseSelection
-            ? "Select a defensive ability or confirm to resolve."
-            : "Waiting for attack resolution."}
-        </div>
-      );
-    }
-
-    if (incomingAttack && incomingAbility) {
-      const abilityName =
-        incomingAbility.displayName ??
-        incomingAbility.label ??
-        incomingAbility.combo;
-      const attackerName = attackerHero?.name ?? "Opponent";
-    return null;
-    }
-
-    if (rollsLeft === 3) {
-      return (
-        <div className={styles.infoMuted}>
-          Suggested ability appears after the first roll.
-        </div>
-      );
-    }
-
-    const abilityToShow = ability ?? suggestedAbility;
-    if (abilityToShow) {
-      const isSelected =
-        Boolean(
-          selectedAttackCombo &&
-            ability &&
-            ability.combo === selectedAttackCombo
-        ) && turn === "you";
-      const label = isSelected ? "Selected ability" : "Suggested ability";
-      const primary = isSelected ? ability : abilityToShow;
-      const primaryName =
-        primary?.displayName ?? primary?.label ?? primary?.combo;
-      const primaryDamage =
-        primary?.damage != null ? `${primary.damage} dmg` : null;
-
-      return (
-        <div className={styles.infoHighlight}>
-          <div>
-            <b>{label}:</b> {primaryName}
-            {primaryDamage ? ` (${primaryDamage})` : ""}
-          </div>
-          {isSelected &&
-            suggestedAbility &&
-            ability &&
-            suggestedAbility.combo !== ability.combo && (
-              <div className={styles.infoMuted}>
-                Suggested alternative:{" "}
-                {suggestedAbility.displayName ??
-                  suggestedAbility.label ??
-                  suggestedAbility.combo}
-                {suggestedAbility.damage != null
-                  ? ` (${suggestedAbility.damage} dmg)`
-                  : ""}
-              </div>
-            )}
-        </div>
-      );
-    }
-    return null;
-  };
+;
 
   const statusCard = statusActive && pendingStatusClear && (
     <div className={clsx("card", styles.statusCard)}>
@@ -409,7 +324,6 @@ export function PlayerActionPanel() {
           </div>
         )}
       </div>
-      {renderInfoBanner()}
       {statusCard}
       {defenseIndicators}
     </div>

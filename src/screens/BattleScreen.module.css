@@ -159,7 +159,7 @@
 .boardSplit {
   display: flex;
   flex-direction: column;
-  gap: clamp(20px, 3vw, 32px);
+  /* gap: clamp(20px, 3vw, 32px); */
 }
 
 .boardHalf {
@@ -175,6 +175,7 @@
   gap: clamp(14px, 2.4vw, 22px);
   backdrop-filter: blur(6px);
   overflow: hidden;
+  min-height: clamp(360px, 45vh, 460px);
 }
 
 .opponentHalf {
@@ -201,6 +202,8 @@
   gap: clamp(16px, 2.5vw, 26px);
   position: relative;
   z-index: 1;
+  flex: 1;
+  min-height: 0;
 }
 
 .playerBoardRow {
@@ -212,6 +215,8 @@
   align-items: stretch;
   gap: clamp(20px, 3vw, 40px);
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .playerAbilities {
@@ -273,6 +278,8 @@
   align-items: stretch;
   gap: clamp(20px, 3vw, 40px);
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .opponentAbilities {
@@ -604,9 +611,6 @@
   .utilityItemLog {
     min-height: 260px;
   }
-  .boardSplit {
-    gap: clamp(16px, 4vw, 24px);
-  }
   .playerBoardRow {
     grid-template-columns: minmax(240px, 300px) minmax(460px, 1fr) minmax(
         200px,
@@ -646,6 +650,9 @@
   }
   .opponentHud > * {
     width: min(100%, 320px);
+  }
+  .boardHalf {
+    min-height: auto;
   }
   .opponentTray > * {
     width: min(100%, 500px);

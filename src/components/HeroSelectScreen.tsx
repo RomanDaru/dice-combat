@@ -7,6 +7,7 @@ import ShadowMonkPreview from "../assets/Shadow_Monk_Animated.mp4";
 import { getHeroEffectIds } from "../game/heroes";
 import { getOffensiveAbilities } from "../game/abilityBoards";
 import { getEffectDefinition } from "../game/effects";
+import { ArtButton } from "./ArtButton";
 
 const AbilityPreviewList = ({ hero }: { hero: Hero }) => {
   const abilities = getOffensiveAbilities(hero);
@@ -261,12 +262,12 @@ export default function HeroSelectScreen({
             ))}
           </div>
           <div className='welcome-action'>
-            <button
-              type='button'
+            <ArtButton
+              variant='medium'
               className='welcome-secondary'
               onClick={onClose}>
               Back
-            </button>
+            </ArtButton>
           </div>
         </div>
       ) : (
@@ -286,20 +287,20 @@ export default function HeroSelectScreen({
               image={selectedHeroOption.image}
             />
             <div className={styles.actionRow}>
-              <button
-                type='button'
+              <ArtButton
+                variant='medium'
                 className='welcome-secondary'
                 onClick={handleBackToGrid}
                 disabled={isConfirming}>
                 Back to heroes
-              </button>
-              <button
-                type='button'
+              </ArtButton>
+              <ArtButton
+                variant='medium'
                 className='welcome-primary'
                 onClick={handleConfirm}
                 disabled={isConfirming}>
                 Confirm {selectedHeroOption.hero.name}
-              </button>
+              </ArtButton>
             </div>
           </div>
         )
