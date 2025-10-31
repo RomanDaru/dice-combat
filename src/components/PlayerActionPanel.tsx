@@ -287,18 +287,20 @@ export function PlayerActionPanel() {
             Roll ({rollsLeft})
           </button>
         )}
-        <button
-          className='btn'
-          onClick={() => {
-            if (diceTrayVisible) {
-              closeDiceTray();
-            } else {
-              openDiceTray();
-            }
-          }}
-          disabled={trayToggleDisabled}>
-          {diceTrayVisible ? "Hide Dice Tray" : "Open Dice Tray"}
-        </button>
+        {!isDefenseTurn && (
+          <button
+            className='btn'
+            onClick={() => {
+              if (diceTrayVisible) {
+                closeDiceTray();
+              } else {
+                openDiceTray();
+              }
+            }}
+            disabled={trayToggleDisabled}>
+            {diceTrayVisible ? "Hide Dice Tray" : "Open Dice Tray"}
+          </button>
+        )}
         {canAdjustAttackChi && (
           <div className={styles.chiSpendControl}>
             <span className={styles.chiSpendLabel}>Chi for attack</span>

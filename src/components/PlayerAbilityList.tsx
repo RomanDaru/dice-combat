@@ -8,7 +8,6 @@ import {
 } from "../game/abilityBoards";
 import { getEffectDefinition } from "../game/effects";
 import type { Combo, DefensiveAbility, OffensiveAbility } from "../game/types";
-import { DefenseRow } from "./AbilityRows";
 import abilityStyles from "./AbilityIcons.module.css";
 
 type ApplyMap = {
@@ -68,25 +67,85 @@ export function PlayerAbilityList() {
     return { ...(readyForActing ?? {}) };
   }, [defenseRoll, isDefenseTurn, readyForActing]);
 
+  const abilityInitials = (label: string) =>
+    label
+      .split(/[^A-Za-z0-9]+/)
+      .filter(Boolean)
+      .map((part) => part[0]!.toUpperCase())
+      .join("")
+      .slice(0, 2) || label.slice(0, 2).toUpperCase();
+
+  const renderAbilityButton = (
+    ability: OffensiveAbility | DefensiveAbility,
+    options: {
+      ready: boolean;
+      selected: boolean;
+      disabled: boolean;
+      onClick: () => void;
+      tooltipParts: string[];
+    }
+  ) => {
+    const abilityName =
+      ability.displayName ?? ability.label ?? ability.combo;
+    const hasUltimate =
+      "ultimate" in (ability as Partial<OffensiveAbility>) &&
+      Boolean((ability as Partial<OffensiveAbility>).ultimate);
+
+    return (
+      <button
+        key={ability.combo}
+        type='button'
+        className={clsx(
+          abilityStyles.iconButton,
+          options.ready && abilityStyles.ready,
+          options.selected && abilityStyles.selected,
+          hasUltimate && abilityStyles.ultimate
+        )}
+        onClick={options.onClick}
+        disabled={options.disabled}
+        title={[abilityName, ...options.tooltipParts].join(" - ")}
+      >
+        <span className={abilityStyles.iconLabel}>
+          {abilityInitials(abilityName)}
+        </span>
+        {hasUltimate && (
+          <span className={abilityStyles.smallBadge}>ULT</span>
+        )}
+      </button>
+    );
+  };
+
   if (isDefenseTurn) {
     return (
-      <div className='card'>
-        <div className='label'>{`Defensive Abilities (${hero.name})`}</div>
-        <div style={{ display: "grid", gap: 6 }}>
+      <div className={abilityStyles.panel}>
+        <div className={abilityStyles.title}>{`Defensive Abilities (${hero.name})`}</div>
+        <div className={abilityStyles.grid}>
           {(defenseAbilities as DefensiveAbility[]).map((ability) => {
             const ready = !!readyCombos[ability.combo];
             const selected = defenseSelection === ability.combo;
             const canSelect = awaitingDefenseSelection && ready;
-            return (
-              <DefenseRow
-                key={ability.combo}
-                ability={ability}
-                ready={ready}
-                selected={selected}
-                canSelect={!!canSelect}
-                onSelect={() => onChooseDefenseOption(ability.combo)}
-              />
+
+            const tooltipParts: string[] = [];
+            if (ability.block != null)
+              tooltipParts.push(`Block ${ability.block}`);
+            if (ability.reflect != null)
+              tooltipParts.push(`Reflect ${ability.reflect}`);
+            if (ability.heal != null) tooltipParts.push(`Heal ${ability.heal}`);
+            if (ability.retaliatePercent != null)
+              tooltipParts.push(`Retaliate ${ability.retaliatePercent}%`);
+
+            const effectsText = formatEffects(
+              buildEffects(ability.apply as ApplyMap)
             );
+            if (effectsText) tooltipParts.push(effectsText);
+
+            return renderAbilityButton(ability, {
+              ready,
+              selected,
+              disabled: !canSelect,
+              onClick: () => onChooseDefenseOption(ability.combo),
+              tooltipParts,
+            });
           })}
         </div>
       </div>
@@ -105,41 +164,18 @@ export function PlayerAbilityList() {
           const selected = selectedAttackCombo === ability.combo;
           const canSelect = canSelectOffense && ready;
           const effectsText = formatEffects(buildEffects(ability.apply));
-          const abilityName =
-            ability.displayName ?? ability.label ?? ability.combo;
-          const iconLabel = abilityName
-            .split(/[^A-Za-z0-9]+/)
-            .filter(Boolean)
-            .map((part) => part[0]!.toUpperCase())
-            .join("")
-            .slice(0, 2);
-
-          const tooltipParts = [abilityName];
+          const tooltipParts: string[] = [];
           if (ability.damage != null) tooltipParts.push(`${ability.damage} dmg`);
           if (effectsText) tooltipParts.push(effectsText);
 
-          return (
-            <button
-              key={ability.combo}
-              type='button'
-              className={clsx(
-                abilityStyles.iconButton,
-                ready && abilityStyles.ready,
-                selected && abilityStyles.selected,
-                ability.ultimate && abilityStyles.ultimate
-              )}
-              onClick={() =>
-                onSelectAttackCombo(selected ? null : ability.combo)
-              }
-              disabled={!canSelect}
-              title={tooltipParts.join(" - ")}
-            >
-              <span className={abilityStyles.iconLabel}>{iconLabel}</span>
-              {ability.ultimate && (
-                <span className={abilityStyles.smallBadge}>ULT</span>
-              )}
-            </button>
-          );
+          return renderAbilityButton(ability, {
+            ready,
+            selected,
+            disabled: !canSelect,
+            onClick: () =>
+              onSelectAttackCombo(selected ? null : ability.combo),
+            tooltipParts,
+          });
         })}
       </div>
     </div>

@@ -12,16 +12,42 @@
 
 .tray {
   pointer-events: auto;
-  width: min(520px, 90%);
-  padding: clamp(18px, 3vw, 28px);
+  width: min(92%, 720px);
+  min-height: clamp(280px, 40vw, 420px);
   border-radius: clamp(18px, 2vw, 24px);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(8, 11, 27, 0.9);
-  box-shadow: 0 28px 48px rgba(7, 11, 20, 0.45);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: 0 32px 56px rgba(7, 11, 20, 0.55);
+  position: relative;
+  overflow: hidden;
+}
+
+.tray::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.trayContent {
+  position: relative;
+  width: 100%;
+  padding: clamp(18px, 3vw, 28px);
   display: flex;
   flex-direction: column;
   gap: clamp(12px, 2vw, 18px);
   align-items: center;
+}
+
+.trayBody {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 2vw, 18px);
 }
 
 .header {

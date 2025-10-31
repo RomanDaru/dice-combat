@@ -4,6 +4,7 @@
   padding: clamp(16px, 3vw, 32px);
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: clamp(20px, 3vw, 28px);
 }
 
@@ -13,6 +14,8 @@
   justify-content: space-between;
   gap: clamp(12px, 2vw, 20px);
   flex-wrap: wrap;
+  width: 100%;
+  max-width: 1440px;
 }
 
 .headerActions {
@@ -47,11 +50,14 @@
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  gap: clamp(20px, 3vw, 28px);
+  gap: clamp(12px, 2vw, 32px);
+  width: 100%;
+  max-width: 1480px;
 }
 
 .boardColumn {
-  flex: 1 1 0;
+  flex: 1 1 1200px;
+  max-width: 1200px;
   min-width: 0;
   display: flex;
 }
@@ -71,44 +77,19 @@
   transition: background-color 0.3s ease;
 }
 
-.boardWrap::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(8, 11, 27, 0.48);
-  backdrop-filter: blur(4px);
-  pointer-events: none;
-}
-
-.boardWrap::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-      circle at 20% 10%,
-      rgba(99, 102, 241, 0.15),
-      transparent 45%
-    ),
-    radial-gradient(circle at 80% 90%, rgba(239, 68, 68, 0.15), transparent 55%);
-  pointer-events: none;
-  mix-blend-mode: screen;
-  opacity: 0.65;
-}
-
 .boardContent {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: clamp(16px, 2.6vw, 28px);
-  padding: clamp(18px, 3vw, 36px);
+  gap: clamp(12px, 2vw, 20px);
   min-height: 100%;
   backdrop-filter: blur(4px);
 }
 
 .utilityColumn {
-  flex: 0 0 10%;
+  flex: 0 0 240px;
   max-width: 240px;
-  min-width: 160px;
+  min-width: 220px;
   display: flex;
   flex-direction: column;
   gap: clamp(12px, 1.6vw, 18px);
@@ -163,7 +144,7 @@
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
-  gap: clamp(16px, 3vw, 48px);
+  /* gap: clamp(16px, 3vw, 48px); */
   width: min(100%, 720px);
   margin: 0 auto;
 }
@@ -182,7 +163,10 @@
 }
 
 .boardHalf {
-  background: rgba(8, 11, 27, 0.65);
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: clamp(18px, 3vw, 26px);
   padding: clamp(16px, 3vw, 28px);
@@ -190,6 +174,7 @@
   flex-direction: column;
   gap: clamp(14px, 2.4vw, 22px);
   backdrop-filter: blur(6px);
+  overflow: hidden;
 }
 
 .opponentHalf {
@@ -206,63 +191,122 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(226, 232, 240, 0.8);
+  position: relative;
+  z-index: 1;
 }
 
 .halfBody {
   display: flex;
   flex-direction: column;
   gap: clamp(16px, 2.5vw, 26px);
+  position: relative;
+  z-index: 1;
 }
 
-.hudRow {
-  display: flex;
-  justify-content: center;
-}
-
-.abilityCenter {
-  display: flex;
-  justify-content: center;
-}
-
-.abilityCenter > * {
-  width: min(100%, 560px);
-}
-
-.playerTopRow {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: clamp(16px, 2.8vw, 32px);
-  flex-wrap: wrap;
-}
-
-.playerHud {
-  flex: 0 0 auto;
-  display: flex;
-  justify-content: center;
-}
-
-.playerHud > * {
-  width: min(100%, 320px);
+.playerBoardRow {
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) minmax(520px, 660px) minmax(
+      220px,
+      260px
+    );
+  align-items: stretch;
+  gap: clamp(20px, 3vw, 40px);
+  width: 100%;
 }
 
 .playerAbilities {
-  flex: 1 1 340px;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
 }
 
 .playerAbilities > * {
-  width: min(100%, 420px);
+  width: 100%;
+  max-width: 360px;
 }
 
-.playerActionRail {
+.playerTray {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(18px, 2vw, 28px);
+  border-radius: 24px;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+  min-height: clamp(260px, 32vw, 360px);
+  width: 100%;
+}
+
+.playerTrayInner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 600px;
   display: flex;
   justify-content: center;
 }
 
-.playerActionRail > * {
-  width: min(100%, 520px);
+.playerTrayInner > * {
+  width: 100%;
+}
+
+.playerHud {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.playerHud > * {
+  width: 100%;
+  max-width: 280px;
+}
+
+.opponentBoardRow {
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) minmax(520px, 660px) minmax(
+      220px,
+      260px
+    );
+  align-items: stretch;
+  gap: clamp(20px, 3vw, 40px);
+  width: 100%;
+}
+
+.opponentAbilities {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.opponentAbilities > * {
+  width: 100%;
+  max-width: 360px;
+}
+
+.opponentTray {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.opponentTray > * {
+  width: min(100%, 620px);
+}
+
+.opponentHud {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.opponentHud > * {
+  width: 100%;
+  max-width: 280px;
 }
 
 .settingsMenu {
@@ -353,7 +397,6 @@
   letter-spacing: 0.03em;
   justify-self: start;
 }
-
 
 .boardGrid {
   display: grid;
@@ -532,9 +575,11 @@
   }
   .main {
     flex-direction: column;
+    max-width: 960px;
   }
   .boardColumn {
     flex: 1 1 auto;
+    max-width: 100%;
   }
   .utilityColumn {
     flex: 1 1 auto;
@@ -543,6 +588,7 @@
     width: 100%;
     flex-direction: row;
     align-items: flex-start;
+    gap: clamp(12px, 2vw, 24px);
   }
   .utilityColumn .settingsMenu {
     align-self: flex-start;
@@ -559,11 +605,50 @@
     min-height: 260px;
   }
   .boardSplit {
-    gap: 16px;
+    gap: clamp(16px, 4vw, 24px);
   }
-  .abilityCenter > *,
-  .controlsRow > * {
-    width: 100%;
+  .playerBoardRow {
+    grid-template-columns: minmax(240px, 300px) minmax(460px, 1fr) minmax(
+        200px,
+        260px
+      );
+    gap: clamp(18px, 3vw, 28px);
+  }
+  .opponentBoardRow {
+    grid-template-columns: minmax(240px, 300px) minmax(460px, 1fr) minmax(
+        200px,
+        260px
+      );
+    gap: clamp(18px, 3vw, 28px);
+  }
+  .opponentTray > * {
+    width: min(100%, 560px);
+  }
+}
+
+@media (max-width: 900px) {
+  .playerBoardRow {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .opponentBoardRow {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .playerHud,
+  .playerAbilities,
+  .opponentHud,
+  .opponentAbilities {
+    justify-content: center;
+  }
+  .playerHud > * {
+    width: min(100%, 320px);
+  }
+  .opponentHud > * {
+    width: min(100%, 320px);
+  }
+  .opponentTray > * {
+    width: min(100%, 500px);
   }
 }
 
@@ -584,6 +669,32 @@
   .utilityItemLog {
     flex: 1 1 auto;
     min-height: auto;
+  }
+  .playerBoardRow {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .opponentBoardRow {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .playerHud {
+    justify-content: center;
+    max-width: none;
+  }
+  .playerAbilities {
+    justify-content: center;
+  }
+  .opponentHud {
+    justify-content: center;
+    max-width: none;
+  }
+  .opponentAbilities {
+    justify-content: center;
   }
   .turnMeta {
     display: flex;
@@ -608,6 +719,10 @@
   }
   .boardHalf {
     padding: 20px;
+  }
+
+  .opponentTray > * {
+    width: min(100%, 420px);
   }
   .zoneOpponent,
   .zonePlayer,

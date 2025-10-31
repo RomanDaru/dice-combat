@@ -18,14 +18,15 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  justify-items: center;
 }
 
 .iconButton {
   position: relative;
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 12px;
   border: 1px solid rgba(148, 163, 184, 0.25);
   background: rgba(15, 23, 42, 0.75);
@@ -41,6 +42,11 @@
 .iconButton:disabled {
   cursor: default;
   opacity: 0.45;
+}
+
+.iconButton.ready:disabled,
+.iconButton.selected:disabled {
+  opacity: 1;
 }
 
 .ready {
@@ -69,9 +75,28 @@
   bottom: 4px;
   right: 4px;
   font-size: 10px;
-  padding: 2px 4px;
+  padding: 3px 6px;
   border-radius: 999px;
   background: rgba(59, 130, 246, 0.55);
   color: #0f172a;
   font-weight: 700;
+}
+
+.grid > *:last-child:nth-child(3n + 1) {
+  grid-column: 2;
+}
+
+@media (max-width: 768px) {
+  .grid > * {
+    width: 52px;
+    height: 52px;
+  }
+
+  .iconLabel {
+    font-size: 12px;
+  }
+
+  .grid > *:last-child:nth-child(3n + 1) {
+    grid-column: 2;
+  }
 }

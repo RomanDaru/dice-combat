@@ -331,22 +331,35 @@ body {
 }
 
 .welcome-screen {
+  position: relative;
   height: 100vh;
+  width: 100%;
+  color: #f8fafc;
+  text-align: center;
+  overflow: hidden;
+  background: #060b17;
+}
+
+.welcome-bg-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  filter: saturate(1.05);
+}
+
+.welcome-overlay {
+  position: relative;
+  z-index: 1;
+  height: 100%;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 32px 16px;
-  background: radial-gradient(
-    120% 120% at 50% 50%,
-    rgba(30, 41, 59, 0.96) 0%,
-    rgba(15, 23, 42, 0.98) 55%,
-    rgba(2, 6, 23, 0.98) 100%
-  );
-  color: #f8fafc;
-  text-align: center;
-  overflow: hidden;
 }
 
 .welcome-heading {
@@ -536,5 +549,30 @@ body {
   .hero-confirm-layout {
     grid-template-columns: 320px minmax(0, 1fr);
     align-items: start;
+  }
+}
+
+.die-face-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+@media (max-width: 600px) {
+  .welcome-overlay {
+    padding: 24px 12px;
+  }
+  .welcome-primary {
+    min-width: 160px;
+  }
+}
+
+@media (max-width: 600px) {
+  .welcome-overlay {
+    padding: 24px 12px;
+  }
+  .welcome-primary {
+    min-width: 160px;
   }
 }

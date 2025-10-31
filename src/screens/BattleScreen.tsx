@@ -6,14 +6,15 @@ import { PlayerActionPanel } from "../components/PlayerActionPanel";
 import { CombatLogPanel } from "../components/CombatLogPanel";
 import TurnProgress from "../components/TurnProgress";
 import { OpponentAbilityList } from "../components/OpponentAbilityList";
+import { AiPreviewPanel } from "../components/AiPreviewPanel";
 import {
   GameController,
   useGameController,
   useGameData,
 } from "../context/GameController";
 import { useGame } from "../context/GameContext";
-import DefaultBoard from "../assets/Default_Board.png";
-import PyromancerBoard from "../assets/Pyromancer_Board.png";
+import TableBackground from "../assets/defualtTableBg.png";
+import { getHeroSkin } from "../game/visuals";
 import { DiceTrayOverlay } from "../components/DiceTrayOverlay";
 import styles from "./BattleScreen.module.css";
 
@@ -224,13 +225,17 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
     initialRoll.awaitingConfirmation &&
     initialRoll.winner !== null;
 
-  const boardImage = useMemo(() => {
-    const heroId = players.you?.hero?.id;
-    if (heroId === "Pyromancer") {
-      return PyromancerBoard;
-    }
-    return DefaultBoard;
-  }, [players.you?.hero?.id]);
+  const youSkin = useMemo(() => getHeroSkin(you.hero.skin), [you.hero.skin]);
+  const aiSkin = useMemo(() => getHeroSkin(ai.hero.skin), [ai.hero.skin]);
+
+  const playerBoardImage =
+    youSkin.boardHalf ?? youSkin.board ?? TableBackground;
+  const opponentBoardImage =
+    aiSkin.boardHalf ?? aiSkin.board ?? TableBackground;
+  const playerTrayImage = youSkin.tray ?? youSkin.board ?? TableBackground;
+  const opponentTrayImage = aiSkin.tray ?? aiSkin.board ?? TableBackground;
+  const playerDiceFaces = youSkin.diceSet?.faces ?? undefined;
+  const opponentDiceFaces = aiSkin.diceSet?.faces ?? undefined;
 
   if (phase === "standoff") {
     return (
@@ -239,8 +244,11 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
           <div className={styles.boardColumn}>
             <div
               className={styles.boardWrap}
-              style={{ backgroundImage: `url(${boardImage})` }}>
-              <DiceTrayOverlay />
+              style={{ backgroundImage: `url(${TableBackground})` }}>
+              <DiceTrayOverlay
+                trayImage={playerTrayImage}
+                diceImages={playerDiceFaces}
+              />
               <div className={styles.boardContent}>
                 <div className={styles.standoffShell}>
                   <div className={styles.standoffCard}>
@@ -309,8 +317,11 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
         <div className={styles.boardColumn}>
           <div
             className={styles.boardWrap}
-            style={{ backgroundImage: `url(${boardImage})` }}>
-            <DiceTrayOverlay />
+            style={{ backgroundImage: `url(${TableBackground})` }}>
+            <DiceTrayOverlay
+              trayImage={playerTrayImage}
+              diceImages={playerDiceFaces}
+            />
             <div className={styles.boardContent}>
               {winnerName ? (
                 <div className={styles.winnerBoard}>
@@ -326,53 +337,67 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
                 </div>
               ) : (
                 <div className={styles.boardSplit}>
-                  <div className={clsx(styles.boardHalf, styles.opponentHalf)}>
-                    <div className={styles.halfHeader}>
-                      <span>Opponent</span>
-                    </div>
+                  <section
+                    className={clsx(styles.boardHalf, styles.opponentHalf)}
+                    style={{ backgroundImage: `url(${opponentBoardImage})` }}>
                     <div className={styles.halfBody}>
-                      <div className={styles.hudRow}>
-                        <PlayerPanel side='ai' />
+                      <div className={styles.opponentBoardRow}>
+                        <div className={styles.opponentAbilities}>
+                          <OpponentAbilityList />
+                        </div>
+                        <div className={styles.opponentTray}>
+                          <AiPreviewPanel
+                            trayImage={opponentTrayImage}
+                            diceImages={opponentDiceFaces}
+                          />
+                        </div>
+                        <div className={styles.opponentHud}>
+                          <PlayerPanel side='ai' />
+                        </div>
                       </div>
-                      <div className={styles.abilityCenter}>
-                        <OpponentAbilityList />
+                    </div>
+                  </section>
+
+                  <div className={styles.turnRow}>
+                    <div className={styles.turnMeta}>
+                      <span
+                        className={styles.roundPill}
+                        title={turnSummary}
+                        aria-label={`Round ${roundNumber}. ${turnSummary}`}>
+                        Round {roundNumber}
+                      </span>
+                      <div className={styles.turnProgressWrap}>
+                        <TurnProgress phase={phase} />
                       </div>
                     </div>
                   </div>
-                <div className={styles.turnRow}>
-                  <div className={styles.turnMeta}>
-                    <span
-                      className={styles.roundPill}
-                      title={turnSummary}
-                      aria-label={`Round ${roundNumber}. ${turnSummary}`}>
-                      Round {roundNumber}
-                    </span>
-                    <div className={styles.turnProgressWrap}>
-                      <TurnProgress phase={phase} />
+
+                  <section
+                    className={clsx(styles.boardHalf, styles.playerHalf)}
+                    style={{ backgroundImage: `url(${playerBoardImage})` }}>
+                    <div className={styles.halfBody}>
+                      <div className={styles.playerBoardRow}>
+                        <div className={styles.playerAbilities}>
+                          <PlayerAbilityList />
+                        </div>
+                        <div
+                          className={styles.playerTray}
+                          style={{
+                            backgroundImage: `url(${playerTrayImage})`,
+                          }}>
+                          <div className={styles.playerTrayInner}>
+                            <PlayerActionPanel />
+                          </div>
+                        </div>
+                        <div className={styles.playerHud}>
+                          <PlayerPanel side='you' />
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </section>
                 </div>
-                <div className={clsx(styles.boardHalf, styles.playerHalf)}>
-                  <div className={styles.halfHeader}>
-                    <span>You</span>
-                  </div>
-                  <div className={styles.halfBody}>
-                    <div className={styles.playerTopRow}>
-                      <div className={styles.playerHud}>
-                        <PlayerPanel side='you' />
-                      </div>
-                      <div className={styles.playerAbilities}>
-                        <PlayerAbilityList />
-                      </div>
-                    </div>
-                    <div className={styles.playerActionRail}>
-                      <PlayerActionPanel />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
           </div>
         </div>
         <aside className={styles.utilityColumn}>

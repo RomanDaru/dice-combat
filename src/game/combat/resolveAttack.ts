@@ -1,5 +1,6 @@
 ﻿import { applyAttack } from "../engine";
 import type { AttackContext, AttackResolution } from "./types";
+import type { Side } from "../types";
 import { buildAttackResolutionLines } from "../logging/combatLog";
 
 export function resolveAttack(context: AttackContext): AttackResolution {
@@ -50,7 +51,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
       ? "attacker_defeated"
       : "continue";
 
-  const nextSide = attackerSide === "you" ? "ai" : "you";
+  const nextSide: Side = attackerSide === "you" ? "ai" : "you";
   const events =
     outcome === "continue"
       ? [
@@ -61,7 +62,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
               delayMs: 700,
               prePhase: "end" as const,
             },
-            followUp: nextSide === "ai" ? "trigger_ai_turn" : undefined,
+            followUp: nextSide === "ai" ? ("trigger_ai_turn" as const) : undefined,
           },
         ]
       : [];

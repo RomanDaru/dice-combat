@@ -477,6 +477,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     pushLog,
     animateDefenseDie,
     animateDefenseRoll,
+    openDiceTray,
+    closeDiceTray,
     popDamage,
     restoreDiceAfterDefense,
     sendFlowEvent,
@@ -596,10 +598,26 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   }, [state.phase]);
 
   useEffect(() => {
-    if (state.phase !== "roll" || turn !== "you") {
-      closeDiceTray();
+    if (!diceTrayVisible) {
+      return;
     }
-  }, [state.phase, closeDiceTray, turn]);
+
+    const inPlayerRollPhase = state.phase === "roll" && turn === "you";
+    const inDefensePhase = state.phase === "defense";
+    const duringInitialRoll = state.initialRoll.inProgress;
+
+    if (inPlayerRollPhase || inDefensePhase || duringInitialRoll) {
+      return;
+    }
+
+    closeDiceTray();
+  }, [
+    diceTrayVisible,
+    state.phase,
+    state.initialRoll.inProgress,
+    turn,
+    closeDiceTray,
+  ]);
 
   useEffect(() => {
     if (

@@ -1,7 +1,6 @@
 import { useCallback, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import {
-  rollDefenseDice,
   evaluateDefenseRoll,
   resolveDefenseSelection,
   selectDefenseOptionByCombo,
@@ -63,6 +62,8 @@ type UseDefenseActionsArgs = {
     onDone: (dice: number[]) => void,
     duration?: number
   ) => void;
+  openDiceTray: () => void;
+  closeDiceTray: () => void;
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
   restoreDiceAfterDefense: () => void;
   sendFlowEvent: (event: GameFlowEvent) => boolean;
@@ -96,6 +97,8 @@ export function useDefenseActions({
   pushLog,
   animateDefenseDie,
   animateDefenseRoll,
+  openDiceTray,
+  closeDiceTray,
   popDamage,
   restoreDiceAfterDefense,
   sendFlowEvent,
@@ -298,7 +301,6 @@ export function useDefenseActions({
         (abilityItem) =>
           abilityItem.id === ActiveAbilityIds.SHADOW_MONK_EVASIVE_ID
       );
-      let manualEvasive: ManualEvasiveLog | undefined;
       let aiShouldAttemptEvasive = false;
       if (aiEvasiveAbility) {
         aiEvasiveRequestedRef.current = false;
@@ -310,122 +312,150 @@ export function useDefenseActions({
         aiShouldAttemptEvasive = true;
       }
 
-      if (aiShouldAttemptEvasive && defender.tokens.evasive > 0) {
-        const roll = rollDefenseDice()[0];
-        patchAiDefense({ evasiveRoll: roll });
-        manualEvasive = {
-          used: true,
-          success: roll >= 5,
-          roll,
-          label: defender.hero.name,
-        };
-        defender = {
-          ...defender,
-          tokens: {
-            ...defender.tokens,
-            evasive: Math.max(0, defender.tokens.evasive - 1),
-          },
-        };
-        setPlayer("ai", defender);
-      }
-
       aiEvasiveRequestedRef.current = false;
 
-      if (manualEvasive?.success) {
-        const resolution = resolveAttack({
-          source: "player",
-          attackerSide: "you",
-          defenderSide: "ai",
-          attacker,
-          defender,
-          ability: effectiveAbility,
-          attackChiSpend: spendableAttackChi,
-          attackChiApplied: chiApplied,
-          defense: {
-            resolution: null,
-            manualEvasive,
-          },
+      const resolveAfterDefense = (
+        defenderState: PlayerState,
+        defenseResolution: ReturnType<typeof buildDefensePlan>["defense"] | null,
+        manualEvasive?: ManualEvasiveLog
+      ) => {
+        window.setTimeout(() => {
+          closeDiceTray();
+          const resolution = resolveAttack({
+            source: "player",
+            attackerSide: "you",
+            defenderSide: "ai",
+            attacker,
+            defender: defenderState,
+            ability: effectiveAbility,
+            attackChiSpend: spendableAttackChi,
+            attackChiApplied: chiApplied,
+            defense: {
+              resolution: defenseResolution,
+              manualEvasive,
+            },
+          });
+
+          resolveWithEvents(resolution, "you", "ai");
+        }, 600);
+      };
+
+      const runDefenseRoll = (
+        defenderState: PlayerState,
+        manualEvasive?: ManualEvasiveLog
+      ) => {
+        setPhase("defense");
+        openDiceTray();
+        animateDefenseRoll((rolledDice) => {
+          const defenseRollResult = evaluateDefenseRoll(
+            defenderState.hero,
+            rolledDice
+          );
+          if (defenseRollResult.options.length === 0) {
+            pushLog(
+              `[Defense] ${defenderState.hero.name} found no defensive combos and will block 0 damage.`,
+              { blankLineBefore: true }
+            );
+          }
+          const selection = defenseRollResult.options.length
+            ? selectHighestBlockOption(defenseRollResult)
+            : selectDefenseOptionByCombo(defenseRollResult, null);
+          const baseResolution = resolveDefenseSelection(selection);
+
+          const requestedChi = Math.min(
+            defenderState.tokens.chi ?? 0,
+            turnChiAvailable.ai ?? 0
+          );
+          const defensePlan = buildDefensePlan({
+            defender: defenderState,
+            incomingDamage: effectiveAbility.damage,
+            baseResolution,
+            requestedChi,
+          });
+
+          patchAiDefense({
+            inProgress: false,
+            defenseDice: rolledDice,
+            defenseCombo:
+              defensePlan.defense.selection.selected?.combo ?? null,
+            defenseRoll: defensePlan.defense.block,
+          });
+
+          let updatedDefender = defenderState;
+          if (defensePlan.defense.chiSpent > 0) {
+            updatedDefender = spendChi(
+              "ai",
+              defensePlan.defenderAfter,
+              defensePlan.defense.chiSpent
+            );
+          } else if (defensePlan.defenderAfter !== defenderState) {
+            updatedDefender = defensePlan.defenderAfter;
+            setPlayer("ai", updatedDefender);
+          }
+
+          resolveAfterDefense(updatedDefender, defensePlan.defense, manualEvasive);
         });
-        patchAiDefense({
-          inProgress: false,
-          evasiveRoll: manualEvasive.roll,
-          defenseRoll: null,
-          defenseDice: null,
-          defenseCombo: null,
-        });
-        resolveWithEvents(resolution, "you", "ai");
+      };
+
+      if (aiShouldAttemptEvasive && defender.tokens.evasive > 0) {
+        setPhase("defense");
+        openDiceTray();
+        animateDefenseDie((roll) => {
+          const consumedDefender: PlayerState = {
+            ...defender,
+            tokens: {
+              ...defender.tokens,
+              evasive: Math.max(0, defender.tokens.evasive - 1),
+            },
+          };
+          setPlayer("ai", consumedDefender);
+
+          const manualEvasive: ManualEvasiveLog = {
+            used: true,
+            success: roll >= 5,
+            roll,
+            label: consumedDefender.hero.name,
+            alreadySpent: true,
+          };
+
+          patchAiDefense({ evasiveRoll: roll });
+
+          if (manualEvasive.success) {
+            patchAiDefense({
+              inProgress: false,
+              defenseRoll: null,
+              defenseDice: null,
+              defenseCombo: null,
+            });
+            resolveAfterDefense(consumedDefender, null, manualEvasive);
+            return;
+          }
+
+          window.setTimeout(() => {
+            runDefenseRoll(consumedDefender, manualEvasive);
+          }, 360);
+        }, 650);
         return;
       }
 
-      const defenseRollResult = evaluateDefenseRoll(
-        defender.hero,
-        rollDefenseDice()
-      );
-      const selection = defenseRollResult.options.length
-        ? selectHighestBlockOption(defenseRollResult)
-        : selectDefenseOptionByCombo(defenseRollResult, null);
-      const baseResolution = resolveDefenseSelection(selection);
-
-      const requestedChi = Math.min(
-        defender.tokens.chi ?? 0,
-        turnChiAvailable.ai ?? 0
-      );
-      const defensePlan = buildDefensePlan({
-        defender,
-        incomingDamage: effectiveAbility.damage,
-        baseResolution,
-        requestedChi,
-      });
-
-      patchAiDefense({
-        inProgress: false,
-        defenseDice: defenseRollResult.dice,
-        defenseCombo: defensePlan.defense.selection.selected?.combo ?? null,
-        defenseRoll: defensePlan.defense.block,
-      });
-
-      if (defensePlan.defense.chiSpent > 0) {
-        defender = spendChi(
-          "ai",
-          defensePlan.defenderAfter,
-          defensePlan.defense.chiSpent
-        );
-      } else if (defensePlan.defenderAfter !== defender) {
-        defender = defensePlan.defenderAfter;
-        setPlayer("ai", defender);
-      }
-
-      window.setTimeout(() => {
-        const resolution = resolveAttack({
-          source: "player",
-          attackerSide: "you",
-          defenderSide: "ai",
-          attacker,
-          defender,
-          ability: effectiveAbility,
-          attackChiSpend: spendableAttackChi,
-          attackChiApplied: chiApplied,
-          defense: {
-            resolution: defensePlan.defense,
-            manualEvasive,
-          },
-        });
-
-        resolveWithEvents(resolution, "you", "ai");
-      }, 600);
+      runDefenseRoll(defender);
     }, 60);
   }, [
     ability,
     aiActiveAbilities,
     aiStepDelay,
     animateDefenseDie,
+    animateDefenseRoll,
     attackChiSpend,
     clearAttackChiSpend,
+    closeDiceTray,
     consumeTurnChi,
     dice,
     latestState,
     logPlayerAttackStart,
     logPlayerNoCombo,
+    openDiceTray,
+    pushLog,
     patchAiDefense,
     performAiActiveAbility,
     popDamage,
@@ -445,6 +475,7 @@ export function useDefenseActions({
     if (!pendingAttack || pendingAttack.defender !== "you") return;
     if (playerDefenseState) return;
 
+    openDiceTray();
     const snapshot = latestState.current;
     const attacker = snapshot.players[pendingAttack.attacker];
     const defender = snapshot.players[pendingAttack.defender];
@@ -546,6 +577,7 @@ export function useDefenseActions({
     clearDefenseChiSpend();
     setPendingAttackDispatch(null);
     setPlayerDefenseState(null);
+    closeDiceTray();
     resolveWithEvents(resolution, pendingAttack.attacker, pendingAttack.defender);
   }, [
     clearDefenseChiSpend,
@@ -555,6 +587,7 @@ export function useDefenseActions({
     pendingAttack,
     playerDefenseState,
     resolveWithEvents,
+    closeDiceTray,
     setPendingAttackDispatch,
     setPlayer,
     setPlayerDefenseState,
@@ -566,6 +599,7 @@ export function useDefenseActions({
     if (!pendingAttack || pendingAttack.defender !== "you") return;
     const defenderSnapshot = latestState.current.players[pendingAttack.defender];
     if (!defenderSnapshot || defenderSnapshot.tokens.evasive <= 0) return;
+    openDiceTray();
     setPhase("defense");
     animateDefenseDie((evasiveRoll) => {
       const snapshot = latestState.current;
@@ -607,6 +641,7 @@ export function useDefenseActions({
         clearDefenseChiSpend();
         setPendingAttackDispatch(null);
         setPlayerDefenseState(null);
+        closeDiceTray();
         resolveWithEvents(resolution, pendingAttack.attacker, pendingAttack.defender);
       }
     }, 650);
@@ -616,6 +651,8 @@ export function useDefenseActions({
     latestState,
     pendingAttack,
     resolveWithEvents,
+    openDiceTray,
+    closeDiceTray,
     setPendingAttackDispatch,
     setPhase,
     setPlayer,

@@ -12,6 +12,7 @@ type DiceGridProps = {
   statusActive: boolean;
   isAi?: boolean;
   aiSimHeld?: boolean[];
+  diceImages?: (string | null | undefined)[];
 };
 
 export default function DiceGrid({
@@ -26,6 +27,7 @@ export default function DiceGrid({
   statusActive,
   isAi = false,
   aiSimHeld,
+  diceImages,
 }: DiceGridProps) {
   return (
     <div className='grid-5'>
@@ -61,6 +63,42 @@ export default function DiceGrid({
           }
         };
 
+        const imageSrc = diceImages?.[value - 1] ?? null;
+
+        let faceContent: React.ReactNode;
+        if (showDcLogo && !isRolling) {
+          faceContent = (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 40,
+                height: 40,
+                border: "1px solid #059669",
+                borderRadius: 8,
+                fontWeight: 700,
+              }}>
+              DC
+            </span>
+          );
+        } else if (imageSrc) {
+          faceContent = (
+            <img
+              src={imageSrc}
+              alt={`Die face ${value}`}
+              className='die-face-img'
+              draggable={false}
+            />
+          );
+        } else {
+          faceContent = (
+            <span className={`num ${isRolling ? "animate-pulse" : ""}`}>
+              {value}
+            </span>
+          );
+        }
+
         return (
           <button
             key={index}
@@ -69,25 +107,7 @@ export default function DiceGrid({
             onClick={handleClick}
             aria-pressed={isHeld}
             disabled={!canToggle}>
-            {showDcLogo && !isRolling ? (
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 40,
-                  height: 40,
-                  border: "1px solid #059669",
-                  borderRadius: 8,
-                  fontWeight: 700,
-                }}>
-                DC
-              </span>
-            ) : (
-              <span className={`num ${isRolling ? "animate-pulse" : ""}`}>
-                {value}
-              </span>
-            )}
+            {faceContent}
             <span
               className={`die-flag ${
                 isDefenseDie ? "def" : isHeld ? "held" : ""

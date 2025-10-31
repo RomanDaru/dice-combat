@@ -1,10 +1,12 @@
 import { Hero, HeroId, OffensiveAbility, DefensiveAbility } from "./types";
 import type { EffectId } from "./effects";
 import { defaultAiStrategy, monkAiStrategy, pyroAiStrategy } from "./ai";
+import { HERO_SKIN_IDS } from "./visuals";
 
 export const HEROES: Record<HeroId, Hero> = {
   Pyromancer: {
     id: "Pyromancer",
+    skin: HERO_SKIN_IDS.PYROMANCER_DEFAULT,
     name: "Pyromancer",
     maxHp: 30,
     offensiveBoard: {
@@ -87,6 +89,7 @@ export const HEROES: Record<HeroId, Hero> = {
   },
   "Shadow Monk": {
     id: "Shadow Monk",
+    skin: HERO_SKIN_IDS.SHADOW_MONK_DEFAULT,
     name: "Shadow Monk",
     maxHp: 30,
     offensiveBoard: {
@@ -178,6 +181,7 @@ export const HEROES: Record<HeroId, Hero> = {
   },
   "Training Dummy": {
     id: "Training Dummy",
+    skin: HERO_SKIN_IDS.TRAINING_DUMMY_DEFAULT,
     name: "Training Dummy",
     maxHp: 50,
     offensiveBoard: {
