@@ -1,5 +1,6 @@
-﻿import { Tokens } from "./types";
+import type { Tokens } from "./types";
 import { rollDie } from "./combos";
+import type { Rng } from "../engine/rng";
 
 type SimpleDefenseRoll = {
   roll: number;
@@ -18,8 +19,11 @@ export function pyroDefenseFromRoll({
   return { reflect: 0, reduced: 0 };
 }
 
-export function pyroDefenseRoll(tokens: Tokens): SimpleDefenseRoll {
-  const roll = rollDie();
+export function pyroDefenseRoll(
+  tokens: Tokens,
+  rng: Rng
+): SimpleDefenseRoll {
+  const roll = rollDie(rng);
   return { roll, ...pyroDefenseFromRoll({ roll, tokens }) };
 }
 
@@ -35,7 +39,8 @@ export function monkDefenseFromRoll({
   return { reflect: 0, reduced: 0 };
 }
 
-export function monkDefenseRoll(tokens: Tokens): SimpleDefenseRoll {
-  const roll = rollDie();
+export function monkDefenseRoll(tokens: Tokens, rng: Rng): SimpleDefenseRoll {
+  const roll = rollDie(rng);
   return { roll, ...monkDefenseFromRoll({ roll, tokens }) };
 }
+

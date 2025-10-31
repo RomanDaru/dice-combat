@@ -1,10 +1,11 @@
-﻿import { useCallback } from "react";
+import { useCallback } from "react";
 import { bestAbility, rollDie } from "../game/combos";
 import type { GameState } from "../game/state";
 import type { OffensiveAbility, PlayerState, Side } from "../game/types";
 import { useGame } from "../context/GameContext";
 import { useLatest } from "./useLatest";
 import type { GameFlowEvent } from "./useTurnController";
+import type { Rng } from "../engine/rng";
 
 type UseAiControllerArgs = {
   logAiNoCombo: (diceValues: number[]) => void;
@@ -19,6 +20,7 @@ type UseAiControllerArgs = {
   turnChiAvailable: Record<Side, number>;
   consumeTurnChi: (side: Side, amount: number) => void;
   onAiNoCombo: () => void;
+  rng: Rng;
 };
 
 export function useAiController({
@@ -30,6 +32,7 @@ export function useAiController({
   turnChiAvailable,
   consumeTurnChi,
   onAiNoCombo,
+  rng,
 }: UseAiControllerArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
@@ -100,7 +103,7 @@ export function useAiController({
     setAiSimActive(true);
     setAiSimRolling(false);
 
-    let localDice = Array.from({ length: 5 }, () => rollDie());
+    let localDice = Array.from({ length: 5 }, () => rollDie(rng));
     let localHeld = [false, false, false, false, false];
 
     const doStep = (step: number) => {
@@ -115,7 +118,7 @@ export function useAiController({
       }
 
       for (let i = 0; i < 5; i += 1) {
-        if (!localHeld[i]) localDice[i] = rollDie();
+        if (!localHeld[i]) localDice[i] = rollDie(rng);
       }
 
       const finalDice = [...localDice];
@@ -199,6 +202,7 @@ export function useAiController({
     consumeTurnChi,
     logAiAttackRoll,
     logAiNoCombo,
+    rng,
     setAiSimActive,
     setAiSimHeld,
     setAiSimRolling,
@@ -212,5 +216,4 @@ export function useAiController({
     aiPlay,
   };
 }
-
 

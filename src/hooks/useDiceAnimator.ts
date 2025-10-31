@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { rollDie } from "../game/combos";
 import { useGame } from "../context/GameContext";
 import { useLatest } from "./useLatest";
+import type { Rng } from "../engine/rng";
 
 type DiceUpdater = number[] | ((prev: number[]) => number[]);
 type HeldUpdater = boolean[] | ((prev: boolean[]) => boolean[]);
@@ -9,9 +10,13 @@ type RollsUpdater = number | ((prev: number) => number);
 
 type UseDiceAnimatorArgs = {
   defenseDieIndex: number;
+  rng: Rng;
 };
 
-export function useDiceAnimator({ defenseDieIndex }: UseDiceAnimatorArgs) {
+export function useDiceAnimator({
+  defenseDieIndex,
+  rng,
+}: UseDiceAnimatorArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
 
@@ -89,7 +94,7 @@ export function useDiceAnimator({ defenseDieIndex }: UseDiceAnimatorArgs) {
         setDice([...workingDice]);
         if (Date.now() - start > duration) {
           window.clearInterval(timer);
-          const result = rollDie();
+          const result = rollDie(rng);
           workingDice = workingDice.map((value, index) =>
             index === defenseDieIndex ? result : value
           );
@@ -99,7 +104,14 @@ export function useDiceAnimator({ defenseDieIndex }: UseDiceAnimatorArgs) {
         }
       }, 90);
     },
-    [defenseDieIndex, latestState, setDice, setRolling, setSavedDiceForDefense]
+    [
+      defenseDieIndex,
+      latestState,
+      rng,
+      setDice,
+      setRolling,
+      setSavedDiceForDefense,
+    ]
   );
 
   const animateDefenseRoll = useCallback(
@@ -112,18 +124,18 @@ export function useDiceAnimator({ defenseDieIndex }: UseDiceAnimatorArgs) {
       let workingDice = [...latestState.current.dice];
       const startedAt = Date.now();
       const timer = window.setInterval(() => {
-        workingDice = workingDice.map(() => rollDie());
+        workingDice = workingDice.map(() => rollDie(rng));
         setDice([...workingDice]);
         if (Date.now() - startedAt > duration) {
           window.clearInterval(timer);
-          const result = Array.from({ length: 5 }, () => rollDie());
+          const result = Array.from({ length: 5 }, () => rollDie(rng));
           setDice(result);
           setRolling([false, false, false, false, false]);
           window.setTimeout(() => onDone(result), 50);
         }
       }, 90);
     },
-    [latestState, setDice, setRolling, setSavedDiceForDefense]
+    [latestState, rng, setDice, setRolling, setSavedDiceForDefense]
   );
 
   const restoreDiceAfterDefense = useCallback(() => {

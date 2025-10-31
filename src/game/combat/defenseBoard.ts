@@ -1,5 +1,6 @@
 import { detectCombos, rollDie } from "../combos";
 import type { Combo, Hero } from "../types";
+import type { Rng } from "../../engine/rng";
 import type {
   BaseDefenseResolution,
   DefenseBoardOption,
@@ -17,8 +18,8 @@ export const DEFENSE_COMBO_PRIORITY: Combo[] = [
   "PAIR_PAIR",
 ];
 
-export const rollDefenseDice = (): number[] =>
-  Array.from({ length: 5 }, () => rollDie());
+export const rollDefenseDice = (rng: Rng): number[] =>
+  Array.from({ length: 5 }, () => rollDie(rng));
 
 export const evaluateDefenseRoll = (
   hero: Hero,

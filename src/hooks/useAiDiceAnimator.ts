@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { rollDie } from "../game/combos";
 import { useGame } from "../context/GameContext";
 import { useLatest } from "./useLatest";
 
@@ -30,7 +29,7 @@ export function useAiDiceAnimator({
       let previewDice = [...latestState.current.aiPreview.dice];
       const interval = window.setInterval(() => {
         previewDice = previewDice.map((value, index) =>
-          rerollMask[index] ? rollDie() : value
+          rerollMask[index] ? 1 + Math.floor(Math.random() * 6) : value
         );
         dispatch({ type: "SET_AI_PREVIEW_DICE", dice: [...previewDice] });
       }, tickIntervalMs);

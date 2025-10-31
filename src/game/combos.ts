@@ -1,7 +1,8 @@
-import { getOffensiveAbilities } from './abilityBoards';
-import { OffensiveAbility, Combo, Hero } from './types';
+import { getOffensiveAbilities } from "./abilityBoards";
+import type { Rng } from "../engine/rng";
+import { OffensiveAbility, Combo, Hero } from "./types";
 
-export const rollDie = () => 1 + Math.floor(Math.random() * 6);
+export const rollDie = (rng: Rng) => 1 + Math.floor(rng() * 6);
 
 export function detectCombos(dice: number[]) {
   const sorted = [...dice].sort((a, b) => a - b);

@@ -18,7 +18,7 @@ const HERO_IMAGES: Record<string, string> = {
 
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, undefined, () =>
-    createInitialState(HEROES.Pyromancer, HEROES["Shadow Monk"])
+    createInitialState(HEROES.Pyromancer, HEROES["Shadow Monk"], Date.now())
   );
 
   const [screen, setScreen] = useState<"intro" | "hero-select" | "game">(
@@ -37,7 +37,7 @@ export default function App() {
   const startBattle = (playerHero: Hero, aiHero: Hero) => {
     dispatch({
       type: "RESET",
-      payload: { youHero: playerHero, aiHero },
+      payload: { youHero: playerHero, aiHero, seed: Date.now() },
     });
     setScreen("game");
   };

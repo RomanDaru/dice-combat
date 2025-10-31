@@ -1,6 +1,15 @@
 import type { StatusId } from "./statuses";
 import { HEROES } from "./heroes";
-import { Hero, Phase, PlayerState, Side, OffensiveAbility, Tokens, Combo } from "./types";
+import {
+  Hero,
+  Phase,
+  PlayerState,
+  Side,
+  OffensiveAbility,
+  Tokens,
+  Combo,
+} from "./types";
+import { normalizeSeed } from "../engine/rng";
 
 type FloatDamage = { val: number; kind: "hit" | "reflect" };
 
@@ -59,6 +68,7 @@ export type GameState = {
   turn: Side;
   phase: Phase;
   round: number;
+  rngSeed: number;
   dice: number[];
   held: boolean[];
   rolling: boolean[];
@@ -89,8 +99,10 @@ function createPlayer(hero: Hero): PlayerState {
 
 export function createInitialState(
   youHero: Hero = HEROES.Pyromancer,
-  aiHero: Hero = HEROES["Shadow Monk"]
+  aiHero: Hero = HEROES["Shadow Monk"],
+  seed: number = Date.now()
 ): GameState {
+  const rngSeed = normalizeSeed(seed);
   const youPlayer = createPlayer(youHero);
   const aiPlayer = createPlayer(aiHero);
   const startMessage = `Start of battle. (${youPlayer.hero.name} HP: ${youPlayer.hp}/${youPlayer.hero.maxHp}, ${aiPlayer.hero.name} HP: ${aiPlayer.hp}/${aiPlayer.hero.maxHp})`;
@@ -102,6 +114,7 @@ export function createInitialState(
     turn: "you",
     phase: "standoff",
     round: 0,
+    rngSeed,
     dice: [2, 2, 3, 4, 6],
     held: [false, false, false, false, false],
     rolling: [false, false, false, false, false],
@@ -141,7 +154,7 @@ export function createInitialState(
 export type GameAction =
   | {
       type: "RESET";
-      payload: { youHero: Hero; aiHero: Hero };
+      payload: { youHero: Hero; aiHero: Hero; seed?: number };
     }
   | { type: "SET_PHASE"; phase: Phase }
   | { type: "SET_TURN"; turn: Side }
@@ -196,7 +209,11 @@ export type GameAction =
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "RESET":
-      return createInitialState(action.payload.youHero, action.payload.aiHero);
+      return createInitialState(
+        action.payload.youHero,
+        action.payload.aiHero,
+        action.payload.seed
+      );
     case "SET_PHASE":
       return { ...state, phase: action.phase };
     case "SET_TURN":

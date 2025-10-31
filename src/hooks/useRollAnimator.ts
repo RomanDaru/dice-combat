@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { MutableRefObject } from "react";
 import { rollDie } from "../game/combos";
+import type { Rng } from "../engine/rng";
 import type { GameState } from "../game/state";
 
 type UseRollAnimatorArgs = {
@@ -8,6 +9,7 @@ type UseRollAnimatorArgs = {
   setDice: (value: number[] | ((prev: number[]) => number[])) => void;
   setRolling: (value: boolean[]) => void;
   setRollsLeft: (value: number | ((prev: number) => number)) => void;
+  rng: Rng;
   durationMs?: number;
   intervalMs?: number;
 };
@@ -17,6 +19,7 @@ export function useRollAnimator({
   setDice,
   setRolling,
   setRollsLeft,
+  rng,
   durationMs = 1300,
   intervalMs = 100,
 }: UseRollAnimatorArgs) {
@@ -42,14 +45,14 @@ export function useRollAnimator({
 
       timerRef.current = window.setInterval(() => {
         workingDice = workingDice.map((value, index) =>
-          mask[index] ? rollDie() : value
+          mask[index] ? rollDie(rng) : value
         );
         setDice([...workingDice]);
 
         if (Date.now() - startedAt > durationMs) {
           stopTimer();
           workingDice = workingDice.map((value, index) =>
-            mask[index] ? rollDie() : value
+            mask[index] ? rollDie(rng) : value
           );
           setDice([...workingDice]);
           setRolling(mask.map(() => false));
@@ -57,7 +60,16 @@ export function useRollAnimator({
         }
       }, intervalMs);
     },
-    [durationMs, intervalMs, setDice, setRolling, setRollsLeft, stateRef, stopTimer]
+    [
+      durationMs,
+      intervalMs,
+      rng,
+      setDice,
+      setRolling,
+      setRollsLeft,
+      stateRef,
+      stopTimer,
+    ]
   );
 
   return { animateRoll };

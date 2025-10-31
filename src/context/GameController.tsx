@@ -29,6 +29,8 @@ import {
   rollDie,
   selectedAbilityForHero,
 } from "../game/combos";
+import { makeRng } from "../engine/rng";
+import type { Rng } from "../engine/rng";
 import type {
   ActiveAbility,
   ActiveAbilityContext,
@@ -98,6 +100,17 @@ const GameControllerContext = createContext<ControllerContext | null>(null);
 
 export const GameController = ({ children }: { children: ReactNode }) => {
   const { state, dispatch } = useGame();
+  const rngRef = useRef<{ seed: number; rng: Rng }>({
+    seed: state.rngSeed,
+    rng: makeRng(state.rngSeed),
+  });
+  if (rngRef.current.seed !== state.rngSeed) {
+    rngRef.current = {
+      seed: state.rngSeed,
+      rng: makeRng(state.rngSeed),
+    };
+  }
+  const rng = rngRef.current.rng;
   const latestState = useLatest(state);
   const aiPlayRef = useRef<() => void>(() => {});
   const [attackChiSpend, setAttackChiSpend] = useState(0);
@@ -215,6 +228,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     setDice,
     setRolling,
     setRollsLeft,
+    rng,
     durationMs: ROLL_ANIM_MS,
   });
 
@@ -325,8 +339,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     )
       return;
     dispatch({ type: "START_INITIAL_ROLL" });
-    const youRoll = rollDie();
-    const aiRoll = rollDie();
+    const youRoll = rollDie(rng);
+    const aiRoll = rollDie(rng);
     const winner =
       youRoll === aiRoll ? null : youRoll > aiRoll ? ("you" as Side) : "ai";
 
@@ -349,6 +363,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     initialRoll.inProgress,
     phase,
     pushLog,
+    rng,
   ]);
 
   const confirmInitialRoll = useCallback(() => {
@@ -386,7 +401,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     animateDefenseDie,
     animateDefenseRoll,
     restoreDiceAfterDefense,
-  } = useDiceAnimator({ defenseDieIndex: DEF_DIE_INDEX });
+  } = useDiceAnimator({ defenseDieIndex: DEF_DIE_INDEX, rng });
   const { animatePreviewRoll } = useAiDiceAnimator({
     rollDurationMs: AI_ROLL_ANIM_MS,
   });
@@ -454,6 +469,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
         })
       );
     },
+    rng,
   });
 
   useEffect(() => {
@@ -585,6 +601,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       payload: {
         youHero: current.players.you.hero,
         aiHero: current.players.ai.hero,
+        seed: Date.now(),
       },
     });
     resetRoll();
