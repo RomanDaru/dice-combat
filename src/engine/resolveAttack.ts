@@ -1,7 +1,7 @@
-﻿import { applyAttack } from "../engine";
-import type { AttackContext, AttackResolution } from "./types";
-import type { Side } from "../types";
-import { buildAttackResolutionLines } from "../logging/combatLog";
+import { applyAttack } from "../game/engine";
+import type { AttackContext, AttackResolution } from "../game/combat/types";
+import type { Side } from "../game/types";
+import { buildAttackResolutionLines } from "../game/logging/combatLog";
 
 export function resolveAttack(context: AttackContext): AttackResolution {
   const {
@@ -62,7 +62,8 @@ export function resolveAttack(context: AttackContext): AttackResolution {
               delayMs: 700,
               prePhase: "end" as const,
             },
-            followUp: nextSide === "ai" ? ("trigger_ai_turn" as const) : undefined,
+            followUp:
+              nextSide === "ai" ? ("trigger_ai_turn" as const) : undefined,
           },
         ]
       : [];
@@ -87,3 +88,4 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     events,
   };
 }
+

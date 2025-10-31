@@ -7,7 +7,7 @@ import {
   selectHighestBlockOption,
 } from "../game/combat/defenseBoard";
 import { buildDefensePlan } from "../game/combat/defensePipeline";
-import { resolveAttack } from "../game/combat/resolveAttack";
+import { resolveAttack } from "../engine/resolveAttack";
 import { ActiveAbilityIds } from "../game/activeAbilities";
 import { useGame } from "../context/GameContext";
 import { useActiveAbilities } from "./useActiveAbilities";
