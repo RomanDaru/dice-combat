@@ -4,6 +4,7 @@ import { PlayerAbilityList } from "../components/PlayerAbilityList";
 import { PlayerPanel } from "../components/PlayerPanel";
 import { PlayerActionPanel } from "../components/PlayerActionPanel";
 import { CombatLogPanel } from "../components/CombatLogPanel";
+import TurnProgress from "../components/TurnProgress";
 import { OpponentAbilityList } from "../components/OpponentAbilityList";
 import {
   GameController,
@@ -18,23 +19,6 @@ import styles from "./BattleScreen.module.css";
 
 type BattleScreenProps = {
   onBackToHeroSelect: () => void;
-};
-
-const phaseLabelFor = (phase: string): string => {
-  switch (phase) {
-    case "upkeep":
-      return "Upkeep Phase";
-    case "roll":
-      return "Roll Phase";
-    case "attack":
-      return "Attack Phase";
-    case "defense":
-      return "Defense Phase";
-    case "end":
-      return "End Phase";
-    default:
-      return "Standoff";
-  }
 };
 
 type SettingsMenuProps = {
@@ -355,36 +339,40 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
                       </div>
                     </div>
                   </div>
-                  <div className={styles.turnRow}>
-                    <div className={styles.turnMeta}>
-                      <span className={styles.roundPill}>
-                        Round {roundNumber}
-                      </span>
-                      <span className={styles.phasePill}>
-                        {phaseLabelFor(phase)}
-                      </span>
-                      <span className={styles.turnSummary}>{turnSummary}</span>
-                      <div className={styles.controlsRow}>
-                        <PlayerActionPanel />
-                      </div>
-                    </div>
-                  </div>
-                  <div className={clsx(styles.boardHalf, styles.playerHalf)}>
-                    <div className={styles.halfHeader}>
-                      <span>You</span>
-                    </div>
-                    <div className={styles.halfBody}>
-                      <div className={styles.hudRow}>
-                        <PlayerPanel side='you' />
-                      </div>
-                      <div className={styles.abilityCenter}>
-                        <PlayerAbilityList />
-                      </div>
+                <div className={styles.turnRow}>
+                  <div className={styles.turnMeta}>
+                    <span
+                      className={styles.roundPill}
+                      title={turnSummary}
+                      aria-label={`Round ${roundNumber}. ${turnSummary}`}>
+                      Round {roundNumber}
+                    </span>
+                    <div className={styles.turnProgressWrap}>
+                      <TurnProgress phase={phase} />
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
+                <div className={clsx(styles.boardHalf, styles.playerHalf)}>
+                  <div className={styles.halfHeader}>
+                    <span>You</span>
+                  </div>
+                  <div className={styles.halfBody}>
+                    <div className={styles.playerTopRow}>
+                      <div className={styles.playerHud}>
+                        <PlayerPanel side='you' />
+                      </div>
+                      <div className={styles.playerAbilities}>
+                        <PlayerAbilityList />
+                      </div>
+                    </div>
+                    <div className={styles.playerActionRail}>
+                      <PlayerActionPanel />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
           </div>
         </div>
         <aside className={styles.utilityColumn}>

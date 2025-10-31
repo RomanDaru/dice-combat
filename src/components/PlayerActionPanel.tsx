@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import clsx from "clsx";
-import TurnProgress from "./TurnProgress";
 import { useGame } from "../context/GameContext";
 import { useGameController, useGameData } from "../context/GameController";
+import { useCombatLog, indentLog } from "../hooks/useCombatLog";
 import styles from "./PlayerActionPanel.module.css";
 
 export function PlayerActionPanel() {
@@ -76,6 +76,36 @@ export function PlayerActionPanel() {
   const canAdjustAttackChi = canInteract && spendableChi > 0 && turn === "you";
   const canAdjustDefenseChi = isDefenseTurn && spendableChi > 0;
   const hasDefenseCombos = Boolean(defenseRoll && defenseRoll.options.length);
+  const { pushLog } = useCombatLog();
+  const lastThreatLog = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!incomingAttack || !incomingAbility) {
+      lastThreatLog.current = null;
+      return;
+    }
+
+    const attackerName =
+      attackerHero?.name ??
+      (incomingAttack.attacker === "you" ? "You" : "Opponent");
+    const abilityName =
+      incomingAbility.displayName ?? incomingAbility.label ?? incomingAbility.combo;
+    const threatened = threatenedDamage ?? 0;
+    const chiText = attackChiBonus ? `, Chi x${attackChiBonus}` : "";
+    const logLine = `[Threat] ${attackerName} threatens ${threatened} dmg (${abilityName}${chiText}).`;
+
+    if (lastThreatLog.current !== logLine) {
+      pushLog(indentLog(logLine));
+      lastThreatLog.current = logLine;
+    }
+  }, [
+    incomingAttack,
+    incomingAbility,
+    attackerHero?.name,
+    attackChiBonus,
+    threatenedDamage,
+    pushLog,
+  ]);
 
   const adjustAttackChi = (delta: number) => {
     setAttackChiSpend((prev) => {
@@ -126,15 +156,7 @@ export function PlayerActionPanel() {
         incomingAbility.label ??
         incomingAbility.combo;
       const attackerName = attackerHero?.name ?? "Opponent";
-      return (
-        <div className={styles.infoDefense}>
-          <span className={clsx("badge", "indigo", styles.badgeSpacing)}>
-            {attackerName} threatens <b>{threatenedDamage ?? 0}</b> dmg (
-            {abilityName}
-            {attackChiBonus ? `, Chi x${attackChiBonus}` : ""})
-          </span>
-        </div>
-      );
+    return null;
     }
 
     if (rollsLeft === 3) {
@@ -248,29 +270,6 @@ export function PlayerActionPanel() {
     </div>
   );
 
-  const helperText = statusActive
-    ? `Upkeep burn check: roll 5-6 to clear Burn (${
-        pendingStatusClear?.side === "you"
-          ? "click Status Roll"
-          : "AI rolls automatically"
-      }).`
-    : isDefenseTurn
-    ? defenseRoll
-      ? defenseRoll.options.length === 0
-        ? "No defensive combos available. Confirm defense to block 0 damage."
-        : awaitingDefenseSelection
-        ? "Select a defensive ability (or skip) and press Confirm Defense."
-        : "Defense locked in. Waiting for resolution."
-      : "Roll your defense dice to reveal available abilities."
-    : turn !== "you"
-    ? "Waiting for the opponent to complete their turn."
-    : rollsLeft === 3
-    ? "Roll once to reveal available abilities."
-    : !ability
-    ? "No combos yet—open the dice tray and roll again or pass the turn."
-    : selectedAttackCombo && ability && ability.combo === selectedAttackCombo
-    ? "Selected ability is ready. Press Confirm Attack when you're set."
-    : "Click an ability card to lock it in, or Confirm Attack to use the suggestion.";
   const showRollButton = !isDefenseTurn;
   const rollDisabled =
     turn !== "you" || statusActive || rollsLeft <= 0 || rolling.some(Boolean);
@@ -278,8 +277,7 @@ export function PlayerActionPanel() {
     turn !== "you" || statusActive || rolling.some(Boolean);
 
   return (
-    <div className='row'>
-      <TurnProgress phase={phase} />
+    <div className={styles.panel}>
       <div className={styles.actionRow}>
         {showRollButton && (
           <button
@@ -395,7 +393,6 @@ export function PlayerActionPanel() {
             </div>
           </div>
         )}
-        {renderInfoBanner()}
         {!statusActive && activeAbilities.length > 0 && (
           <div className={styles.activeAbilityRow}>
             {activeAbilities.map((activeAbility) => (
@@ -410,8 +407,7 @@ export function PlayerActionPanel() {
           </div>
         )}
       </div>
-
-      <div className={styles.helperText}>{helperText}</div>
+      {renderInfoBanner()}
       {statusCard}
       {defenseIndicators}
     </div>

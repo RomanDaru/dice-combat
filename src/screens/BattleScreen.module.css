@@ -89,11 +89,7 @@
       rgba(99, 102, 241, 0.15),
       transparent 45%
     ),
-    radial-gradient(
-      circle at 80% 90%,
-      rgba(239, 68, 68, 0.15),
-      transparent 55%
-    );
+    radial-gradient(circle at 80% 90%, rgba(239, 68, 68, 0.15), transparent 55%);
   pointer-events: none;
   mix-blend-mode: screen;
   opacity: 0.65;
@@ -159,17 +155,24 @@
 
 .turnRow {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: clamp(12px, 2vw, 20px);
-  flex-wrap: wrap;
+  justify-content: center;
+  padding: 8px 0;
 }
 
 .turnMeta {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: clamp(16px, 3vw, 48px);
+  width: min(100%, 720px);
+  margin: 0 auto;
+}
+
+.turnProgressWrap {
+  display: flex;
+  justify-content: center;
+  flex: 0 0 auto;
+  justify-self: center;
 }
 
 .boardSplit {
@@ -208,7 +211,7 @@
 .halfBody {
   display: flex;
   flex-direction: column;
-  gap: clamp(14px, 2.5vw, 24px);
+  gap: clamp(16px, 2.5vw, 26px);
 }
 
 .hudRow {
@@ -221,14 +224,45 @@
   justify-content: center;
 }
 
-.controlsRow {
+.abilityCenter > * {
+  width: min(100%, 560px);
+}
+
+.playerTopRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(16px, 2.8vw, 32px);
+  flex-wrap: wrap;
+}
+
+.playerHud {
+  flex: 0 0 auto;
   display: flex;
   justify-content: center;
 }
 
-.abilityCenter > *,
-.controlsRow > * {
-  width: min(100%, 560px);
+.playerHud > * {
+  width: min(100%, 320px);
+}
+
+.playerAbilities {
+  flex: 1 1 340px;
+  display: flex;
+  justify-content: center;
+}
+
+.playerAbilities > * {
+  width: min(100%, 420px);
+}
+
+.playerActionRail {
+  display: flex;
+  justify-content: center;
+}
+
+.playerActionRail > * {
+  width: min(100%, 520px);
 }
 
 .settingsMenu {
@@ -247,8 +281,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease,
-    border-color 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .settingsButton:focus-visible {
@@ -256,7 +289,7 @@
   outline-offset: 2px;
 }
 
-.settingsButton[aria-expanded='true'] {
+.settingsButton[aria-expanded="true"] {
   border-color: rgba(96, 165, 250, 0.75);
   box-shadow: 0 10px 22px rgba(59, 130, 246, 0.3);
 }
@@ -306,8 +339,7 @@
   border-color: rgba(96, 165, 250, 0.45);
 }
 
-.roundPill,
-.phasePill {
+.roundPill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -319,19 +351,9 @@
   border: 1px solid rgba(148, 163, 184, 0.2);
   color: #f8fafc;
   letter-spacing: 0.03em;
+  justify-self: start;
 }
 
-.phasePill {
-  background: rgba(21, 128, 61, 0.35);
-  border-color: rgba(74, 222, 128, 0.4);
-}
-
-.turnSummary {
-  font-size: 14px;
-  color: #e0f2fe;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-}
 
 .boardGrid {
   display: grid;
@@ -563,13 +585,26 @@
     flex: 1 1 auto;
     min-height: auto;
   }
+  .turnMeta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+  .turnProgressWrap {
+    width: 100%;
+  }
+  .roundPill {
+    justify-self: center;
+  }
   .headerRow {
     flex-direction: column;
     align-items: flex-start;
   }
   .turnRow {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
   }
   .boardHalf {
     padding: 20px;

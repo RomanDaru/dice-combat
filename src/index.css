@@ -235,63 +235,48 @@ body {
 }
 
 .turn-progress {
-  display: grid;
-  gap: 6px;
-}
-.turn-progress-bar {
-  position: relative;
-  height: 8px;
-  background: rgba(39, 39, 42, 0.7);
-  border-radius: 999px;
-  overflow: hidden;
-}
-.turn-progress-bar-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: linear-gradient(90deg, #059669, #34d399);
-  transition: width 0.3s ease;
-}
-.turn-progress-steps {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(16px, 4vw, 48px);
 }
 .turn-step {
   display: flex;
-  flex: 1;
-  min-width: 0;
-  gap: 4px;
   flex-direction: column;
   align-items: center;
-  text-align: center;
+  gap: 6px;
+  min-width: 48px;
+  color: #a1a1aa;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color 0.2s ease;
 }
 .turn-step-dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 999px;
-  background: #27272a;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  background: #2f2f3a;
+  box-shadow: 0 0 0 2px rgba(39, 39, 42, 0.65);
+  transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 .turn-step-label {
-  font-size: 11px;
-  color: #71717a;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transition: color 0.3s ease;
+  text-align: center;
 }
 .turn-step.done .turn-step-dot {
-  background: #34d399;
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.25);
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.35);
 }
-.turn-step.done .turn-step-label {
-  color: #a1a1aa;
+.turn-step.done {
+  color: #d1fae5;
 }
 .turn-step.active .turn-step-dot {
-  background: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.35);
+  background: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.45);
+  transform: scale(1.2);
 }
-.turn-step.active .turn-step-label {
-  color: #e4e4e7;
+.turn-step.active {
+  color: #e0f2fe;
   font-weight: 600;
 }
 
@@ -553,7 +538,3 @@ body {
     align-items: start;
   }
 }
-
-
-
-
