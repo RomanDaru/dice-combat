@@ -1,4 +1,4 @@
-import type { StatusDef, StatusRegistry } from "./types";
+import type { StatusDef, StatusId, StatusRegistry } from "./types";
 
 const REGISTRY: StatusRegistry = {};
 
@@ -7,7 +7,7 @@ export function defineStatus(definition: StatusDef): StatusDef {
   return definition;
 }
 
-export function getStatus(id: string): StatusDef | undefined {
+export function getStatus(id: StatusId): StatusDef | undefined {
   return REGISTRY[id];
 }
 
@@ -20,4 +20,3 @@ export function resetStatuses() {
     delete REGISTRY[key];
   });
 }
-

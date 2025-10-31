@@ -1,7 +1,7 @@
 import type { GameState, PendingStatusClear } from "./state";
 import type { Side, PlayerState } from "./types";
-import type { StatusId } from "./statuses";
-import { tickAllStatuses } from "./statuses";
+import type { StatusId } from "../engine/status";
+import { tickStatuses } from "../engine/status";
 
 export type PendingStatusEntry = { side: Side; status: StatusId; stacks: number };
 
@@ -28,13 +28,22 @@ export function resolveTurnStart(
   }
 
   const heroName = before.hero.name;
-  const { player: after, totalDamage, logParts, prompts } = tickAllStatuses(
-    before
-  );
+  const {
+    next: nextStacks,
+    totalDamage,
+    logs: tickLogs,
+    prompts,
+  } = tickStatuses(before.tokens ?? {});
+
+  const after: PlayerState = {
+    ...before,
+    tokens: nextStacks,
+    hp: Math.max(0, before.hp - totalDamage),
+  };
 
   const logLines: string[] = [];
   if (totalDamage > 0) {
-    const detail = logParts.length > 0 ? ` (${logParts.join(", ")})` : "";
+    const detail = tickLogs.length > 0 ? ` (${tickLogs.join(", ")})` : "";
     logLines.push(
       indent(
         `Upkeep: ${heroName} takes ${totalDamage} dmg${detail}. HP: ${after.hp}/${after.hero.maxHp}.`

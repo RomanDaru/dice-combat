@@ -4,7 +4,7 @@ defineStatus({
   id: "chi",
   kind: "positive",
   name: "Chi",
-  icon: "🔥",
+  icon: "C",
   maxStacks: 6,
   spend: {
     costStacks: 1,
@@ -13,14 +13,14 @@ defineStatus({
       if (phase === "attackRoll") {
         return {
           bonusDamage: 1,
-          log: "Chi → +1 damage",
+          log: "Chi -> +1 damage",
         };
       }
       if (phase === "defenseRoll") {
         const block = (roll ?? 0) >= 5 ? 2 : 1;
         return {
           bonusBlock: block,
-          log: `Chi → +${block} block`,
+          log: `Chi -> +${block} block`,
         };
       }
       return {};
@@ -32,7 +32,7 @@ defineStatus({
   id: "evasive",
   kind: "positive",
   name: "Evasive",
-  icon: "✨",
+  icon: "E",
   maxStacks: 3,
   spend: {
     costStacks: 1,
@@ -44,7 +44,7 @@ defineStatus({
         ? {
             negateIncoming: true,
             success,
-            log: "Evasive success → attack dodged",
+            log: "Evasive success -> attack dodged",
           }
         : {
             success,
@@ -58,7 +58,7 @@ defineStatus({
   id: "burn",
   kind: "negative",
   name: "Burn",
-  icon: "🔥",
+  icon: "B",
   maxStacks: 3,
   priority: 10,
   onTick: (stacks) => {
@@ -68,7 +68,8 @@ defineStatus({
     return {
       damage,
       nextStacks,
-      log: damage > 0 ? `Burn ${capped} → ${damage} dmg` : undefined,
+      log: damage > 0 ? `Burn ${capped} -> ${damage} dmg` : undefined,
+      prompt: damage > 0 && nextStacks > 0,
     };
   },
   cleanse: {

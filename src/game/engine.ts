@@ -1,6 +1,6 @@
-﻿import type { OffensiveAbility, PlayerState, Tokens } from "./types";
+import type { OffensiveAbility, PlayerState, Tokens } from "./types";
 import type { ResolvedDefenseState } from "./combat/types";
-import { applyBurnStacks } from "./statuses/burn";
+import { addStacks, getStacks } from "../engine/status";
 
 type ApplyAttackOptions = {
   defense?: ResolvedDefenseState | null;
@@ -71,9 +71,10 @@ export function applyAttack(
     : 0;
 
   let defenderTokens = applyDefenseTokens(defender.tokens, defenseTokens);
-  const burnBefore = defenderTokens.burn ?? 0;
-  const nextBurn = applyBurnStacks(burnBefore, applyEffects.burn ?? 0);
-  defenderTokens = { ...defenderTokens, burn: nextBurn };
+  if (applyEffects.burn && applyEffects.burn > 0) {
+    defenderTokens = addStacks(defenderTokens, "burn", applyEffects.burn);
+  }
+  const burnAfter = getStacks(defenderTokens, "burn", 0);
 
   const defenderHpAfter = Math.min(
     defender.hero.maxHp,
@@ -98,7 +99,7 @@ export function applyAttack(
       ...attacker.tokens,
       chi: clampChi((attacker.tokens.chi ?? 0) + (applyEffects.chi ?? 0)),
       evasive: Math.max(0, (attacker.tokens.evasive ?? 0) + (applyEffects.evasive ?? 0)),
-      burn: attacker.tokens.burn ?? 0,
+      burn: getStacks(attacker.tokens, "burn", 0),
     },
   };
 
@@ -128,11 +129,11 @@ export function applyAttack(
     notes.push(`${attacker.hero.id} gains Evasive (+${evasiveGain}).`);
   }
 
-  const burnDelta = nextDefender.tokens.burn - (defenderStart.tokens.burn ?? 0);
+  const burnDelta = burnAfter - getStacks(defenderStart.tokens, "burn", 0);
   if (burnDelta > 0) {
     notes.push(
-      `${defender.hero.id} gains Burn (${nextDefender.tokens.burn} stack${
-        nextDefender.tokens.burn > 1 ? "s" : ""
+      `${defender.hero.id} gains Burn (${burnAfter} stack${
+        burnAfter > 1 ? "s" : ""
       }).`
     );
   }
@@ -147,3 +148,12 @@ export function applyAttack(
 
   return [nextAttacker, nextDefender, notes];
 }
+
+
+
+
+
+
+
+
+

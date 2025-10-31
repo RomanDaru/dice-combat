@@ -1,4 +1,4 @@
-import type { StatusId } from "./statuses";
+import type { StatusId } from "../engine/status";
 import { HEROES } from "./heroes";
 import {
   Hero,
@@ -61,7 +61,7 @@ export type FxState = {
   shake: Record<Side, boolean>;
 };
 
-const EMPTY_TOKENS: Tokens = { burn: 0, chi: 0, evasive: 0 };
+const EMPTY_TOKENS: Tokens = {};
 
 export type GameState = {
   players: Record<Side, PlayerState>;

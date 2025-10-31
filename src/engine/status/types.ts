@@ -1,3 +1,5 @@
+export type StatusId = string;
+
 export type StatusKind = "positive" | "negative";
 
 export type StatusPhase =
@@ -34,6 +36,7 @@ export interface StatusTickResult {
   damage?: number;
   nextStacks: number;
   log?: string;
+  prompt?: boolean;
 }
 
 export interface StatusCleanseRollResult {
@@ -63,7 +66,7 @@ export interface StatusModifyResult {
 }
 
 export interface StatusDef {
-  id: string;
+  id: StatusId;
   kind: StatusKind;
   name: string;
   icon: string;
@@ -78,4 +81,4 @@ export interface StatusDef {
   ) => StatusModifyResult | undefined;
 }
 
-export type StatusRegistry = Record<string, StatusDef>;
+export type StatusRegistry = Record<StatusId, StatusDef>;

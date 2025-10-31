@@ -1,5 +1,6 @@
 import type {
   StatusDef,
+  StatusId,
   StatusModifyContext,
   StatusPhase,
   StatusSpendApplyContext,
@@ -7,7 +8,7 @@ import type {
 } from "./types";
 import { getStatus } from "./registry";
 
-export type StatusStacks = Record<string, number>;
+export type StatusStacks = Record<StatusId, number>;
 
 const clampStacks = (def: StatusDef, stacks: number) => {
   const { maxStacks } = def;
@@ -63,14 +64,14 @@ export type TickResult = {
   next: StatusStacks;
   totalDamage: number;
   logs: string[];
-  prompts: Array<{ id: string; stacks: number }>;
+  prompts: Array<{ id: StatusId; stacks: number }>;
 };
 
 export function tickStatuses(current: StatusStacks): TickResult {
   let working = { ...current };
   let totalDamage = 0;
   const logs: string[] = [];
-  const prompts: Array<{ id: string; stacks: number }> = [];
+  const prompts: Array<{ id: StatusId; stacks: number }> = [];
 
   Object.entries(current).forEach(([id, stacks]) => {
     const def = getStatus(id);
@@ -82,8 +83,9 @@ export function tickStatuses(current: StatusStacks): TickResult {
     }
     if (result.log) logs.push(result.log);
     working = setStacks(working, id, result.nextStacks);
-    if (result.nextStacks > 0) {
-      prompts.push({ id, stacks: result.nextStacks });
+    const nextStacks = working[id as StatusId] ?? 0;
+    if (result.prompt && nextStacks > 0) {
+      prompts.push({ id: id as StatusId, stacks: nextStacks });
     }
   });
 
@@ -155,4 +157,3 @@ export function applyModifiers(
 
   return { ctx: current, logs };
 }
-

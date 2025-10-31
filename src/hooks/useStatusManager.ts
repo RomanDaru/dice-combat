@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { getStatusDefinition } from "../game/statuses";
+import { getStatus, setStacks, getStacks } from "../engine/status";
 import type { PendingStatusClear } from "../game/state";
 import type { Side, PlayerState, Phase } from "../game/types";
 import { indentLog } from "./useCombatLog";
@@ -60,7 +60,7 @@ export function useStatusManager({
         return;
       }
 
-      const definition = getStatusDefinition(currentStatus.status);
+      const definition = getStatus(currentStatus.status);
       const cleanse = definition?.cleanse;
       if (!cleanse || cleanse.type !== "roll") {
         setPendingStatus(null);
@@ -80,13 +80,31 @@ export function useStatusManager({
           return;
         }
 
-        const result = cleanse.resolve(playerState, roll);
-        setPlayer(side, result.updated);
-        pushLog(indentLog(result.logLine));
+        const currentStacks = getStacks(
+          playerState.tokens,
+          currentStatus.status,
+          0
+        );
+        const result = cleanse.resolve(roll, currentStacks);
+        const nextTokens = setStacks(
+          playerState.tokens,
+          currentStatus.status,
+          result.nextStacks
+        );
+        const updatedPlayer: PlayerState = {
+          ...playerState,
+          tokens: nextTokens,
+        };
+        setPlayer(side, updatedPlayer);
+        if (result.log) {
+          pushLog(indentLog(result.log));
+        }
 
-        const updatedStacks = (result.updated.tokens as Record<string, number | undefined>)[
-          currentStatus.status
-        ] ?? 0;
+        const updatedStacks = getStacks(
+          nextTokens,
+          currentStatus.status,
+          0
+        );
 
         setPendingStatus({
           ...currentStatus,
