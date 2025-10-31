@@ -1,0 +1,158 @@
+import type {
+  StatusDef,
+  StatusModifyContext,
+  StatusPhase,
+  StatusSpendApplyContext,
+  StatusSpendApplyResult,
+} from "./types";
+import { getStatus } from "./registry";
+
+export type StatusStacks = Record<string, number>;
+
+const clampStacks = (def: StatusDef, stacks: number) => {
+  const { maxStacks } = def;
+  if (typeof maxStacks === "number") {
+    return Math.max(0, Math.min(maxStacks, stacks));
+  }
+  return Math.max(0, stacks);
+};
+
+export function getStacks(
+  stacks: StatusStacks,
+  id: string,
+  fallback = 0
+): number {
+  return stacks[id] ?? fallback;
+}
+
+export function setStacks(
+  stacks: StatusStacks,
+  id: string,
+  next: number
+): StatusStacks {
+  if (next <= 0 && stacks[id] === undefined) {
+    return stacks;
+  }
+  const def = getStatus(id);
+  const clamped = def ? clampStacks(def, next) : Math.max(0, next);
+  if (clamped <= 0) {
+    const { [id]: _, ...rest } = stacks;
+    return rest;
+  }
+  return { ...stacks, [id]: clamped };
+}
+
+export function addStacks(
+  stacks: StatusStacks,
+  id: string,
+  amount: number
+): StatusStacks {
+  if (amount === 0) return stacks;
+  const def = getStatus(id);
+  const current = stacks[id] ?? 0;
+  const next = current + amount;
+  const clamped = def ? clampStacks(def, next) : Math.max(0, next);
+  if (clamped <= 0) {
+    const { [id]: _, ...rest } = stacks;
+    return rest;
+  }
+  return { ...stacks, [id]: clamped };
+}
+
+export type TickResult = {
+  next: StatusStacks;
+  totalDamage: number;
+  logs: string[];
+  prompts: Array<{ id: string; stacks: number }>;
+};
+
+export function tickStatuses(current: StatusStacks): TickResult {
+  let working = { ...current };
+  let totalDamage = 0;
+  const logs: string[] = [];
+  const prompts: Array<{ id: string; stacks: number }> = [];
+
+  Object.entries(current).forEach(([id, stacks]) => {
+    const def = getStatus(id);
+    if (!def?.onTick) return;
+    const result = def.onTick(stacks);
+    if (!result) return;
+    if (typeof result.damage === "number" && result.damage > 0) {
+      totalDamage += result.damage;
+    }
+    if (result.log) logs.push(result.log);
+    working = setStacks(working, id, result.nextStacks);
+    if (result.nextStacks > 0) {
+      prompts.push({ id, stacks: result.nextStacks });
+    }
+  });
+
+  return { next: working, totalDamage, logs, prompts };
+}
+
+export type SpendStatusResult = {
+  next: StatusStacks;
+  spend: StatusSpendApplyResult;
+};
+
+export function spendStatus(
+  stacks: StatusStacks,
+  id: string,
+  phase: StatusPhase,
+  ctx: StatusSpendApplyContext
+): SpendStatusResult | null {
+  const def = getStatus(id);
+  if (!def?.spend) return null;
+  if (!def.spend.allowedPhases.includes(phase)) return null;
+
+  const current = stacks[id] ?? 0;
+  if (current < def.spend.costStacks) return null;
+
+  const result = def.spend.apply({ phase, ...ctx });
+  const remaining = current - def.spend.costStacks;
+  const next = setStacks(stacks, id, remaining);
+  return { next, spend: result };
+}
+
+export type ModifyResult = {
+  ctx: StatusModifyContext;
+  logs: string[];
+};
+
+export function applyModifiers(
+  stacks: StatusStacks,
+  ctx: StatusModifyContext
+): ModifyResult {
+  let current: StatusModifyContext = { ...ctx };
+  const logs: string[] = [];
+
+  const ordered = Object.entries(stacks)
+    .filter(([, count]) => count > 0)
+    .map(([id, count]) => {
+      const def = getStatus(id);
+      return def ? { def, count } : null;
+    })
+    .filter((entry): entry is { def: StatusDef; count: number } => Boolean(entry))
+    .sort((a, b) => (a.def.priority ?? 100) - (b.def.priority ?? 100));
+
+  ordered.forEach(({ def, count }) => {
+    if (!def.onModify) return;
+    const result = def.onModify({ id: def.id, stacks: count }, current);
+    if (!result) return;
+    if (result.log) logs.push(result.log);
+    current = {
+      ...current,
+      baseDamage:
+        typeof result.baseDamage === "number"
+          ? result.baseDamage
+          : current.baseDamage,
+      baseBlock:
+        typeof result.baseBlock === "number"
+          ? result.baseBlock
+          : current.baseBlock,
+    };
+  });
+
+  return { ctx: current, logs };
+}
+

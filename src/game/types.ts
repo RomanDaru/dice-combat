@@ -61,7 +61,7 @@ export type Phase =
   | "end"
   | "finished";
 
-export type Tokens = { burn: number; chi: number; evasive: number };
+export type Tokens = Record<string, number>;
 export type PlayerState = { hero: Hero; hp: number; tokens: Tokens };
 export type TestResult = { name: string; pass: boolean; details?: string };
 
