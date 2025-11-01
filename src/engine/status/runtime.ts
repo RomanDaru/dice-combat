@@ -110,7 +110,7 @@ export function spendStatus(
   const current = stacks[id] ?? 0;
   if (current < def.spend.costStacks) return null;
 
-  const result = def.spend.apply({ phase, ...ctx });
+  const result = def.spend.apply({ ...ctx, phase });
   const remaining = current - def.spend.costStacks;
   const next = setStacks(stacks, id, remaining);
   return { next, spend: result };
@@ -157,3 +157,4 @@ export function applyModifiers(
 
   return { ctx: current, logs };
 }
+
