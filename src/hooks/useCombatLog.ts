@@ -5,7 +5,6 @@ import {
   buildAttackResolutionLines,
   formatDice,
   indentLog,
-  ManualEvasiveLog,
 } from "../game/logging/combatLog";
 
 type LogOptions = { blankLineBefore?: boolean; blankLineAfter?: boolean };
@@ -17,7 +16,6 @@ const formatAbilityName = (ability: AbilityLogTarget) =>
   abilityTag(ability.displayName ?? ability.label ?? ability.combo);
 
 export { buildAttackResolutionLines, indentLog };
-export type { ManualEvasiveLog };
 
 export function useCombatLog() {
   const { dispatch } = useGame();

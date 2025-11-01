@@ -2,6 +2,7 @@ import { applyAttack } from "../game/engine";
 import type { AttackContext, AttackResolution } from "../game/combat/types";
 import type { Side } from "../game/types";
 import { buildAttackResolutionLines } from "../game/logging/combatLog";
+import { aggregateStatusSpendSummaries } from "./status";
 
 export function resolveAttack(context: AttackContext): AttackResolution {
   const {
@@ -10,14 +11,23 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     ability,
     attackerSide,
     defenderSide,
-    attackChiSpend,
-    attackChiApplied,
+    baseDamage,
+    attackStatusSpends,
     defense,
   } = context;
 
+  const attackTotals = aggregateStatusSpendSummaries(attackStatusSpends);
+  const defenseResolution = defense.resolution ?? null;
+  const defenseTotals = aggregateStatusSpendSummaries(
+    defenseResolution?.statusSpends ?? []
+  );
+  const attackDamage = Math.max(0, baseDamage + attackTotals.bonusDamage);
+  const baseBlock = defenseResolution ? Math.max(0, defenseResolution.baseBlock) : 0;
+  const totalBlock = baseBlock + defenseTotals.bonusBlock;
+
   const effectiveAbility = {
     ...ability,
-    damage: ability.damage + (attackChiApplied ? 0 : attackChiSpend),
+    damage: attackDamage,
   };
 
   const [nextAttacker, nextDefender] = applyAttack(
@@ -25,23 +35,29 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     defender,
     effectiveAbility,
     {
-      defense: defense.resolution ?? null,
-      manualEvasive: defense.manualEvasive,
+      defense: defenseResolution,
     }
   );
 
   const damageDealt = Math.max(0, defender.hp - nextDefender.hp);
   const reflectDealt = Math.max(0, attacker.hp - nextAttacker.hp);
+  const wasNegated = defenseTotals.negateIncoming;
+  const blocked = wasNegated
+    ? attackDamage
+    : Math.max(0, attackDamage - damageDealt);
 
   const logs = buildAttackResolutionLines({
     attackerBefore: attacker,
     attackerAfter: nextAttacker,
     defenderBefore: defender,
     defenderAfter: nextDefender,
-    incomingDamage: effectiveAbility.damage,
-    defense: defense.resolution ?? null,
-    manualEvasive: defense.manualEvasive,
-    attackChiSpent: attackChiSpend,
+    baseBlock,
+    attackTotals,
+    defenseTotals,
+    damageDealt,
+    blocked,
+    defense: defenseResolution,
+    reflectedDamage: reflectDealt,
   });
 
   const outcome: AttackResolution["outcome"] =
@@ -88,4 +104,3 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     events,
   };
 }
-

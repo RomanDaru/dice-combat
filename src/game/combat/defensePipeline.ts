@@ -1,4 +1,12 @@
-import { getStatus, spendStatus } from "../../engine/status";
+import {
+  createStatusSpendSummary,
+  getStatus,
+  spendStatus,
+} from "../../engine/status";
+import type {
+  StatusSpendApplyResult,
+  StatusSpendSummary,
+} from "../../engine/status";
 import type { PlayerState } from "../types";
 import type {
   BaseDefenseResolution,
@@ -24,83 +32,81 @@ export const adjustDefenseWithChi = ({
 } => {
   const chiDef = getStatus("chi");
   const spendDef = chiDef?.spend;
+  const baseBlock = Math.max(0, baseResolution.baseBlock);
+  const buildResolution = (
+    statusSpends: StatusSpendSummary[]
+  ): ResolvedDefenseState => ({
+    selection: baseResolution.selection,
+    baseBlock,
+    reflect: baseResolution.reflect,
+    heal: baseResolution.heal,
+    appliedTokens: baseResolution.appliedTokens,
+    retaliatePercent: baseResolution.retaliatePercent,
+    statusSpends,
+  });
+
   if (!spendDef) {
     return {
       defenderAfter: defender,
-      resolution: {
-        ...baseResolution,
-        chiSpent: 0,
-        chiBonusBlock: 0,
-      },
+      resolution: buildResolution([]),
     };
   }
 
   const availableChi = defender.tokens.chi ?? 0;
-  if (availableChi <= 0 || requestedChi <= 0) {
+  if (availableChi <= 0 || requestedChi <= 0 || baseBlock <= 0) {
     return {
       defenderAfter: defender,
-      resolution: {
-        ...baseResolution,
-        chiSpent: 0,
-        chiBonusBlock: 0,
-      },
+      resolution: buildResolution([]),
     };
   }
 
   const chiBudget = Math.min(requestedChi, availableChi);
-  const remainingDamage = Math.max(0, incomingDamage - baseResolution.block);
+  const remainingDamage = Math.max(0, incomingDamage - baseBlock);
   const maxChiToUse = Math.min(chiBudget, remainingDamage);
 
   if (maxChiToUse <= 0) {
     return {
       defenderAfter: defender,
-      resolution: {
-        ...baseResolution,
-        chiSpent: 0,
-        chiBonusBlock: 0,
-      },
+      resolution: buildResolution([]),
     };
   }
 
   let workingTokens = defender.tokens;
   let totalBonusBlock = 0;
-  let totalSpent = 0;
+  let totalStacks = 0;
   const defenseRoll = baseResolution.selection.roll?.dice ?? [];
   const highestDie = defenseRoll.length ? Math.max(...defenseRoll) : undefined;
+  const spendResults: StatusSpendApplyResult[] = [];
 
   for (let i = 0; i < maxChiToUse; i += 1) {
     const ctx = {
       phase: "defenseRoll" as const,
       roll: highestDie,
-      baseBlock: baseResolution.block + totalBonusBlock,
+      baseBlock: baseResolution.baseBlock + totalBonusBlock,
     };
     const spendResult = spendStatus(workingTokens, "chi", "defenseRoll", ctx);
     if (!spendResult) break;
     totalBonusBlock += spendResult.spend.bonusBlock ?? 0;
-    totalSpent += spendDef.costStacks;
+    totalStacks += spendDef.costStacks;
     workingTokens = spendResult.next;
-    if (baseResolution.block + totalBonusBlock >= incomingDamage) {
+    spendResults.push(spendResult.spend);
+    if (baseResolution.baseBlock + totalBonusBlock >= incomingDamage) {
       break;
     }
   }
 
-  if (totalSpent <= 0) {
+  if (totalStacks <= 0 || spendResults.length === 0) {
     return {
       defenderAfter: defender,
-      resolution: {
-        ...baseResolution,
-        chiSpent: 0,
-        chiBonusBlock: 0,
-      },
+      resolution: buildResolution([]),
     };
   }
 
-  const resolution: ResolvedDefenseState = {
-    ...baseResolution,
-    block: baseResolution.block + totalBonusBlock,
-    chiSpent: totalSpent,
-    chiBonusBlock: totalBonusBlock,
-  };
+  const statusSpends: StatusSpendSummary[] = [
+    createStatusSpendSummary("chi", totalStacks, spendResults),
+  ];
+
+  const resolution = buildResolution(statusSpends);
 
   return {
     defenderAfter: {

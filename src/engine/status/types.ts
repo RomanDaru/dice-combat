@@ -82,3 +82,86 @@ export interface StatusDef {
 }
 
 export type StatusRegistry = Record<StatusId, StatusDef>;
+
+export type StatusSpendSummary = {
+  id: StatusId;
+  stacksSpent: number;
+  bonusDamage: number;
+  bonusBlock: number;
+  negateIncoming: boolean;
+  successCount: number;
+  logs: string[];
+  results: StatusSpendApplyResult[];
+};
+
+export type AggregatedStatusSpends = {
+  bonusDamage: number;
+  bonusBlock: number;
+  negateIncoming: boolean;
+  logs: string[];
+  byStatus: Record<StatusId, StatusSpendSummary>;
+};
+
+const cloneSummary = (summary: StatusSpendSummary): StatusSpendSummary => ({
+  ...summary,
+  logs: [...summary.logs],
+  results: [...summary.results],
+});
+
+const mergeSummary = (
+  target: StatusSpendSummary,
+  source: StatusSpendSummary
+) => {
+  target.stacksSpent += source.stacksSpent;
+  target.bonusDamage += source.bonusDamage;
+  target.bonusBlock += source.bonusBlock;
+  target.negateIncoming ||= source.negateIncoming;
+  target.successCount += source.successCount;
+  if (source.logs.length) target.logs.push(...source.logs);
+  if (source.results.length) target.results.push(...source.results);
+};
+
+export const aggregateStatusSpendSummaries = (
+  summaries: StatusSpendSummary[]
+): AggregatedStatusSpends => {
+  if (summaries.length === 0) {
+    return {
+      bonusDamage: 0,
+      bonusBlock: 0,
+      negateIncoming: false,
+      logs: [],
+      byStatus: {},
+    };
+  }
+  const byStatus = new Map<StatusId, StatusSpendSummary>();
+  summaries.forEach((summary) => {
+    const existing = byStatus.get(summary.id);
+    if (!existing) {
+      byStatus.set(summary.id, cloneSummary(summary));
+    } else {
+      mergeSummary(existing, summary);
+    }
+  });
+  const aggregated: AggregatedStatusSpends = {
+    bonusDamage: 0,
+    bonusBlock: 0,
+    negateIncoming: false,
+    logs: [],
+    byStatus: {},
+  };
+  Array.from(byStatus.values())
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .forEach((entry) => {
+      aggregated.byStatus[entry.id] = entry;
+      aggregated.bonusDamage += entry.bonusDamage;
+      aggregated.bonusBlock += entry.bonusBlock;
+      aggregated.negateIncoming ||= entry.negateIncoming;
+      if (entry.logs.length) aggregated.logs.push(...entry.logs);
+    });
+  if (aggregated.logs.length) {
+    aggregated.logs = aggregated.logs.filter((line): line is string =>
+      Boolean(line)
+    );
+  }
+  return aggregated;
+};

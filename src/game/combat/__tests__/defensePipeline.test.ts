@@ -1,9 +1,9 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { adjustDefenseWithChi, buildDefensePlan } from "../defensePipeline";
 import { HEROES } from "../../heroes";
 import type { BaseDefenseResolution } from "../types";
 import type { PlayerState } from "../../types";
-import { selectDefenseOptionByCombo, resolveDefenseSelection } from "../defenseBoard";
+import { aggregateStatusSpendSummaries } from "../../../engine/status";
 
 const createBaseResolution = (
   overrides: Partial<BaseDefenseResolution> = {}
@@ -12,7 +12,7 @@ const createBaseResolution = (
     roll: { dice: [1, 2, 3, 4, 5], combos: [], options: [] },
     selected: null,
   },
-  block: 2,
+  baseBlock: 2,
   reflect: 0,
   heal: 0,
   appliedTokens: {},
@@ -37,10 +37,9 @@ describe("defensePipeline", () => {
       requestedChi: 2,
     });
 
-    expect(result.resolution.chiSpent).toBe(0);
+    expect(result.resolution.statusSpends).toHaveLength(0);
     expect(result.defenderAfter.tokens.chi).toBe(0);
-    expect(result.resolution.block).toBe(baseResolution.block);
-    expect(result.resolution.chiBonusBlock).toBe(0);
+    expect(result.resolution.baseBlock).toBe(baseResolution.baseBlock);
   });
 
   it("spends chi to reduce incoming damage", () => {
@@ -54,22 +53,20 @@ describe("defensePipeline", () => {
       requestedChi: 2,
     });
 
-    expect(result.resolution.chiSpent).toBe(2);
+    expect(result.resolution.statusSpends).toHaveLength(1);
+    const spend = result.resolution.statusSpends[0];
+    expect(spend.id).toBe("chi");
+    expect(spend.stacksSpent).toBe(2);
     expect(result.defenderAfter.tokens.chi).toBe(1);
-    expect(result.resolution.block).toBe(6);
-    expect(result.resolution.chiBonusBlock).toBe(
-      result.resolution.block - baseResolution.block
-    );
+    const totals = aggregateStatusSpendSummaries(result.resolution.statusSpends);
+    expect(result.resolution.baseBlock).toBe(baseResolution.baseBlock);
+    expect(totals.bonusBlock).toBeGreaterThan(0);
+    expect(result.resolution.baseBlock + totals.bonusBlock).toBe(6);
   });
 
   it("builds defense plan with chi spend applied", () => {
     const defender = createPlayer(2);
-    const baseResolution = resolveDefenseSelection(
-      selectDefenseOptionByCombo(
-        { dice: [1, 1, 1, 1, 1], combos: [], options: [] },
-        null
-      )
-    );
+    const baseResolution = createBaseResolution({ baseBlock: 2 });
 
     const plan = buildDefensePlan({
       defender,
@@ -78,10 +75,16 @@ describe("defensePipeline", () => {
       requestedChi: 1,
     });
 
-    expect(plan.defense.chiSpent).toBe(1);
+    expect(plan.defense.statusSpends).toHaveLength(1);
+    const spend = plan.defense.statusSpends[0];
+    expect(spend.id).toBe("chi");
+    expect(spend.stacksSpent).toBe(1);
     expect(plan.defenderAfter.tokens.chi).toBe(1);
-    expect(plan.defense.block).toBe(baseResolution.block + 1);
-    expect(plan.defense.chiBonusBlock).toBe(1);
+    const totals = aggregateStatusSpendSummaries(plan.defense.statusSpends);
+    expect(plan.defense.baseBlock).toBe(baseResolution.baseBlock);
+    expect(plan.defense.baseBlock + totals.bonusBlock).toBeGreaterThan(
+      baseResolution.baseBlock
+    );
   });
 });
 

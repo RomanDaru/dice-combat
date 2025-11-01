@@ -1,4 +1,5 @@
 import type { StatusId } from "../engine/status";
+import type { StatusSpendSummary } from "../engine/status";
 import { HEROES } from "./heroes";
 import {
   Hero,
@@ -27,8 +28,9 @@ export type PendingAttack = {
   defender: Side;
   dice: number[];
   ability: OffensiveAbility;
+  baseDamage: number;
   modifiers?: {
-    chiAttackSpend?: number;
+    statusSpends?: StatusSpendSummary[];
   };
 };
 

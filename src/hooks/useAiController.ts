@@ -6,7 +6,15 @@ import { useGame } from "../context/GameContext";
 import { useLatest } from "./useLatest";
 import type { GameFlowEvent } from "./useTurnController";
 import type { Rng } from "../engine/rng";
-import { getStatus, spendStatus } from "../engine/status";
+import {
+  getStatus,
+  spendStatus,
+  createStatusSpendSummary,
+} from "../engine/status";
+import type {
+  StatusSpendApplyResult,
+  StatusSpendSummary,
+} from "../engine/status";
 
 type UseAiControllerArgs = {
   logAiNoCombo: (diceValues: number[]) => void;
@@ -149,6 +157,7 @@ export function useAiController({
             onAiNoCombo();
             return;
           }
+          const baseDamage = ab.damage;
           let desiredChiSpend = 0;
           if (latestAi.hero.id === "Shadow Monk") {
             const desired = chooseAiAttackChiSpend(latestAi, latestYou, ab);
@@ -159,15 +168,18 @@ export function useAiController({
             );
           }
           let effectiveAbility = ab;
-          let chiAttackSpend = 0;
-          if (desiredChiSpend > 0) {
+          const attackStatusSpends: StatusSpendSummary[] = [];
+          let workingTokens = latestAi.tokens;
+          if (baseDamage > 0 && desiredChiSpend > 0) {
             const chiDef = getStatus("chi");
             const chiCost = chiDef?.spend?.costStacks ?? 1;
             const maxAttempts =
-              chiCost > 0 ? Math.floor(desiredChiSpend / chiCost) : 0;
-            if (maxAttempts > 0 && chiDef?.spend) {
-              let workingTokens = latestAi.tokens;
-              let bonusDamage = 0;
+              chiDef?.spend && chiCost > 0
+                ? Math.floor(desiredChiSpend / chiCost)
+                : 0;
+            if (chiDef?.spend && maxAttempts > 0) {
+              const spendResults: StatusSpendApplyResult[] = [];
+              let runningBonus = 0;
               for (let i = 0; i < maxAttempts; i += 1) {
                 const spendResult = spendStatus(
                   workingTokens,
@@ -175,37 +187,52 @@ export function useAiController({
                   "attackRoll",
                   {
                     phase: "attackRoll",
-                    baseDamage: ab.damage + bonusDamage,
+                    baseDamage: baseDamage + runningBonus,
                   }
                 );
                 if (!spendResult) break;
                 workingTokens = spendResult.next;
-                bonusDamage += spendResult.spend.bonusDamage ?? 0;
-                chiAttackSpend += chiCost;
+                spendResults.push(spendResult.spend);
+                runningBonus += spendResult.spend.bonusDamage ?? 0;
               }
-              if (chiAttackSpend > 0) {
-                const updatedAi = {
-                  ...latestAi,
-                  tokens: workingTokens,
-                };
-                dispatch({ type: "SET_PLAYER", side: "ai", player: updatedAi });
-                consumeTurnChi("ai", chiAttackSpend);
-                effectiveAbility = {
-                  ...ab,
-                  damage: ab.damage + bonusDamage,
-                };
+              if (spendResults.length > 0) {
+                const totalStacks = spendResults.length * chiCost;
+                attackStatusSpends.push(
+                  createStatusSpendSummary("chi", totalStacks, spendResults)
+                );
               }
             }
+          }
+          if (attackStatusSpends.length > 0) {
+            const updatedAi = {
+              ...latestAi,
+              tokens: workingTokens,
+            };
+            dispatch({ type: "SET_PLAYER", side: "ai", player: updatedAi });
+            attackStatusSpends.forEach((spend) => {
+              if (spend.id === "chi" && spend.stacksSpent > 0) {
+                consumeTurnChi("ai", spend.stacksSpent);
+              }
+            });
+            const bonusDamage = attackStatusSpends.reduce(
+              (sum, spend) => sum + spend.bonusDamage,
+              0
+            );
+            effectiveAbility = {
+              ...ab,
+              damage: baseDamage + bonusDamage,
+            };
           }
           setPendingAttack({
             attacker: "ai",
             defender: "you",
             dice: [...finalDice],
             ability: effectiveAbility,
+            baseDamage,
             modifiers:
-              chiAttackSpend > 0
+              attackStatusSpends.length
                 ? {
-                    chiAttackSpend,
+                    statusSpends: attackStatusSpends,
                   }
                 : undefined,
           });

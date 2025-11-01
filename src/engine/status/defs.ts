@@ -39,16 +39,17 @@ defineStatus({
     allowedPhases: ["defenseRoll"],
     needsRoll: true,
     apply: ({ roll }) => {
-      const success = (roll ?? 0) >= 5;
+      const rolled = roll ?? 0;
+      const success = rolled >= 5;
       return success
         ? {
             negateIncoming: true,
             success,
-            log: "Evasive success -> attack dodged",
+            log: `Evasive success (roll ${rolled}) -> attack dodged`,
           }
         : {
             success,
-            log: "Evasive failed",
+            log: `Evasive failed (roll ${rolled})`,
           };
     },
   },

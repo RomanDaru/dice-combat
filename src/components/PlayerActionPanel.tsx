@@ -19,10 +19,10 @@ export function PlayerActionPanel() {
     performStatusClearRoll,
     activeAbilities,
     onPerformActiveAbility,
-    attackChiSpend,
-    defenseChiSpend,
-    setAttackChiSpend,
-    setDefenseChiSpend,
+    attackStatusRequests,
+    defenseStatusRequests,
+    requestStatusSpend,
+    undoStatusSpend,
     turnChiAvailable,
     openDiceTray,
     closeDiceTray,
@@ -79,8 +79,14 @@ export function PlayerActionPanel() {
       : 0;
   const defenseChiCap =
     awaitingDefenseSelection && defenseBaseBlock > 0 ? turnChiCap : 0;
-  const attackChiValue = Math.max(0, Math.min(attackChiSpend, attackChiCap));
-  const defenseChiValue = Math.max(0, Math.min(defenseChiSpend, defenseChiCap));
+  const attackChiRequest = Math.min(
+    attackStatusRequests.chi ?? 0,
+    attackChiCap
+  );
+  const defenseChiRequest = Math.min(
+    defenseStatusRequests.chi ?? 0,
+    defenseChiCap
+  );
 
   const canInteract =
     turn === "you" && !isDefenseTurn && !statusActive && !impactLocked;
@@ -93,7 +99,12 @@ export function PlayerActionPanel() {
   const incomingAttack = isDefenseTurn && pendingAttack ? pendingAttack : null;
   const incomingAbility = incomingAttack?.ability;
   const threatenedDamage = incomingAbility?.damage ?? null;
-  const attackChiBonus = incomingAttack?.modifiers?.chiAttackSpend ?? 0;
+  const incomingStatusSpends = incomingAttack?.modifiers?.statusSpends ?? [];
+  const attackChiSummary = incomingStatusSpends.find(
+    (spend) => spend.id === "chi"
+  );
+  const attackChiStacks = attackChiSummary?.stacksSpent ?? 0;
+  const attackChiBonusDamage = attackChiSummary?.bonusDamage ?? 0;
   const attackerHero =
     incomingAttack && state.players[incomingAttack.attacker]
       ? state.players[incomingAttack.attacker].hero
@@ -128,7 +139,10 @@ export function PlayerActionPanel() {
     const abilityName =
       incomingAbility.displayName ?? incomingAbility.label ?? incomingAbility.combo;
     const threatened = threatenedDamage ?? 0;
-    const chiText = attackChiBonus ? `, Chi x${attackChiBonus}` : "";
+    const chiText =
+      attackChiStacks > 0
+        ? `, Chi x${attackChiStacks} (+${attackChiBonusDamage} dmg)`
+        : "";
     const logLine = `[Threat] ${attackerName} threatens ${threatened} dmg (${abilityName}${chiText}).`;
 
     if (lastThreatLog.current !== logLine) {
@@ -139,26 +153,27 @@ export function PlayerActionPanel() {
     incomingAttack,
     incomingAbility,
     attackerHero?.name,
-    attackChiBonus,
+    attackChiStacks,
+    attackChiBonusDamage,
     threatenedDamage,
     pushLog,
   ]);
 
-  const adjustAttackChi = (delta: number) => {
-    setAttackChiSpend((prev) => {
-      const next = prev + delta;
-      return Math.max(0, Math.min(next, attackChiCap));
-    });
+  const spendAttackChi = () => {
+    requestStatusSpend("attackRoll", "chi");
   };
 
-  const adjustDefenseChi = (delta: number) => {
-    setDefenseChiSpend((prev) => {
-      const next = prev + delta;
-      return Math.max(0, Math.min(next, defenseChiCap));
-    });
+  const undoAttackChi = () => {
+    undoStatusSpend("attackRoll", "chi");
   };
 
-;
+  const spendDefenseChi = () => {
+    requestStatusSpend("defenseRoll", "chi");
+  };
+
+  const undoDefenseChi = () => {
+    undoStatusSpend("defenseRoll", "chi");
+  };
 
   const statusCard = statusActive && pendingStatusClear && (
     <div className={clsx("card", styles.statusCard)}>
@@ -273,17 +288,17 @@ export function PlayerActionPanel() {
               <button
                 type='button'
                 className={styles.chiStepperBtn}
-                onClick={() => adjustAttackChi(-1)}
-                disabled={attackChiValue <= 0 || impactLocked}>
-                -
+                onClick={spendAttackChi}
+                disabled={attackChiRequest >= attackChiCap || impactLocked}>
+                Spend
               </button>
-              <span className={styles.chiValue}>{attackChiValue}</span>
+              <span className={styles.chiValue}>{attackChiRequest}</span>
               <button
                 type='button'
                 className={styles.chiStepperBtn}
-                onClick={() => adjustAttackChi(1)}
-                disabled={attackChiValue >= attackChiCap || impactLocked}>
-                +
+                onClick={undoAttackChi}
+                disabled={attackChiRequest <= 0 || impactLocked}>
+                Undo
               </button>
               <span className={styles.chiMax}>/ {attackChiCap}</span>
             </div>
@@ -353,17 +368,17 @@ export function PlayerActionPanel() {
               <button
                 type='button'
                 className={styles.chiStepperBtn}
-                onClick={() => adjustDefenseChi(-1)}
-                disabled={defenseChiValue <= 0 || impactLocked}>
-                -
+                onClick={spendDefenseChi}
+                disabled={defenseChiRequest >= defenseChiCap || impactLocked}>
+                Spend
               </button>
-              <span className={styles.chiValue}>{defenseChiValue}</span>
+              <span className={styles.chiValue}>{defenseChiRequest}</span>
               <button
                 type='button'
                 className={styles.chiStepperBtn}
-                onClick={() => adjustDefenseChi(1)}
-                disabled={defenseChiValue >= defenseChiCap || impactLocked}>
-                +
+                onClick={undoDefenseChi}
+                disabled={defenseChiRequest <= 0 || impactLocked}>
+                Undo
               </button>
               <span className={styles.chiMax}>/ {defenseChiCap}</span>
             </div>

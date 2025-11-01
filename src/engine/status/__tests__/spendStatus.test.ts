@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   addStacks,
+  aggregateStatusSpendSummaries,
+  createStatusSpendSummary,
   spendStatus,
   type StatusStacks,
 } from "../index";
@@ -15,6 +17,16 @@ describe("spendStatus", () => {
     expect(result).not.toBeNull();
     expect(result?.next.chi).toBe(1);
     expect(result?.spend.bonusDamage).toBe(1);
+  });
+
+  it("rejects chi defense spend when base block is zero", () => {
+    const stacks: StatusStacks = addStacks({}, "chi", 1);
+    const result = spendStatus(stacks, "chi", "defenseRoll", {
+      phase: "defenseRoll",
+      roll: 5,
+      baseBlock: 0,
+    });
+    expect(result).toBeNull();
   });
 
   it("requires roll for evasive spend", () => {
@@ -48,5 +60,28 @@ describe("spendStatus", () => {
       phase: "resolve",
     });
     expect(spend).toBeNull();
+  });
+
+  it("aggregates multiple status summaries", () => {
+    const chiSummary = createStatusSpendSummary("chi", 2, [
+      { bonusDamage: 1, log: "Chi -> +1 damage" },
+      { bonusDamage: 2, log: "Chi -> +2 damage" },
+    ]);
+    const evasiveSummary = createStatusSpendSummary("evasive", 1, [
+      { negateIncoming: true, success: true, log: "Evasive success" },
+    ]);
+    const totals = aggregateStatusSpendSummaries([
+      chiSummary,
+      createStatusSpendSummary("chi", 1, [
+        { bonusDamage: 1, log: "Chi -> +1 damage" },
+      ]),
+      evasiveSummary,
+    ]);
+
+    expect(totals.bonusDamage).toBe(4);
+    expect(totals.bonusBlock).toBe(0);
+    expect(totals.negateIncoming).toBe(true);
+    expect(Object.keys(totals.byStatus).sort()).toEqual(["chi", "evasive"]);
+    expect(totals.byStatus.chi.stacksSpent).toBe(3);
   });
 });

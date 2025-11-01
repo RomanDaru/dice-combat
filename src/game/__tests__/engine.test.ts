@@ -7,6 +7,10 @@ import type {
   DefenseRollResult,
   ResolvedDefenseState,
 } from '../combat/types';
+import {
+  createStatusSpendSummary,
+  spendStatus,
+} from '../../engine/status';
 
 const createPlayers = () => {
   const state = createInitialState(HEROES.Pyromancer, HEROES['Shadow Monk']);
@@ -26,13 +30,12 @@ const buildDefense = (
   overrides: Partial<ResolvedDefenseState>,
 ): ResolvedDefenseState => ({
   selection: { roll: emptyDefenseRoll, selected: null },
-  block: 0,
+  baseBlock: 0,
   reflect: 0,
   heal: 0,
   appliedTokens: {},
   retaliatePercent: 0,
-  chiSpent: 0,
-  chiBonusBlock: 0,
+  statusSpends: [],
   ...overrides,
 });
 
@@ -44,7 +47,7 @@ describe('applyAttack', () => {
     )!;
 
     const [nextPyro, nextMonk, notes] = applyAttack(pyro, monk, inferno, {
-      defense: buildDefense({ block: 2 }),
+      defense: buildDefense({ baseBlock: 2 }),
     });
 
     expect(nextMonk.hp).toBe(monk.hp - (inferno.damage - 2));
@@ -60,7 +63,7 @@ describe('applyAttack', () => {
     )!;
 
     const [nextMonk, nextPyro] = applyAttack(monk, pyro, chiStrike, {
-      defense: buildDefense({ block: 3 }),
+      defense: buildDefense({ baseBlock: 3 }),
     });
 
     expect(nextMonk.tokens.chi).toBe(1);
@@ -69,26 +72,44 @@ describe('applyAttack', () => {
 
   it('consumes evasive token and cancels damage on success', () => {
     const { pyro, monk } = createPlayers();
-    const targetedMonk = {
+    const fireball = getOffensiveAbilities(pyro.hero).find(
+      (ab) => ab.combo === '3OAK'
+    )!;
+
+    const evasiveMonk = {
       ...monk,
       tokens: { ...monk.tokens, evasive: 1 },
     };
-    const fireball = getOffensiveAbilities(pyro.hero).find(
-      (ab) => ab.combo === '3OAK',
-    )!;
+
+    const result = spendStatus(
+      evasiveMonk.tokens,
+      'evasive',
+      'defenseRoll',
+      { phase: 'defenseRoll', roll: 6 }
+    );
+    expect(result).not.toBeNull();
+
+    const summary = createStatusSpendSummary('evasive', 1, [
+      result!.spend,
+    ]);
+
+    const defenderAfterSpend = {
+      ...evasiveMonk,
+      tokens: result!.next,
+    };
 
     const [nextPyro, nextMonk, notes] = applyAttack(
       pyro,
-      targetedMonk,
+      defenderAfterSpend,
       fireball,
       {
-        manualEvasive: { used: true, success: true, roll: 6, label: 'Monk' },
-      },
+        defense: buildDefense({ statusSpends: [summary] }),
+      }
     );
 
-    expect(nextMonk.hp).toBe(targetedMonk.hp);
-    expect(nextMonk.tokens.evasive).toBe(0);
+    expect(nextMonk.hp).toBe(defenderAfterSpend.hp);
+    expect(nextMonk.tokens.evasive ?? 0).toBe(0);
     expect(nextPyro.hp).toBe(pyro.hp);
-    expect(notes[0]).toMatch(/Evasive roll: 6 -> Attack fully dodged/);
+    expect(notes.some((line) => line.includes('Hit for 0 dmg'))).toBe(true);
   });
 });

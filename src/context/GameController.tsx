@@ -15,6 +15,7 @@ import type {
   BaseDefenseResolution,
   DefenseRollResult,
 } from "../game/combat/types";
+import type { StatusId } from "../engine/status";
 
 import { useCombatLog } from "../hooks/useCombatLog";
 import { useDiceAnimator } from "../hooks/useDiceAnimator";
@@ -75,11 +76,15 @@ type ComputedData = {
   defenseBaseBlock: number;
 };
 
+type StatusSpendPhase = "attackRoll" | "defenseRoll";
+
 type ControllerContext = {
-  attackChiSpend: number;
-  defenseChiSpend: number;
-  setAttackChiSpend: (value: number | ((prev: number) => number)) => void;
-  setDefenseChiSpend: (value: number | ((prev: number) => number)) => void;
+  attackStatusRequests: Record<StatusId, number>;
+  defenseStatusRequests: Record<StatusId, number>;
+  requestStatusSpend: (phase: StatusSpendPhase, statusId: StatusId) => void;
+  undoStatusSpend: (phase: StatusSpendPhase, statusId: StatusId) => void;
+  clearAttackStatusRequests: () => void;
+  clearDefenseStatusRequests: () => void;
   turnChiAvailable: Record<Side, number>;
   consumeTurnChi: (side: Side, amount: number) => void;
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
@@ -120,8 +125,12 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const rng = rngRef.current.rng;
   const latestState = useLatest(state);
   const aiPlayRef = useRef<() => void>(() => {});
-  const [attackChiSpend, setAttackChiSpend] = useState(0);
-  const [defenseChiSpend, setDefenseChiSpend] = useState(0);
+  const [attackStatusRequests, setAttackStatusRequests] = useState<
+    Record<StatusId, number>
+  >({});
+  const [defenseStatusRequests, setDefenseStatusRequests] = useState<
+    Record<StatusId, number>
+  >({});
   const [turnChiAvailable, setTurnChiAvailable] = useState<
     Record<Side, number>
   >({
@@ -138,48 +147,86 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const [impactLocked, setImpactLocked] = useState(false);
   const impactTimerRef = useRef<number | null>(null);
 
-  const updateAttackChiSpend = useCallback(
-    (value: number | ((prev: number) => number)) => {
-      setAttackChiSpend((prev) => {
-        const next =
-          typeof value === "function"
-            ? (value as (prev: number) => number)(prev)
-            : value;
-        const maxTokens = latestState.current.players.you.tokens.chi ?? 0;
-        const turnLimit = turnChiAvailable.you ?? 0;
-        return Math.max(0, Math.min(next, maxTokens, turnLimit));
+  const adjustStatusRequest = useCallback(
+    (phase: StatusSpendPhase, statusId: StatusId, delta: number) => {
+      if (delta === 0) return;
+      const setter =
+        phase === "attackRoll"
+          ? setAttackStatusRequests
+          : setDefenseStatusRequests;
+
+      setter((prev) => {
+        const current = prev[statusId] ?? 0;
+        const player = latestState.current.players.you;
+        if (!player) return prev;
+        const playerTokens = player.tokens as Record<string, number | undefined>;
+        const ownedStacks = playerTokens[statusId] ?? 0;
+        let limit = ownedStacks;
+        if (statusId === "chi") {
+          limit = Math.min(limit, turnChiAvailable.you ?? limit);
+        }
+        if (delta > 0 && limit <= 0) return prev;
+        let nextValue = current + delta;
+        if (delta > 0) {
+          nextValue = Math.max(0, Math.min(nextValue, limit));
+        } else {
+          nextValue = Math.max(0, nextValue);
+        }
+        if (nextValue === current) return prev;
+        if (nextValue <= 0) {
+          const { [statusId]: _, ...rest } = prev;
+          return rest;
+        }
+        return { ...prev, [statusId]: nextValue };
       });
     },
-    [turnChiAvailable.you]
+    [latestState, turnChiAvailable.you]
   );
 
-  const updateDefenseChiSpend = useCallback(
-    (value: number | ((prev: number) => number)) => {
-      setDefenseChiSpend((prev) => {
-        const next =
-          typeof value === "function"
-            ? (value as (prev: number) => number)(prev)
-            : value;
-        const maxTokens = latestState.current.players.you.tokens.chi ?? 0;
-        const turnLimit = turnChiAvailable.you ?? 0;
-        return Math.max(0, Math.min(next, maxTokens, turnLimit));
-      });
+  const requestStatusSpend = useCallback(
+    (phase: StatusSpendPhase, statusId: StatusId) => {
+      adjustStatusRequest(phase, statusId, 1);
     },
-    [turnChiAvailable.you]
+    [adjustStatusRequest]
   );
+
+  const undoStatusSpend = useCallback(
+    (phase: StatusSpendPhase, statusId: StatusId) => {
+      adjustStatusRequest(phase, statusId, -1);
+    },
+    [adjustStatusRequest]
+  );
+
+  const clearAttackStatusRequests = useCallback(() => {
+    setAttackStatusRequests({});
+  }, []);
+
+  const clearDefenseStatusRequests = useCallback(() => {
+    setDefenseStatusRequests({});
+  }, []);
 
   useEffect(() => {
-    setAttackChiSpend((prev) =>
-      Math.min(prev, turnChiAvailable.you ?? 0)
-    );
-    setDefenseChiSpend((prev) =>
-      Math.min(prev, turnChiAvailable.you ?? 0)
-    );
-  }, [turnChiAvailable.you]);
+    const clampChi = (prev: Record<StatusId, number>) => {
+      if (!("chi" in prev)) return prev;
+      const player = latestState.current.players.you;
+      if (!player) return prev;
+      const maxChi = Math.min(
+        player.tokens.chi ?? 0,
+        turnChiAvailable.you ?? (player.tokens.chi ?? 0)
+      );
+      const current = prev.chi ?? 0;
+      if (current <= maxChi) return prev;
+      if (maxChi <= 0) {
+        const { chi: _ignored, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, chi: maxChi };
+    };
 
+    setAttackStatusRequests((prev) => clampChi(prev));
+    setDefenseStatusRequests((prev) => clampChi(prev));
+  }, [latestState, turnChiAvailable.you]);
 
-  const clearAttackChiSpend = useCallback(() => setAttackChiSpend(0), []);
-  const clearDefenseChiSpend = useCallback(() => setDefenseChiSpend(0), []);
 
   const triggerImpactLock = useCallback((kind: "hit" | "reflect") => {
     if (impactTimerRef.current !== null) {
@@ -331,7 +378,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const attackBaseDamage = ability?.damage ?? 0;
   useEffect(() => {
     if (!ability || attackBaseDamage <= 0) {
-      setAttackChiSpend(0);
+      setAttackStatusRequests({});
     }
   }, [ability, attackBaseDamage]);
   useEffect(() => {
@@ -354,10 +401,14 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const isDefenseTurn = !!pendingAttack && pendingAttack.defender === "you";
   const initialRoll = state.initialRoll;
   const phase = state.phase;
-  const defenseBaseBlock = playerDefenseState?.baseResolution.block ?? 0;
+  const defenseBaseBlock = playerDefenseState?.baseResolution.baseBlock ?? 0;
   useEffect(() => {
     if (!playerDefenseState || defenseBaseBlock > 0) return;
-    setDefenseChiSpend(0);
+    setDefenseStatusRequests((prev) => {
+      if (!("chi" in prev)) return prev;
+      const { chi: _ignored, ...rest } = prev;
+      return rest;
+    });
   }, [playerDefenseState, defenseBaseBlock]);
 
   useEffect(() => {
@@ -428,24 +479,6 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     }
     dispatch({ type: "CONFIRM_INITIAL_ROLL" });
   }, [dispatch, initialRoll, phase]);
-
-  useEffect(() => {
-    const maxChi = state.players.you.tokens.chi ?? 0;
-    setAttackChiSpend((prev) => Math.min(prev, maxChi));
-    setDefenseChiSpend((prev) => Math.min(prev, maxChi));
-  }, [state.players.you.tokens.chi]);
-
-  useEffect(() => {
-    if (turn !== "you") {
-      setAttackChiSpend(0);
-    }
-  }, [turn]);
-
-  useEffect(() => {
-    if (!isDefenseTurn) {
-      setDefenseChiSpend(0);
-    }
-  }, [isDefenseTurn]);
 
   const {
     resetRoll,
@@ -551,10 +584,10 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     sendFlowEvent,
     aiPlay,
     aiStepDelay: AI_STEP_MS,
-    attackChiSpend,
-    defenseChiSpend,
-    clearAttackChiSpend,
-    clearDefenseChiSpend,
+    attackStatusRequests,
+    defenseStatusRequests,
+    clearAttackStatusRequests,
+    clearDefenseStatusRequests,
     turnChiAvailable,
     consumeTurnChi,
     playerDefenseState,
@@ -770,10 +803,12 @@ export const GameController = ({ children }: { children: ReactNode }) => {
 
   const controllerValue: ControllerContext = useMemo(
     () => ({
-      attackChiSpend,
-      defenseChiSpend,
-      setAttackChiSpend: updateAttackChiSpend,
-      setDefenseChiSpend: updateDefenseChiSpend,
+      attackStatusRequests,
+      defenseStatusRequests,
+      requestStatusSpend,
+      undoStatusSpend,
+      clearAttackStatusRequests,
+      clearDefenseStatusRequests,
       turnChiAvailable,
       consumeTurnChi,
       popDamage,
@@ -796,11 +831,13 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       onPerformActiveAbility,
     }),
     [
-      attackChiSpend,
-      defenseChiSpend,
+      attackStatusRequests,
+      defenseStatusRequests,
+      requestStatusSpend,
+      undoStatusSpend,
+      clearAttackStatusRequests,
+      clearDefenseStatusRequests,
       activeAbilities,
-      updateAttackChiSpend,
-      updateDefenseChiSpend,
       handleReset,
       onConfirmAttack,
       onEndTurnNoAttack,

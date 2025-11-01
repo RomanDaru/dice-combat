@@ -50,7 +50,7 @@ export const resolveDefenseSelection = (
 ): BaseDefenseResolution => {
   const selectedAbility = selection.selected?.ability;
 
-  const block = selectedAbility?.block ?? 0;
+  const baseBlock = selectedAbility?.block ?? 0;
   const reflect = selectedAbility?.reflect ?? 0;
   const heal = selectedAbility?.heal ?? 0;
   const appliedTokens = selectedAbility?.apply
@@ -59,7 +59,7 @@ export const resolveDefenseSelection = (
 
   return {
     selection,
-    block,
+    baseBlock,
     reflect,
     heal,
     appliedTokens,

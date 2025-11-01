@@ -1,16 +1,13 @@
 import type { OffensiveAbility, PlayerState, Tokens } from "./types";
 import type { ResolvedDefenseState } from "./combat/types";
-import { addStacks, getStacks } from "../engine/status";
+import {
+  addStacks,
+  getStacks,
+  aggregateStatusSpendSummaries,
+} from "../engine/status";
 
 type ApplyAttackOptions = {
   defense?: ResolvedDefenseState | null;
-  manualEvasive?: {
-    used: boolean;
-    success: boolean;
-    roll: number;
-    label?: string;
-    alreadySpent?: boolean;
-  };
 };
 
 const clampChi = (value: number) => Math.max(0, Math.min(3, value));
@@ -36,39 +33,31 @@ export function applyAttack(
   const attackerStart = attacker;
   const defenderStart = defender;
 
-  if (incomingDamage > 0 && opts.manualEvasive && opts.manualEvasive.used) {
-    const ev = opts.manualEvasive;
-    const label = ev.label ?? defender.hero.name;
-    if (!ev.alreadySpent && defender.tokens.evasive > 0) {
-      defender = {
-        ...defender,
-        tokens: {
-          ...defender.tokens,
-          evasive: Math.max(0, defender.tokens.evasive - 1),
-        },
-      };
-    }
-    const message = `${label} Evasive roll: ${ev.roll} -> ${
-      ev.success ? "Attack fully dodged (Evasive)." : "Evasive failed."
-    }`;
-    if (ev.success) {
-      return [{ ...attacker }, { ...defender }, [message]];
-    }
-    notes.push(message);
-  }
-
   const defenseState = opts.defense ?? null;
-  const block = defenseState?.block ?? 0;
+  const defenseTotals = aggregateStatusSpendSummaries(
+    defenseState?.statusSpends ?? []
+  );
+  const baseBlock = defenseState?.baseBlock ?? 0;
+  const effectiveBlock = Math.max(0, baseBlock + defenseTotals.bonusBlock);
+  const negateIncoming = defenseTotals.negateIncoming;
   const reflect = defenseState?.reflect ?? 0;
   const heal = defenseState?.heal ?? 0;
-  const retaliatePercent = defenseState?.retaliatePercent ?? 0;
+  const retaliatePercent = Math.max(
+    0,
+    Math.min(1, defenseState?.retaliatePercent ?? 0)
+  );
   const defenseTokens = defenseState?.appliedTokens ?? {};
 
-  const blocked = Math.min(incomingDamage, Math.max(0, block));
-  const damageDealt = Math.max(0, incomingDamage - blocked);
-  const retaliateDamage = retaliatePercent
-    ? Math.floor(incomingDamage * retaliatePercent)
-    : 0;
+  const blocked = negateIncoming
+    ? incomingDamage
+    : Math.min(incomingDamage, effectiveBlock);
+  const damageDealt = negateIncoming
+    ? 0
+    : Math.max(0, incomingDamage - blocked);
+  const retaliateDamage =
+    retaliatePercent > 0
+      ? Math.floor(damageDealt * retaliatePercent)
+      : 0;
 
   let defenderTokens = applyDefenseTokens(defender.tokens, defenseTokens);
   if (applyEffects.burn && applyEffects.burn > 0) {

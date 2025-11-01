@@ -5,6 +5,7 @@ import type {
   StatusPhase,
   StatusSpendApplyContext,
   StatusSpendApplyResult,
+  StatusSpendSummary,
 } from "./types";
 import { getStatus } from "./registry";
 
@@ -107,6 +108,20 @@ export function spendStatus(
   if (!def?.spend) return null;
   if (!def.spend.allowedPhases.includes(phase)) return null;
   if (def.spend.needsRoll && typeof ctx.roll !== "number") return null;
+  if (
+    phase === "attackRoll" &&
+    typeof ctx.baseDamage === "number" &&
+    ctx.baseDamage <= 0
+  ) {
+    return null;
+  }
+  if (
+    phase === "defenseRoll" &&
+    typeof ctx.baseBlock === "number" &&
+    ctx.baseBlock <= 0
+  ) {
+    return null;
+  }
 
   const current = stacks[id] ?? 0;
   if (current < def.spend.costStacks) return null;
@@ -121,6 +136,41 @@ export type SpendStatusManyResult = {
   next: StatusStacks;
   spends: StatusSpendApplyResult[];
   totalCost: number;
+  summary: StatusSpendSummary;
+};
+
+export const createStatusSpendSummary = (
+  id: StatusId,
+  stacksSpent: number,
+  spends: StatusSpendApplyResult[]
+): StatusSpendSummary => {
+  const bonusDamage = spends.reduce(
+    (acc, spend) => acc + (spend.bonusDamage ?? 0),
+    0
+  );
+  const bonusBlock = spends.reduce(
+    (acc, spend) => acc + (spend.bonusBlock ?? 0),
+    0
+  );
+  const negateIncoming = spends.some((spend) => spend.negateIncoming === true);
+  const successCount = spends.reduce(
+    (acc, spend) => acc + (spend.success ? 1 : 0),
+    0
+  );
+  const logs = spends
+    .map((spend) => spend.log)
+    .filter((line): line is string => Boolean(line));
+
+  return {
+    id,
+    stacksSpent,
+    bonusDamage,
+    bonusBlock,
+    negateIncoming,
+    successCount,
+    logs,
+    results: spends,
+  };
 };
 
 export function spendStatusMany(
@@ -167,6 +217,7 @@ export function spendStatusMany(
     next: working,
     spends,
     totalCost,
+    summary: createStatusSpendSummary(id as StatusId, totalCost, spends),
   };
 }
 

@@ -1,13 +1,10 @@
-﻿import type { PlayerState } from "../types";
+import { getStatus } from "../../engine/status";
+import type {
+  AggregatedStatusSpends,
+  StatusSpendSummary,
+} from "../../engine/status";
+import type { PlayerState } from "../types";
 import type { ResolvedDefenseState } from "../combat/types";
-
-export type ManualEvasiveLog = {
-  used: boolean;
-  success: boolean;
-  roll: number;
-  label?: string;
-  alreadySpent?: boolean;
-};
 
 const abilityTag = (value: string) => `<<ability:${value}>>`;
 const statusTag = (value: string) => `<<status:${value}>>`;
@@ -52,87 +49,84 @@ const getStatusGainLines = (
   return lines;
 };
 
-const describeDefenseAbility = (defense: ResolvedDefenseState | null) => {
+const describeDefenseAbility = (
+  defense: ResolvedDefenseState | null,
+  baseBlock: number
+) => {
   if (!defense?.selection.selected) return null;
   const ability = defense.selection.selected.ability;
   const abilityName =
     ability.displayName ?? ability.label ?? ability.combo;
-  const dice = formatDice(defense.selection.roll.dice);
-  const segments = [`${abilityTag(abilityName)} on roll [${dice}]`];
-  segments.push(`Block ${defense.block}`);
-  if (defense.reflect) segments.push(`Reflect ${defense.reflect}`);
-  if (defense.heal) segments.push(`Heal ${defense.heal}`);
-  return segments.join(" -> ");
+  const details: string[] = [];
+  if (baseBlock > 0) {
+    details.push(`Block ${baseBlock}`);
+  }
+  if (defense.reflect) details.push(`Reflect ${defense.reflect}`);
+  if (defense.heal) details.push(`Heal ${defense.heal}`);
+  const suffix = details.length ? ` -> ${details.join(", ")}` : "";
+  return `DEF: ${abilityTag(abilityName)}${suffix}.`;
 };
+
+const formatStatusLabel = (id: string) => {
+  const def = getStatus(id);
+  return statusTag(def?.name ?? id);
+};
+
+const formatStatusSpendLine = (spend: StatusSpendSummary) => {
+  const label = formatStatusLabel(spend.id);
+  const segments: string[] = [];
+  if (spend.bonusDamage) segments.push(`+${spend.bonusDamage} dmg`);
+  if (spend.bonusBlock) segments.push(`+${spend.bonusBlock} block`);
+  if (spend.negateIncoming) segments.push("negates incoming damage");
+  const effects =
+    segments.length > 0 ? ` -> ${segments.join(", ")}` : "";
+  return `Spend: ${label} x${spend.stacksSpent}${effects}.`;
+};
+
+const listStatusSpends = (totals: AggregatedStatusSpends) =>
+  Object.values(totals.byStatus).map(formatStatusSpendLine);
 
 export const buildAttackResolutionLines = ({
   attackerBefore,
   attackerAfter,
   defenderBefore,
   defenderAfter,
-  incomingDamage,
+  baseBlock,
+  attackTotals,
+  defenseTotals,
+  damageDealt,
+  blocked,
   defense,
-  manualEvasive,
-  attackChiSpent,
+  reflectedDamage,
 }: {
   attackerBefore: PlayerState;
   attackerAfter: PlayerState;
   defenderBefore: PlayerState;
   defenderAfter: PlayerState;
-  incomingDamage: number;
+  baseBlock: number;
+  attackTotals: AggregatedStatusSpends;
+  defenseTotals: AggregatedStatusSpends;
+  damageDealt: number;
+  blocked: number;
   defense?: ResolvedDefenseState | null;
-  manualEvasive?: ManualEvasiveLog;
-  attackChiSpent?: number;
+  reflectedDamage: number;
 }) => {
   const lines: string[] = [];
-  lines.push(indentLog(`Threatened damage: ${incomingDamage}.`));
-  if (attackChiSpent && attackChiSpent > 0) {
-    lines.push(
-      indentLog(
-        `${attackerBefore.hero.name} spends ${resourceTag("Chi")} x${attackChiSpent} for +${attackChiSpent} dmg.`
-      )
-    );
-  }
-  if (defense?.chiSpent && defense.chiSpent > 0) {
-    const chiBlockGain =
-      typeof defense.chiBonusBlock === "number"
-        ? defense.chiBonusBlock
-        : defense.chiSpent;
-    lines.push(
-      indentLog(
-        `${defenderBefore.hero.name} spends ${resourceTag(
-          "Chi"
-        )} x${defense.chiSpent} for +${chiBlockGain} block.`
-      )
-    );
-  }
 
-  const damageDealt = Math.max(0, defenderBefore.hp - defenderAfter.hp);
-  const blocked = Math.max(0, incomingDamage - damageDealt);
-  const reflectedDamage = Math.max(0, attackerBefore.hp - attackerAfter.hp);
-
-  if (manualEvasive?.used) {
-    lines.push(
-      indentLog(
-        `${manualEvasive.label ?? defenderBefore.hero.name} Evasive (roll: ${
-          manualEvasive.roll
-        }): ${manualEvasive.success ? "Success" : "Fail"}.`
-      )
-    );
-    if (manualEvasive.success) {
-      lines.push(
-        indentLog(
-          `${defenderBefore.hero.name} HP: ${defenderAfter.hp}/${defenderAfter.hero.maxHp}.`
-        )
-      );
-      return lines;
-    }
-  }
-
-  const defenseSummary = describeDefenseAbility(defense ?? null);
+  const defenseSummary = describeDefenseAbility(defense ?? null, baseBlock);
   if (defenseSummary) {
     lines.push(indentLog(defenseSummary));
   }
+  listStatusSpends(defenseTotals)
+    .forEach((line) => lines.push(indentLog(line)));
+  defenseTotals.logs
+    .filter(Boolean)
+    .forEach((line) => lines.push(indentLog(line)));
+  listStatusSpends(attackTotals)
+    .forEach((line) => lines.push(indentLog(line)));
+  attackTotals.logs
+    .filter(Boolean)
+    .forEach((line) => lines.push(indentLog(line)));
 
   let summary = `${defenderBefore.hero.name} receives ${damageDealt} dmg (blocked ${blocked}).`;
   if (reflectedDamage > 0) {

@@ -1,6 +1,13 @@
-﻿import type { Combo, DefensiveAbility, OffensiveAbility, PlayerState, Side, Tokens } from "../types";
+import type {
+  Combo,
+  DefensiveAbility,
+  OffensiveAbility,
+  PlayerState,
+  Side,
+  Tokens,
+} from "../types";
 import type { GameState } from "../state";
-import type { ManualEvasiveLog } from "../logging/combatLog";
+import type { StatusSpendSummary } from "../../engine/status";
 
 export type AttackSource = "player" | "ai";
 
@@ -20,18 +27,28 @@ export type DefenseSelection = {
   selected: DefenseBoardOption | null;
 };
 
+/**
+ * Fraction within [0, 1] describing how much incoming damage is retaliated.
+ */
+export type RetaliatePercent = number;
+
 export type BaseDefenseResolution = {
   selection: DefenseSelection;
-  block: number;
+  baseBlock: number;
   reflect: number;
   heal: number;
   appliedTokens: Partial<Tokens>;
-  retaliatePercent?: number;
+  retaliatePercent?: RetaliatePercent;
 };
 
-export type ResolvedDefenseState = BaseDefenseResolution & {
-  chiSpent: number;
-  chiBonusBlock: number;
+export type ResolvedDefenseState = {
+  selection: DefenseSelection;
+  baseBlock: number;
+  reflect: number;
+  heal: number;
+  appliedTokens: Partial<Tokens>;
+  retaliatePercent?: RetaliatePercent;
+  statusSpends: StatusSpendSummary[];
 };
 
 export type AttackContext = {
@@ -41,11 +58,10 @@ export type AttackContext = {
   attacker: PlayerState;
   defender: PlayerState;
   ability: OffensiveAbility;
-  attackChiSpend: number;
-  attackChiApplied: boolean;
+  baseDamage: number;
+  attackStatusSpends: StatusSpendSummary[];
   defense: {
     resolution: ResolvedDefenseState | null;
-    manualEvasive?: ManualEvasiveLog;
   };
 };
 
