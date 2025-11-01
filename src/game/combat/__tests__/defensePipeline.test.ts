@@ -40,6 +40,7 @@ describe("defensePipeline", () => {
     expect(result.resolution.chiSpent).toBe(0);
     expect(result.defenderAfter.tokens.chi).toBe(0);
     expect(result.resolution.block).toBe(baseResolution.block);
+    expect(result.resolution.chiBonusBlock).toBe(0);
   });
 
   it("spends chi to reduce incoming damage", () => {
@@ -55,7 +56,10 @@ describe("defensePipeline", () => {
 
     expect(result.resolution.chiSpent).toBe(2);
     expect(result.defenderAfter.tokens.chi).toBe(1);
-    expect(result.resolution.block).toBe(4);
+    expect(result.resolution.block).toBe(6);
+    expect(result.resolution.chiBonusBlock).toBe(
+      result.resolution.block - baseResolution.block
+    );
   });
 
   it("builds defense plan with chi spend applied", () => {
@@ -76,6 +80,8 @@ describe("defensePipeline", () => {
 
     expect(plan.defense.chiSpent).toBe(1);
     expect(plan.defenderAfter.tokens.chi).toBe(1);
+    expect(plan.defense.block).toBe(baseResolution.block + 1);
+    expect(plan.defense.chiBonusBlock).toBe(1);
   });
 });
 

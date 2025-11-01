@@ -32,6 +32,7 @@ const buildDefense = (
   appliedTokens: {},
   retaliatePercent: 0,
   chiSpent: 0,
+  chiBonusBlock: 0,
   ...overrides,
 });
 

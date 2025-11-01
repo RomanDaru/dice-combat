@@ -11,7 +11,10 @@
 import { useGame } from "./GameContext";
 import type { GameState, InitialRollState } from "../game/state";
 import type { OffensiveAbility, Phase, Side, Combo } from "../game/types";
-import type { DefenseRollResult } from "../game/combat/types";
+import type {
+  BaseDefenseResolution,
+  DefenseRollResult,
+} from "../game/combat/types";
 
 import { useCombatLog } from "../hooks/useCombatLog";
 import { useDiceAnimator } from "../hooks/useDiceAnimator";
@@ -48,6 +51,7 @@ const AI_PASS_EVENT_DELAY_MS = 600;
 type PlayerDefenseState = {
   roll: DefenseRollResult;
   selectedCombo: Combo | null;
+  baseResolution: BaseDefenseResolution;
 };
 
 type ComputedData = {
@@ -67,6 +71,8 @@ type ComputedData = {
   defenseSelection: Combo | null;
   awaitingDefenseSelection: boolean;
   impactLocked: boolean;
+  attackBaseDamage: number;
+  defenseBaseBlock: number;
 };
 
 type ControllerContext = {
@@ -170,6 +176,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       Math.min(prev, turnChiAvailable.you ?? 0)
     );
   }, [turnChiAvailable.you]);
+
 
   const clearAttackChiSpend = useCallback(() => setAttackChiSpend(0), []);
   const clearDefenseChiSpend = useCallback(() => setDefenseChiSpend(0), []);
@@ -321,6 +328,12 @@ export const GameController = ({ children }: { children: ReactNode }) => {
         : suggestedAbility,
     [playerSelectedAbility, suggestedAbility, turn]
   );
+  const attackBaseDamage = ability?.damage ?? 0;
+  useEffect(() => {
+    if (!ability || attackBaseDamage <= 0) {
+      setAttackChiSpend(0);
+    }
+  }, [ability, attackBaseDamage]);
   useEffect(() => {
     if (turn !== "you") {
       setPlayerAttackSelection(null);
@@ -341,6 +354,11 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const isDefenseTurn = !!pendingAttack && pendingAttack.defender === "you";
   const initialRoll = state.initialRoll;
   const phase = state.phase;
+  const defenseBaseBlock = playerDefenseState?.baseResolution.block ?? 0;
+  useEffect(() => {
+    if (!playerDefenseState || defenseBaseBlock > 0) return;
+    setDefenseChiSpend(0);
+  }, [playerDefenseState, defenseBaseBlock]);
 
   useEffect(() => {
     const currentChi =
@@ -728,6 +746,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       defenseSelection: playerDefenseState?.selectedCombo ?? null,
       awaitingDefenseSelection: !!playerDefenseState,
       impactLocked,
+      attackBaseDamage,
+      defenseBaseBlock,
     }),
     [
       ability,
@@ -743,6 +763,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       initialRoll,
       playerDefenseState,
       impactLocked,
+      attackBaseDamage,
+      defenseBaseBlock,
     ]
   );
 

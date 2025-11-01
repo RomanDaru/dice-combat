@@ -31,6 +31,7 @@ export type BaseDefenseResolution = {
 
 export type ResolvedDefenseState = BaseDefenseResolution & {
   chiSpent: number;
+  chiBonusBlock: number;
 };
 
 export type AttackContext = {

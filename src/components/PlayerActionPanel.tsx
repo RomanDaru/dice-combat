@@ -4,6 +4,7 @@ import { useGame } from "../context/GameContext";
 import { useGameController, useGameData } from "../context/GameController";
 import { useCombatLog, indentLog } from "../hooks/useCombatLog";
 import styles from "./PlayerActionPanel.module.css";
+import { getStatus } from "../engine/status";
 
 export function PlayerActionPanel() {
   const { state } = useGame();
@@ -37,6 +38,8 @@ export function PlayerActionPanel() {
     awaitingDefenseSelection,
     diceTrayVisible,
     impactLocked,
+    attackBaseDamage,
+    defenseBaseBlock,
   } = useGameData();
 
   const {
@@ -51,13 +54,33 @@ export function PlayerActionPanel() {
 
   const you = state.players.you;
   const ai = state.players.ai;
+  const chiDef = getStatus("chi");
+  const evasiveDef = getStatus("evasive");
+  const chiSpend = chiDef?.spend;
+  const evasiveSpend = evasiveDef?.spend;
+  const chiAttackEnabled =
+    !!chiSpend?.allowedPhases?.includes("attackRoll");
+  const chiDefenseEnabled =
+    !!chiSpend?.allowedPhases?.includes("defenseRoll");
+  const evasiveEnabled =
+    !!evasiveSpend?.allowedPhases?.includes("defenseRoll");
+  const evasiveNeedsRoll = !!evasiveSpend?.needsRoll;
+  const evasiveButtonLabel = evasiveNeedsRoll
+    ? `${evasiveDef?.name ?? "Evasive"} Roll`
+    : `Use ${evasiveDef?.name ?? "Evasive"}`;
   const availableChiTokens = you.tokens.chi ?? 0;
-  const spendableChi = Math.max(
+  const turnChiCap = Math.max(
     0,
     Math.min(availableChiTokens, turnChiAvailable.you ?? 0)
   );
-  const attackChiValue = Math.max(0, Math.min(attackChiSpend, spendableChi));
-  const defenseChiValue = Math.max(0, Math.min(defenseChiSpend, spendableChi));
+  const attackChiCap =
+    turn === "you" && selectedAttackCombo && attackBaseDamage > 0
+      ? turnChiCap
+      : 0;
+  const defenseChiCap =
+    awaitingDefenseSelection && defenseBaseBlock > 0 ? turnChiCap : 0;
+  const attackChiValue = Math.max(0, Math.min(attackChiSpend, attackChiCap));
+  const defenseChiValue = Math.max(0, Math.min(defenseChiSpend, defenseChiCap));
 
   const canInteract =
     turn === "you" && !isDefenseTurn && !statusActive && !impactLocked;
@@ -75,9 +98,20 @@ export function PlayerActionPanel() {
     incomingAttack && state.players[incomingAttack.attacker]
       ? state.players[incomingAttack.attacker].hero
       : null;
-  const canAdjustAttackChi = canInteract && spendableChi > 0 && turn === "you";
+  const canAdjustAttackChi =
+    canInteract && chiAttackEnabled && attackChiCap > 0;
   const canAdjustDefenseChi =
-    isDefenseTurn && spendableChi > 0 && !impactLocked;
+    isDefenseTurn &&
+    chiDefenseEnabled &&
+    defenseChiCap > 0 &&
+    awaitingDefenseSelection &&
+    !impactLocked;
+  const playerEvasiveStacks = you.tokens.evasive ?? 0;
+  const canUseEvasive =
+    isDefenseTurn &&
+    evasiveEnabled &&
+    playerEvasiveStacks > 0 &&
+    !impactLocked;
   const hasDefenseCombos = Boolean(defenseRoll && defenseRoll.options.length);
   const { pushLog } = useCombatLog();
   const lastThreatLog = useRef<string | null>(null);
@@ -113,14 +147,14 @@ export function PlayerActionPanel() {
   const adjustAttackChi = (delta: number) => {
     setAttackChiSpend((prev) => {
       const next = prev + delta;
-      return Math.max(0, Math.min(next, spendableChi));
+      return Math.max(0, Math.min(next, attackChiCap));
     });
   };
 
   const adjustDefenseChi = (delta: number) => {
     setDefenseChiSpend((prev) => {
       const next = prev + delta;
-      return Math.max(0, Math.min(next, spendableChi));
+      return Math.max(0, Math.min(next, defenseChiCap));
     });
   };
 
@@ -248,10 +282,10 @@ export function PlayerActionPanel() {
                 type='button'
                 className={styles.chiStepperBtn}
                 onClick={() => adjustAttackChi(1)}
-                disabled={attackChiValue >= spendableChi || impactLocked}>
+                disabled={attackChiValue >= attackChiCap || impactLocked}>
                 +
               </button>
-              <span className={styles.chiMax}>/ {spendableChi}</span>
+              <span className={styles.chiMax}>/ {attackChiCap}</span>
             </div>
           </div>
         )}
@@ -264,6 +298,14 @@ export function PlayerActionPanel() {
                 disabled={Boolean(defenseRoll) || impactLocked}>
                 {defenseRoll ? "Defense Rolled" : "Defense Roll"}
               </button>
+              {canUseEvasive && (
+                <button
+                  className='btn warning'
+                  onClick={onUserEvasiveRoll}
+                  disabled={impactLocked}>
+                  {evasiveButtonLabel}
+                </button>
+              )}
               {defenseRoll && (
                 <>
                   {hasDefenseCombos && (
@@ -320,10 +362,10 @@ export function PlayerActionPanel() {
                 type='button'
                 className={styles.chiStepperBtn}
                 onClick={() => adjustDefenseChi(1)}
-                disabled={defenseChiValue >= spendableChi || impactLocked}>
+                disabled={defenseChiValue >= defenseChiCap || impactLocked}>
                 +
               </button>
-              <span className={styles.chiMax}>/ {spendableChi}</span>
+              <span className={styles.chiMax}>/ {defenseChiCap}</span>
             </div>
           </div>
         )}

@@ -8,6 +8,7 @@ import {
 } from "../game/combat/defenseBoard";
 import { buildDefensePlan } from "../game/combat/defensePipeline";
 import { resolveAttack } from "../engine/resolveAttack";
+import { getStatus, spendStatus } from "../engine/status";
 import { ActiveAbilityIds } from "../game/activeAbilities";
 import { useGame } from "../context/GameContext";
 import { useActiveAbilities } from "./useActiveAbilities";
@@ -22,7 +23,10 @@ import type {
   ActiveAbilityContext,
   ActiveAbilityOutcome,
 } from "../game/types";
-import type { DefenseRollResult } from "../game/combat/types";
+import type {
+  BaseDefenseResolution,
+  DefenseRollResult,
+} from "../game/combat/types";
 import { ManualEvasiveLog } from "./useCombatLog";
 import {
   resolvePassTurn,
@@ -32,6 +36,7 @@ import {
 type PlayerDefenseState = {
   roll: DefenseRollResult;
   selectedCombo: Combo | null;
+  baseResolution: BaseDefenseResolution;
 };
 
 type UseDefenseActionsArgs = {
@@ -224,23 +229,6 @@ export function useDefenseActions({
     ]
   );
 
-  const spendChi = useCallback(
-    (side: Side, player: PlayerState, amount: number) => {
-      if (amount <= 0) return player;
-      consumeTurnChi(side, amount);
-      const nextPlayer: PlayerState = {
-        ...player,
-        tokens: {
-          ...player.tokens,
-          chi: Math.max(0, (player.tokens.chi ?? 0) - amount),
-        },
-      };
-      setPlayer(side, nextPlayer);
-      return nextPlayer;
-    },
-    [consumeTurnChi, setPlayer]
-  );
-
   const onConfirmAttack = useCallback(() => {
     manualEvasiveRef.current = null;
     if (turn !== "you" || rolling.some(Boolean)) return;
@@ -283,16 +271,39 @@ export function useDefenseActions({
         attacker.tokens.chi ?? 0,
         turnChiAvailable.you ?? 0
       );
-      let chiApplied = false;
-      if (spendableAttackChi > 0) {
-        attacker = spendChi("you", attacker, spendableAttackChi);
-        chiApplied = true;
+      const chiData = getStatus("chi");
+      const chiCost = chiData?.spend?.costStacks ?? 1;
+      const maxAttempts =
+        chiCost > 0 ? Math.floor(spendableAttackChi / chiCost) : 0;
+      let attackChiSpent = 0;
+      let attackChiBonusDamage = 0;
+      if (maxAttempts > 0 && chiData?.spend) {
+        let workingTokens = attacker.tokens;
+        for (let i = 0; i < maxAttempts; i += 1) {
+          const spendResult = spendStatus(workingTokens, "chi", "attackRoll", {
+            phase: "attackRoll",
+            baseDamage: selectedAbility.damage + attackChiBonusDamage,
+          });
+          if (!spendResult) break;
+          workingTokens = spendResult.next;
+          attackChiBonusDamage += spendResult.spend.bonusDamage ?? 0;
+          attackChiSpent += chiCost;
+        }
+        if (attackChiSpent > 0) {
+          attacker = {
+            ...attacker,
+            tokens: workingTokens,
+          };
+          setPlayer("you", attacker);
+          consumeTurnChi("you", attackChiSpent);
+        }
       }
       clearAttackChiSpend();
+      const chiApplied = attackChiBonusDamage > 0;
 
       const effectiveAbility: OffensiveAbility = {
         ...selectedAbility,
-        damage: selectedAbility.damage + spendableAttackChi,
+        damage: selectedAbility.damage + attackChiBonusDamage,
       };
 
       logPlayerAttackStart(attackDice, effectiveAbility, attacker.hero.name);
@@ -328,7 +339,7 @@ export function useDefenseActions({
             attacker,
             defender: defenderState,
             ability: effectiveAbility,
-            attackChiSpend: spendableAttackChi,
+            attackChiSpend: attackChiSpent,
             attackChiApplied: chiApplied,
             defense: {
               resolution: defenseResolution,
@@ -384,15 +395,11 @@ export function useDefenseActions({
             defenseRoll: defensePlan.defense.block,
           });
 
-          let updatedDefender = defenderState;
+          let updatedDefender = defensePlan.defenderAfter;
           if (defensePlan.defense.chiSpent > 0) {
-            updatedDefender = spendChi(
-              "ai",
-              defensePlan.defenderAfter,
-              defensePlan.defense.chiSpent
-            );
-          } else if (defensePlan.defenderAfter !== defenderState) {
-            updatedDefender = defensePlan.defenderAfter;
+            consumeTurnChi("ai", defensePlan.defense.chiSpent);
+          }
+          if (updatedDefender !== defenderState) {
             setPlayer("ai", updatedDefender);
           }
 
@@ -403,18 +410,33 @@ export function useDefenseActions({
       if (aiShouldAttemptEvasive && defender.tokens.evasive > 0) {
         setPhase("defense");
         animateDefenseDie((roll) => {
+          const spendResult = spendStatus(
+            defender.tokens,
+            "evasive",
+            "defenseRoll",
+            { phase: "defenseRoll", roll }
+          );
+          if (!spendResult) {
+            patchAiDefense({ evasiveRoll: roll });
+            window.setTimeout(() => {
+              runDefenseRoll(defender);
+            }, 360);
+            return;
+          }
           const consumedDefender: PlayerState = {
             ...defender,
-            tokens: {
-              ...defender.tokens,
-              evasive: Math.max(0, defender.tokens.evasive - 1),
-            },
+            tokens: spendResult.next,
           };
           setPlayer("ai", consumedDefender);
 
+          const evadeSuccess =
+            typeof spendResult.spend.success === "boolean"
+              ? spendResult.spend.success
+              : !!spendResult.spend.negateIncoming;
+
           const manualEvasive: ManualEvasiveLog = {
             used: true,
-            success: roll >= 5,
+            success: evadeSuccess,
             roll,
             label: consumedDefender.hero.name,
             alreadySpent: true,
@@ -422,7 +444,7 @@ export function useDefenseActions({
 
           patchAiDefense({ evasiveRoll: roll });
 
-          if (manualEvasive.success) {
+          if (evadeSuccess) {
             patchAiDefense({
               inProgress: false,
               defenseRoll: null,
@@ -466,7 +488,6 @@ export function useDefenseActions({
     sendFlowEvent,
     setPhase,
     setPlayer,
-    spendChi,
     turn,
     turnChiAvailable.ai,
     turnChiAvailable.you,
@@ -494,9 +515,16 @@ export function useDefenseActions({
           { blankLineBefore: true }
         );
       }
+      const initialCombo = rollResult.options[0]?.combo ?? null;
+      const initialSelection = selectDefenseOptionByCombo(
+        rollResult,
+        initialCombo
+      );
+      const initialBaseResolution = resolveDefenseSelection(initialSelection);
       setPlayerDefenseState({
         roll: rollResult,
-        selectedCombo: rollResult.options[0]?.combo ?? null,
+        selectedCombo: initialCombo,
+        baseResolution: initialBaseResolution,
       });
     });
   }, [
@@ -511,9 +539,16 @@ export function useDefenseActions({
 
   const onChooseDefenseOption = useCallback(
     (combo: Combo | null) => {
-      setPlayerDefenseState((prev) =>
-        prev ? { ...prev, selectedCombo: combo } : prev
-      );
+      setPlayerDefenseState((prev) => {
+        if (!prev) return prev;
+        const nextSelection = selectDefenseOptionByCombo(prev.roll, combo);
+        const nextBaseResolution = resolveDefenseSelection(nextSelection);
+        return {
+          ...prev,
+          selectedCombo: combo,
+          baseResolution: nextBaseResolution,
+        };
+      });
     },
     [setPlayerDefenseState]
   );
@@ -549,16 +584,11 @@ export function useDefenseActions({
       requestedChi,
     });
 
+    defender = defensePlan.defenderAfter;
     if (defensePlan.defense.chiSpent > 0) {
-      defender = spendChi(
-        "you",
-        defensePlan.defenderAfter,
-        defensePlan.defense.chiSpent
-      );
-    } else {
-      defender = defensePlan.defenderAfter;
-      setPlayer("you", defender);
+      consumeTurnChi("you", defensePlan.defense.chiSpent);
     }
+    setPlayer("you", defender);
 
     const resolution = resolveAttack({
       source: "ai",
@@ -593,7 +623,7 @@ export function useDefenseActions({
     setPendingAttackDispatch,
     setPlayer,
     setPlayerDefenseState,
-    spendChi,
+    consumeTurnChi,
     turnChiAvailable.you,
   ]);
 
@@ -608,23 +638,31 @@ export function useDefenseActions({
       const attacker = snapshot.players[pendingAttack.attacker];
       const defender = snapshot.players[pendingAttack.defender];
       if (!attacker || !defender) return;
+      const spendResult = spendStatus(
+        defender.tokens,
+        "evasive",
+        "defenseRoll",
+        { phase: "defenseRoll", roll: evasiveRoll }
+      );
+      if (!spendResult) return;
       const consumedDefender = {
         ...defender,
-        tokens: {
-          ...defender.tokens,
-          evasive: Math.max(0, defender.tokens.evasive - 1),
-        },
+        tokens: spendResult.next,
       };
+      const evadeSuccess =
+        typeof spendResult.spend.success === "boolean"
+          ? spendResult.spend.success
+          : !!spendResult.spend.negateIncoming;
       const manualEvasiveAttempt: ManualEvasiveLog = {
         used: true,
-        success: evasiveRoll >= 5,
+        success: evadeSuccess,
         roll: evasiveRoll,
         label: consumedDefender.hero.name,
         alreadySpent: true,
       };
       manualEvasiveRef.current = manualEvasiveAttempt;
       setPlayer(pendingAttack.defender, consumedDefender);
-      if (evasiveRoll >= 5) {
+      if (evadeSuccess) {
         const resolution = resolveAttack({
           source: "ai",
           attackerSide: pendingAttack.attacker,

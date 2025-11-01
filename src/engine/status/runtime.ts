@@ -106,6 +106,7 @@ export function spendStatus(
   const def = getStatus(id);
   if (!def?.spend) return null;
   if (!def.spend.allowedPhases.includes(phase)) return null;
+  if (def.spend.needsRoll && typeof ctx.roll !== "number") return null;
 
   const current = stacks[id] ?? 0;
   if (current < def.spend.costStacks) return null;
@@ -114,6 +115,59 @@ export function spendStatus(
   const remaining = current - def.spend.costStacks;
   const next = setStacks(stacks, id, remaining);
   return { next, spend: result };
+}
+
+export type SpendStatusManyResult = {
+  next: StatusStacks;
+  spends: StatusSpendApplyResult[];
+  totalCost: number;
+};
+
+export function spendStatusMany(
+  stacks: StatusStacks,
+  id: string,
+  attempts: number,
+  phase: StatusPhase,
+  buildCtx: (
+    iteration: number,
+    previous: StatusSpendApplyContext
+  ) => StatusSpendApplyContext,
+  initialCtx: StatusSpendApplyContext
+): SpendStatusManyResult | null {
+  if (attempts <= 0) return null;
+  const def = getStatus(id);
+  if (!def?.spend) return null;
+  let working = stacks;
+  const spends: StatusSpendApplyResult[] = [];
+  let totalCost = 0;
+  let ctxSnapshot = { ...initialCtx };
+  for (let i = 0; i < attempts; i += 1) {
+    const ctx = buildCtx(i, ctxSnapshot);
+    const result = spendStatus(working, id, phase, ctx);
+    if (!result) break;
+    working = result.next;
+    spends.push(result.spend);
+    totalCost += def.spend.costStacks;
+    ctxSnapshot = {
+      ...ctxSnapshot,
+      baseDamage:
+        typeof result.spend.bonusDamage === "number"
+          ? result.spend.bonusDamage
+          : ctx.baseDamage ?? ctxSnapshot.baseDamage,
+      baseBlock:
+        typeof result.spend.bonusBlock === "number"
+          ? (ctx.baseBlock ?? ctxSnapshot.baseBlock ?? 0) +
+            result.spend.bonusBlock
+          : ctx.baseBlock ?? ctxSnapshot.baseBlock,
+      roll: ctx.roll ?? ctxSnapshot.roll,
+    };
+  }
+  if (spends.length === 0) return null;
+  return {
+    next: working,
+    spends,
+    totalCost,
+  };
 }
 
 export type ModifyResult = {

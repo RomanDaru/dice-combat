@@ -94,9 +94,15 @@ export const buildAttackResolutionLines = ({
     );
   }
   if (defense?.chiSpent && defense.chiSpent > 0) {
+    const chiBlockGain =
+      typeof defense.chiBonusBlock === "number"
+        ? defense.chiBonusBlock
+        : defense.chiSpent;
     lines.push(
       indentLog(
-        `${defenderBefore.hero.name} spends ${resourceTag("Chi")} x${defense.chiSpent} for +${defense.chiSpent} block.`
+        `${defenderBefore.hero.name} spends ${resourceTag(
+          "Chi"
+        )} x${defense.chiSpent} for +${chiBlockGain} block.`
       )
     );
   }

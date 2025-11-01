@@ -6,6 +6,7 @@ import { useGame } from "../context/GameContext";
 import { useLatest } from "./useLatest";
 import type { GameFlowEvent } from "./useTurnController";
 import type { Rng } from "../engine/rng";
+import { getStatus, spendStatus } from "../engine/status";
 
 type UseAiControllerArgs = {
   logAiNoCombo: (diceValues: number[]) => void;
@@ -148,33 +149,53 @@ export function useAiController({
             onAiNoCombo();
             return;
           }
-          let chiAttackSpend = 0;
+          let desiredChiSpend = 0;
           if (latestAi.hero.id === "Shadow Monk") {
             const desired = chooseAiAttackChiSpend(latestAi, latestYou, ab);
-            chiAttackSpend = Math.min(
+            desiredChiSpend = Math.min(
               desired,
               turnChiAvailable.ai ?? 0,
               latestAi.tokens.chi ?? 0
             );
           }
           let effectiveAbility = ab;
-          if (chiAttackSpend > 0) {
-            const updatedAi = {
-              ...latestAi,
-              tokens: {
-                ...latestAi.tokens,
-                chi: Math.max(
-                  0,
-                  (latestAi.tokens.chi ?? 0) - chiAttackSpend
-                ),
-              },
-            };
-            dispatch({ type: "SET_PLAYER", side: "ai", player: updatedAi });
-            consumeTurnChi("ai", chiAttackSpend);
-            effectiveAbility = {
-              ...ab,
-              damage: ab.damage + chiAttackSpend,
-            };
+          let chiAttackSpend = 0;
+          if (desiredChiSpend > 0) {
+            const chiDef = getStatus("chi");
+            const chiCost = chiDef?.spend?.costStacks ?? 1;
+            const maxAttempts =
+              chiCost > 0 ? Math.floor(desiredChiSpend / chiCost) : 0;
+            if (maxAttempts > 0 && chiDef?.spend) {
+              let workingTokens = latestAi.tokens;
+              let bonusDamage = 0;
+              for (let i = 0; i < maxAttempts; i += 1) {
+                const spendResult = spendStatus(
+                  workingTokens,
+                  "chi",
+                  "attackRoll",
+                  {
+                    phase: "attackRoll",
+                    baseDamage: ab.damage + bonusDamage,
+                  }
+                );
+                if (!spendResult) break;
+                workingTokens = spendResult.next;
+                bonusDamage += spendResult.spend.bonusDamage ?? 0;
+                chiAttackSpend += chiCost;
+              }
+              if (chiAttackSpend > 0) {
+                const updatedAi = {
+                  ...latestAi,
+                  tokens: workingTokens,
+                };
+                dispatch({ type: "SET_PLAYER", side: "ai", player: updatedAi });
+                consumeTurnChi("ai", chiAttackSpend);
+                effectiveAbility = {
+                  ...ab,
+                  damage: ab.damage + bonusDamage,
+                };
+              }
+            }
           }
           setPendingAttack({
             attacker: "ai",
@@ -216,4 +237,3 @@ export function useAiController({
     aiPlay,
   };
 }
-
