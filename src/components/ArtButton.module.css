@@ -7,7 +7,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #111827;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  text-shadow: 1px 1px 0 rgba(255, 158, 79, 0.5);
   border: none;
   background-color: transparent;
   background-repeat: no-repeat;
@@ -42,6 +42,7 @@
   width: 200px;
   height: 60px;
   font-size: 16px;
+  font-weight: 800;
 }
 
 .square {
@@ -56,4 +57,8 @@
   padding: 0 16px;
   text-align: center;
   line-height: 1.1;
+}
+
+.medium .content {
+  -webkit-text-stroke: 0.8px rgba(17, 24, 39, 0.65);
 }

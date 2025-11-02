@@ -1,37 +1,43 @@
-﻿## Sprint LITE – Status System Migration
+## Sprint Focus – Dice Tray UX Overhaul
 
-> Cieľ: prejsť z token-žetónov na jednotný status runtime bez toho, aby sme rozbili hrateľnosť. Päť izolovaných PR, každé samostatne releasovateľné.
+> Cieľ: zjednotiť flow útoku cez nové DiceTray UI, odstrániť rozbité akčné panely a pripraviť UX/haptiku na mobil.
 
 # Tasklist
 
-## PR-L5a-fix — Add tests for `applyModifiers`
+## PlayerActionPanel.tsx Cleanup
 
-- ✅ Created `src/engine/status/__tests__/applyModifiers.test.ts` and covered priority ordering, no-op pass-through, and attack vs. defense branching.
-- ✅ Vitest suite (`npm run test`) green.
+- [ ] Vyhodiť všetky akčné tlačidlá (Roll/Confirm/Pass/Spend) a ponechať iba DiceTray „preview“ s minikockami + tooltip „Tap to roll / open“.
+- [ ] Napojiť klik na `controller.openDiceTray()` a presvedčiť sa, že komponent neobsahuje pozostatky starého flow.
 
-**Status:** Completed (commit `test: cover applyModifiers scenarios`).
+## DiceTray.tsx Rework
 
----
+- [ ] Rozšíriť props o `phase`, `rollsLeft`, `validAbilities`, `selectedAbility`, `onRoll`, `onConfirmAttack`, `onPassTurn`, `onSelectAbility`, `onClose`.
+- [ ] Primárna akcia: `phase==="roll"` && `rollsLeft>0` → Roll; `phase==="roll"` && `rollsLeft===0` && `selectedAbility` → Confirm; `phase==="roll"` && `rollsLeft===0` && `!hasValidAbility` → Pass.
+- [ ] Renderovať sekciu „Abilities“ (po dohádzaní) so zoznamom `validAbilities`; klik volá `onSelectAbility`.
+- [ ] Skryť „Open“ stav – DiceTray sa má zobrazovať ako otvorený panel.
 
-## PR-L5d — Wire `applyModifiers` into `resolveAttack`
+## Controller Updates (GameController / useAttackController)
 
-- ✅ Updated `src/engine/resolveAttack.ts` to apply modifiers on attacker/defender context, gate spends when base damage/block hit zero, and short-circuit on negate before calling `applyAttack`.
-- ✅ Added exhaustive regression coverage in `src/engine/__tests__/resolveAttack.test.ts` (priority, block, negate, logging, overflow clamps).
-- ✅ Full test suite passing after changes.
+- [ ] Pridať selektory `const combos = readyForActing;` a `const hasValidAbility = Object.values(combos).some(Boolean);`.
+- [ ] Poskytovať DiceTray-u `onRoll`, `onConfirmAttack`, `onPassTurn`, `onSelectAbility`, `selectedAbility`, `rollsLeft`, `phase`, `hasValidAbility`.
+- [ ] Upraviť `openDiceTray()` tak, aby len prepínal viditeľnosť; pri `phase !== "roll"` zamknúť akcie (iba vizuálne zobrazenie).
 
-**Status:** Completed (commit `feat: apply status modifiers in resolveAttack` + `test: harden resolveAttack modifier coverage`).
+## Action Guards & State Sync
 
----
+- [ ] Disable Roll ak `rolling.some(Boolean)` alebo `statusActive` alebo `phase !== "roll"` alebo `isDefenseTurn`.
+- [ ] Disable Confirm ak `!selectedAbility` alebo `rollsLeft > 0`.
+- [ ] Disable Pass ak `hasValidAbility === true`.
+- [ ] Guardovať `selectedAbility`: ak `readyForActing` prestane obsahovať vybranú schopnosť, zrušiť výber.
+- [ ] Ak sa počas otvoreného DiceTray zmení `phase` (defense, upkeep...), automaticky `onClose()`.
 
-## PR-L5e — UI + direct-token cleanup + burn cleanse tests
+## Focus, Shortcuts & Haptics
 
-- ✅ `TokenChips` now pulls status metadata via registry and `getStacks`; Chi dots capped via `DotRow`.
-- ✅ Replaced direct `tokens.chi/evasive/burn` access across controllers, hooks, engine, AI, and tests with `getStacks`/`setStacks` (`git grep 'tokens.(chi|evasive|burn)' src` → no hits).
-- ✅ Added `src/hooks/__tests__/useStatusManager.test.ts` covering burn cleanse success/failure paths with log and dispatch assertions.
-- ✅ `npm run test` green.
+- [ ] Po otvorení DiceTray zamerať primárne tlačidlo (Roll/Confirm/Pass).
+- [ ] Klávesové skratky: `R` → `onRoll()`, `C` → `onConfirmAttack()`, `P` → `onPassTurn()`, `1–5` → `onSelectAbility(index)`, `Esc` → `onClose()` (ak nie je lock).
+- [ ] Pridať haptiku: Roll 20 ms, Confirm 40 ms, Pass 15 ms (mobilná vetva).
 
-**Status:** Completed (pending commit).
+## Mobile UX & Locked State
 
----
+- [ ] Dodržať tap target ≥ 40×40 px a medzery 8–12 px v DiceTray.
+- [ ] Pri „locked“ stave (pauzy, animácie) prekryť DiceTray stmavenou vrstvou s textom „Paused“.
 
-> Každé PR končí testami (`npm run test`) + mini changelogom. Pri veľkých súboroch (GameController, useDefenseActions) udržiavaj commit diffs čitateľné — radšej viac menších commitov než jeden mega diff. Samostatne kontroluj `TokenChips`, `combatLog`, `aiController` pre regresie.

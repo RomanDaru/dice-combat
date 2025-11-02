@@ -86,6 +86,20 @@
   backdrop-filter: blur(4px);
 }
 
+.boardContentStandoff {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: clamp(32px, 6vw, 72px);
+}
+
+.boardContentWinner {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: clamp(32px, 6vw, 72px);
+}
+
 .utilityColumn {
   flex: 0 0 240px;
   max-width: 240px;
@@ -473,15 +487,16 @@
 }
 
 .winnerBoard {
-  text-align: center;
-  padding: clamp(48px, 8vw, 96px) 16px;
+  padding: clamp(32px, 5vw, 64px) clamp(16px, 4vw, 28px);
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  border-radius: clamp(18px, 2vw, 24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(15, 23, 42, 0.55);
-  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
+  align-items: center;
+  gap: clamp(16px, 3vw, 28px);
+  max-width: 520px;
+  width: 100%;
+  border: none;
+  background: none;
+  box-shadow: none;
 }
 
 .winnerBoard h2 {
@@ -494,33 +509,43 @@
 .winnerActions {
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: clamp(12px, 3vw, 20px);
   flex-wrap: wrap;
+}
+
+.winnerButton {
+  width: 200px;
+  max-width: 100%;
 }
 
 .standoffShell {
   display: flex;
   justify-content: center;
+  width: 100%;
 }
 
 .standoffCard {
-  background: rgba(10, 12, 25, 0.65);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: clamp(18px, 3vw, 26px);
-  padding: clamp(24px, 5vw, 40px);
   max-width: 520px;
-  width: 100%;
+  width: min(520px, 100%);
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  align-items: center;
+  gap: clamp(18px, 4vw, 28px);
   text-align: center;
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.35);
+}
+
+.standoffCard p {
+  margin: 0;
+  font-size: clamp(16px, 2.6vw, 20px);
+  color: #e2e8f0;
 }
 
 .standoffDiceRow {
   display: flex;
-  gap: clamp(20px, 5vw, 32px);
+  gap: clamp(16px, 5vw, 32px);
   justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
 }
 
 .diceColumn {
@@ -531,11 +556,11 @@
 }
 
 .diceFace {
-  width: 72px;
-  height: 72px;
-  border-radius: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.18);
-  background: rgba(24, 24, 27, 0.82);
+  width: 96px;
+  height: 96px;
+  /* border-radius: 16px; */
+  /* border: 2px solid rgba(255, 255, 255, 0.18);
+  background: rgba(15, 23, 42, 0.65); */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -543,25 +568,39 @@
   font-weight: 700;
   box-shadow: inset 0 0 14px rgba(15, 23, 42, 0.55),
     0 0 10px rgba(59, 130, 246, 0.15);
+  position: relative;
+  overflow: hidden;
 }
 
 .diceRolling {
   animation: diceRoll 0.32s linear infinite;
 }
 
+.diceFaceImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.diceFaceValue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
 .standoffActions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 12px;
+  gap: clamp(12px, 3vw, 20px);
 }
 
-.standoffActions .btn.primary {
-  margin-left: 4px;
-}
-
-.standoffActions .btn.success {
-  min-width: 160px;
+.standoffButton {
+  width: 200px;
+  max-width: 100%;
 }
 
 @keyframes diceRoll {

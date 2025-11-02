@@ -7,6 +7,7 @@ import { CombatLogPanel } from "../components/CombatLogPanel";
 import TurnProgress from "../components/TurnProgress";
 import { OpponentAbilityList } from "../components/OpponentAbilityList";
 import { AiPreviewPanel } from "../components/AiPreviewPanel";
+import ArtButton from "../components/ArtButton";
 import {
   GameController,
   useGameController,
@@ -236,6 +237,52 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
   const opponentTrayImage = aiSkin.tray ?? aiSkin.board ?? TableBackground;
   const playerDiceFaces = youSkin.diceSet?.faces ?? undefined;
   const opponentDiceFaces = aiSkin.diceSet?.faces ?? undefined;
+  const standoffContentClassName = clsx(
+    styles.boardContent,
+    styles.boardContentStandoff
+  );
+  const boardContentClassName = clsx(
+    styles.boardContent,
+    winnerName && styles.boardContentWinner
+  );
+
+  const renderStandoffDie = (
+    label: string,
+    value: number | null,
+    faces?: (string | null | undefined)[]
+  ) => {
+    const faceValue = typeof value === "number" ? value : null;
+    const imageSrc =
+      faceValue && faceValue >= 1 && faceValue <= 6 && faces
+        ? faces[faceValue - 1] ?? null
+        : null;
+
+    return (
+      <div className={styles.diceColumn}>
+        <span className='label'>{label}</span>
+        <div
+          className={clsx(
+            styles.diceFace,
+            initialRoll.inProgress && styles.diceRolling
+          )}>
+          {imageSrc ? (
+            <>
+              <img
+                src={imageSrc}
+                alt={`${label} die showing ${faceValue}`}
+                className={styles.diceFaceImage}
+                draggable={false}
+              />
+            </>
+          ) : (
+            <span className={styles.diceFaceValue}>
+              {faceValue ?? "-"}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   if (phase === "standoff") {
     return (
@@ -249,45 +296,29 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
                 trayImage={playerTrayImage}
                 diceImages={playerDiceFaces}
               />
-              <div className={styles.boardContent}>
+              <div className={standoffContentClassName}>
                 <div className={styles.standoffShell}>
                   <div className={styles.standoffCard}>
                     <p>{standoffMessage}</p>
                     <div className={styles.standoffDiceRow}>
-                      <div className={styles.diceColumn}>
-                        <span className='label'>You</span>
-                        <div
-                          className={clsx(
-                            styles.diceFace,
-                            initialRoll.inProgress && styles.diceRolling
-                          )}>
-                          {displayRolls.you ?? "-"}
-                        </div>
-                      </div>
-                      <div className={styles.diceColumn}>
-                        <span className='label'>AI</span>
-                        <div
-                          className={clsx(
-                            styles.diceFace,
-                            initialRoll.inProgress && styles.diceRolling
-                          )}>
-                          {displayRolls.ai ?? "-"}
-                        </div>
-                      </div>
+                      {renderStandoffDie("You", displayRolls.you, playerDiceFaces)}
+                      {renderStandoffDie("AI", displayRolls.ai, opponentDiceFaces)}
                     </div>
                     <div className={styles.standoffActions}>
-                      <button
-                        className='btn success'
+                      <ArtButton
+                        variant='medium'
                         onClick={startInitialRoll}
-                        disabled={rollButtonDisabled}>
+                        disabled={rollButtonDisabled}
+                        className={styles.standoffButton}>
                         {rollButtonLabel}
-                      </button>
+                      </ArtButton>
                       {showConfirm && (
-                        <button
-                          className='btn primary'
-                          onClick={confirmInitialRoll}>
+                        <ArtButton
+                          variant='medium'
+                          onClick={confirmInitialRoll}
+                          className={styles.standoffButton}>
                           Start the battle
-                        </button>
+                        </ArtButton>
                       )}
                     </div>
                   </div>
@@ -322,17 +353,23 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
               trayImage={playerTrayImage}
               diceImages={playerDiceFaces}
             />
-            <div className={styles.boardContent}>
+            <div className={boardContentClassName}>
               {winnerName ? (
                 <div className={styles.winnerBoard}>
                   <h2>Winner: {winnerName}</h2>
                   <div className={styles.winnerActions}>
-                    <button className='btn success' onClick={handleReset}>
+                    <ArtButton
+                      variant='medium'
+                      onClick={handleReset}
+                      className={styles.winnerButton}>
                       Play Again
-                    </button>
-                    <button className='btn' onClick={onBackToHeroSelect}>
+                    </ArtButton>
+                    <ArtButton
+                      variant='medium'
+                      onClick={onBackToHeroSelect}
+                      className={styles.winnerButton}>
                       Hero Select
-                    </button>
+                    </ArtButton>
                   </div>
                 </div>
               ) : (
