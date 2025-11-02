@@ -1,4 +1,5 @@
-import { AiDecisionContext } from "./types";
+﻿import { AiDecisionContext } from "./types";
+import { getStacks } from "../engine/status";
 import { bestAbility, detectCombos } from "./combos";
 
 function holdMostFrequent(dice: number[]): boolean[] {
@@ -48,7 +49,7 @@ export const monkAiStrategy = (context: AiDecisionContext): boolean[] => {
     }
   }
 
-  if (tokens.evasive <= 0 && hasStraightPotential(dice)) {
+  if (getStacks(tokens, "evasive", 0) <= 0 && hasStraightPotential(dice)) {
     return holdStraightPieces(dice);
   }
 
@@ -66,3 +67,4 @@ export const pyroAiStrategy = (context: AiDecisionContext): boolean[] => {
 
 export const defaultAiStrategy = (context: AiDecisionContext): boolean[] =>
   holdMostFrequent(context.dice);
+

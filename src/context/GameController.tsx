@@ -15,7 +15,7 @@ import type {
   BaseDefenseResolution,
   DefenseRollResult,
 } from "../game/combat/types";
-import type { StatusId } from "../engine/status";
+import { getStacks, type StatusId } from "../engine/status";
 
 import { useCombatLog } from "../hooks/useCombatLog";
 import { useDiceAnimator } from "../hooks/useDiceAnimator";
@@ -134,8 +134,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const [turnChiAvailable, setTurnChiAvailable] = useState<
     Record<Side, number>
   >({
-    you: state.players.you.tokens.chi ?? 0,
-    ai: state.players.ai.tokens.chi ?? 0,
+    you: getStacks(state.players.you.tokens, "chi", 0),
+    ai: getStacks(state.players.ai.tokens, "chi", 0),
   });
   const [playerDefenseState, setPlayerDefenseState] =
     useState<PlayerDefenseState | null>(null);
@@ -159,8 +159,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
         const current = prev[statusId] ?? 0;
         const player = latestState.current.players.you;
         if (!player) return prev;
-        const playerTokens = player.tokens as Record<string, number | undefined>;
-        const ownedStacks = playerTokens[statusId] ?? 0;
+        const ownedStacks = getStacks(player.tokens, statusId, 0);
         let limit = ownedStacks;
         if (statusId === "chi") {
           limit = Math.min(limit, turnChiAvailable.you ?? limit);
@@ -210,10 +209,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       if (!("chi" in prev)) return prev;
       const player = latestState.current.players.you;
       if (!player) return prev;
-      const maxChi = Math.min(
-        player.tokens.chi ?? 0,
-        turnChiAvailable.you ?? (player.tokens.chi ?? 0)
-      );
+      const ownedChi = getStacks(player.tokens, "chi", 0);
+      const maxChi = Math.min(ownedChi, turnChiAvailable.you ?? ownedChi);
       const current = prev.chi ?? 0;
       if (current <= maxChi) return prev;
       if (maxChi <= 0) {
@@ -414,13 +411,13 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const currentChi =
       turn === "you"
-        ? players.you.tokens.chi ?? 0
-        : players.ai.tokens.chi ?? 0;
+        ? getStacks(players.you.tokens, "chi", 0)
+        : getStacks(players.ai.tokens, "chi", 0);
     setTurnChiAvailable((prev) => ({
       ...prev,
       [turn]: currentChi,
     }));
-  }, [turn, players.you.tokens.chi, players.ai.tokens.chi]);
+  }, [turn, players.you.tokens, players.ai.tokens]);
 
   const consumeTurnChi = useCallback((side: Side, amount: number) => {
     if (amount <= 0) return;

@@ -4,7 +4,7 @@ import { useGame } from "../context/GameContext";
 import { useGameController, useGameData } from "../context/GameController";
 import { useCombatLog, indentLog } from "../hooks/useCombatLog";
 import styles from "./PlayerActionPanel.module.css";
-import { getStatus } from "../engine/status";
+import { getStatus, getStacks } from "../engine/status";
 
 export function PlayerActionPanel() {
   const { state } = useGame();
@@ -68,7 +68,7 @@ export function PlayerActionPanel() {
   const evasiveButtonLabel = evasiveNeedsRoll
     ? `${evasiveDef?.name ?? "Evasive"} Roll`
     : `Use ${evasiveDef?.name ?? "Evasive"}`;
-  const availableChiTokens = you.tokens.chi ?? 0;
+  const availableChiTokens = getStacks(you.tokens, "chi", 0);
   const turnChiCap = Math.max(
     0,
     Math.min(availableChiTokens, turnChiAvailable.you ?? 0)
@@ -117,7 +117,7 @@ export function PlayerActionPanel() {
     defenseChiCap > 0 &&
     awaitingDefenseSelection &&
     !impactLocked;
-  const playerEvasiveStacks = you.tokens.evasive ?? 0;
+  const playerEvasiveStacks = getStacks(you.tokens, "evasive", 0);
   const canUseEvasive =
     isDefenseTurn &&
     evasiveEnabled &&

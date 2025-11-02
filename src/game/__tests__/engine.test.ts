@@ -9,6 +9,7 @@ import type {
 } from '../combat/types';
 import {
   createStatusSpendSummary,
+  getStacks,
   spendStatus,
 } from '../../engine/status';
 
@@ -51,7 +52,7 @@ describe('applyAttack', () => {
     });
 
     expect(nextMonk.hp).toBe(monk.hp - (inferno.damage - 2));
-    expect(nextMonk.tokens.burn).toBe(2);
+    expect(getStacks(nextMonk.tokens, 'burn', 0)).toBe(2);
     expect(nextPyro.hp).toBe(pyro.hp);
     expect(notes).toContain('Hit for 10 dmg (blocked 2).');
   });
@@ -66,7 +67,7 @@ describe('applyAttack', () => {
       defense: buildDefense({ baseBlock: 3 }),
     });
 
-    expect(nextMonk.tokens.chi).toBe(1);
+    expect(getStacks(nextMonk.tokens, 'chi', 0)).toBe(1);
     expect(nextPyro.hp).toBe(pyro.hp - Math.max(0, chiStrike.damage - 3));
   });
 
@@ -108,7 +109,7 @@ describe('applyAttack', () => {
     );
 
     expect(nextMonk.hp).toBe(defenderAfterSpend.hp);
-    expect(nextMonk.tokens.evasive ?? 0).toBe(0);
+    expect(getStacks(nextMonk.tokens, 'evasive', 0)).toBe(0);
     expect(nextPyro.hp).toBe(pyro.hp);
     expect(notes.some((line) => line.includes('Hit for 0 dmg'))).toBe(true);
   });

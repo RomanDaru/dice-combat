@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+﻿import { useCallback, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import {
   evaluateDefenseRoll,
@@ -10,6 +10,7 @@ import { buildDefensePlan } from "../game/combat/defensePipeline";
 import { resolveAttack } from "../engine/resolveAttack";
 import {
   getStatus,
+  getStacks,
   spendStatus,
   createStatusSpendSummary,
   aggregateStatusSpendSummaries,
@@ -330,21 +331,16 @@ export function useDefenseActions({
                 0,
                 Math.min(
                   requested,
-                  workingTokens.chi ?? 0,
+                  getStacks(workingTokens, "chi", 0),
                   turnChiAvailable.you ?? 0
                 )
               )
             : Math.max(
                 0,
-                Math.min(
-                  requested,
-                  (workingTokens as Record<string, number | undefined>)[
-                    statusId
-                  ] ?? 0
-                )
+                Math.min(requested, getStacks(workingTokens, statusId, 0))
               );
         const attempts =
-          costStacks > 0 ? Math.floor(availableStacks / costStacks) : 0;
+          costStacks > 0 ? Math.floor(availableStacks / costStacks) : 0 : 0;
         if (attempts <= 0) return;
         let localTokens = workingTokens;
         const spendResults: StatusSpendApplyResult[] = [];
@@ -406,7 +402,7 @@ export function useDefenseActions({
         if (executed && aiEvasiveRequestedRef.current) {
           aiShouldAttemptEvasive = true;
         }
-      } else if (defender.tokens.evasive > 0) {
+      } else if (getStacks(defender.tokens, "evasive", 0) > 0) {
         aiShouldAttemptEvasive = true;
       }
 
@@ -468,7 +464,7 @@ export function useDefenseActions({
           const baseResolution = resolveDefenseSelection(selection);
 
           const requestedChi = Math.min(
-            defenderState.tokens.chi ?? 0,
+            getStacks(defenderState.tokens, "chi", 0),
             turnChiAvailable.ai ?? 0
           );
           const defensePlan = buildDefensePlan({
@@ -505,7 +501,7 @@ export function useDefenseActions({
         });
       };
 
-      if (aiShouldAttemptEvasive && defender.tokens.evasive > 0) {
+      if (aiShouldAttemptEvasive && getStacks(defender.tokens, "evasive", 0) > 0) {
         setPhase("defense");
         animateDefenseDie((roll) => {
           const spendResult = spendStatus(
@@ -677,7 +673,7 @@ export function useDefenseActions({
 
     const requestedChi = Math.min(
       defenseStatusRequests.chi ?? 0,
-      defender.tokens.chi ?? 0,
+      getStacks(defender.tokens, "chi", 0),
       turnChiAvailable.you ?? 0
     );
     const defensePlan = buildDefensePlan({
@@ -751,7 +747,7 @@ export function useDefenseActions({
   const onUserEvasiveRoll = useCallback(() => {
     if (!pendingAttack || pendingAttack.defender !== "you") return;
     const defenderSnapshot = latestState.current.players[pendingAttack.defender];
-    if (!defenderSnapshot || defenderSnapshot.tokens.evasive <= 0) return;
+    if (!defenderSnapshot || getStacks(defenderSnapshot.tokens, "evasive", 0) <= 0) return;
     openDiceTray();
     setPhase("defense");
     animateDefenseDie((evasiveRoll) => {
@@ -842,3 +838,5 @@ export function useDefenseActions({
     onUserEvasiveRoll,
   };
 }
+
+

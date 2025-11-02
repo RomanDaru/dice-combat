@@ -1,5 +1,6 @@
 import {
   createStatusSpendSummary,
+  getStacks,
   getStatus,
   spendStatus,
 } from "../../engine/status";
@@ -52,7 +53,7 @@ export const adjustDefenseWithChi = ({
     };
   }
 
-  const availableChi = defender.tokens.chi ?? 0;
+  const availableChi = getStacks(defender.tokens, "chi", 0);
   if (availableChi <= 0 || requestedChi <= 0 || baseBlock <= 0) {
     return {
       defenderAfter: defender,

@@ -1,4 +1,5 @@
-import type { ActiveAbility } from "../types";
+﻿import type { ActiveAbility } from "../types";
+import { getStacks } from "../../engine/status";
 
 type ActiveAbilityRegistry = Record<string, ActiveAbility[]>;
 
@@ -18,7 +19,7 @@ const ShadowMonkActiveAbilities: ActiveAbility[] = [
       const pending = state.pendingAttack;
       if (!pending || pending.defender !== side) return false;
       if (!["attack", "defense"].includes(phase)) return false;
-      if ((actingPlayer.tokens.evasive ?? 0) <= 0) return false;
+      if (getStacks(actingPlayer.tokens, "evasive", 0) <= 0) return false;
       return true;
     },
     execute: () => ({
@@ -37,3 +38,4 @@ export const getActiveAbilitiesForHero = (heroId: string): ActiveAbility[] =>
 export const ActiveAbilityIds = {
   SHADOW_MONK_EVASIVE_ID,
 } as const;
+

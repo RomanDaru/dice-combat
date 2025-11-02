@@ -1,4 +1,4 @@
-import { getStatus } from "../../engine/status";
+﻿import { getStacks, getStatus } from "../../engine/status";
 import type {
   AggregatedStatusSpends,
   StatusSpendSummary,
@@ -22,8 +22,8 @@ const getStatusGainLines = (
   defenderAfter: PlayerState
 ) => {
   const lines: string[] = [];
-  const burnBefore = defenderBefore.tokens.burn ?? 0;
-  const burnAfter = defenderAfter.tokens.burn ?? 0;
+  const burnBefore = getStacks(defenderBefore.tokens, "burn", 0);
+  const burnAfter = getStacks(defenderAfter.tokens, "burn", 0);
   if (burnAfter > burnBefore) {
     lines.push(
       `${defenderBefore.hero.name} gains ${statusTag("Burn")} (${formatStacks(
@@ -32,15 +32,14 @@ const getStatusGainLines = (
     );
   }
   const chiDiff =
-    (attackerAfter.tokens.chi ?? 0) - (attackerBefore.tokens.chi ?? 0);
+    getStacks(attackerAfter.tokens, "chi", 0) - getStacks(attackerBefore.tokens, "chi", 0);
   if (chiDiff > 0) {
     lines.push(
       `${attackerBefore.hero.name} gains ${resourceTag("Chi")} (+${chiDiff}).`
     );
   }
   const evasiveDiff =
-    (attackerAfter.tokens.evasive ?? 0) -
-    (attackerBefore.tokens.evasive ?? 0);
+    getStacks(attackerAfter.tokens, "evasive", 0) - getStacks(attackerBefore.tokens, "evasive", 0);
   if (evasiveDiff > 0) {
     lines.push(
       `${attackerBefore.hero.name} gains ${resourceTag("Evasive")} (+${evasiveDiff}).`
@@ -156,3 +155,4 @@ export const buildAttackResolutionLines = ({
 
   return lines;
 };
+

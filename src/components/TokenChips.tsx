@@ -1,5 +1,6 @@
-import { Tokens } from "../game/types";
-import { getEffectDefinition } from "../game/effects";
+ï»¿import type { ReactNode } from "react";
+import { getStacks, getStatus, type StatusId } from "../engine/status";
+import type { Tokens } from "../game/types";
 
 const chipStyle = {
   display: "inline-flex",
@@ -30,57 +31,81 @@ function DotRow({ count, max = 3 }: { count: number; max?: number }) {
   );
 }
 
-export default function TokenChips({ tokens }: { tokens: Tokens }) {
-  const burnEffect = getEffectDefinition("burn");
-  const chiEffect = getEffectDefinition("chi");
-  const evasiveEffect = getEffectDefinition("evasive");
+type ChipConfig = {
+  id: StatusId;
+  background: string;
+  border: string;
+  fallbackName: string;
+  fallbackIcon: string;
+  tooltip: string;
+  renderContent?: (count: number) => ReactNode;
+  showMultiplier?: boolean;
+};
 
+const CHIP_CONFIG: ChipConfig[] = [
+  {
+    id: "burn",
+    background: "rgba(127,29,29,.4)",
+    border: "1px solid #b91c1c",
+    fallbackName: "Burn",
+    fallbackIcon: "B",
+    tooltip: "Burn deals damage each upkeep and then decays by 1.",
+    showMultiplier: true,
+  },
+  {
+    id: "chi",
+    background: "rgba(19,78,74,.35)",
+    border: "1px solid #0f766e",
+    fallbackName: "Chi",
+    fallbackIcon: "C",
+    tooltip: "Chi adds block to defense rolls.",
+    renderContent: (count: number) => <DotRow count={Math.min(count, 3)} />,
+  },
+  {
+    id: "evasive",
+    background: "rgba(49,46,129,.35)",
+    border: "1px solid #4338ca",
+    fallbackName: "Evasive",
+    fallbackIcon: "E",
+    tooltip: "Spend to roll 5+ and dodge an incoming attack.",
+    showMultiplier: true,
+  },
+];
+
+export default function TokenChips({ tokens }: { tokens: Tokens }) {
   return (
     <div
-      style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-      {tokens.burn > 0 && (
-        <div
-          className='badge tooltip-anchor'
-          style={{
-            ...chipStyle,
-            background: "rgba(127,29,29,.4)",
-            border: "1px solid #b91c1c",
-          }}
-          data-tip={burnEffect?.summary ?? "Burn deals damage each upkeep and then decays by 1."}
-          aria-label={`${burnEffect?.name ?? "Burn"} ${tokens.burn}`}>
-          {burnEffect?.icon ?? "??"} {burnEffect?.name ?? "Burn"} ×{tokens.burn}
-        </div>
-      )}
-      {tokens.chi > 0 && (
-        <div
-          className='badge tooltip-anchor'
-          style={{
-            ...chipStyle,
-            background: "rgba(19,78,74,.35)",
-            border: "1px solid #0f766e",
-          }}
-          data-tip={chiEffect?.summary ?? "Chi adds block to defense rolls."}
-          aria-label={`${chiEffect?.name ?? "Chi"} ${tokens.chi}`}>
-          {chiEffect?.icon ?? "?"} {chiEffect?.name ?? "Chi"}
-          <DotRow count={Math.min(tokens.chi, 3)} />
-        </div>
-      )}
-      {tokens.evasive > 0 && (
-        <div
-          className='badge tooltip-anchor'
-          style={{
-            ...chipStyle,
-            background: "rgba(49,46,129,.35)",
-            border: "1px solid #4338ca",
-          }}
-          data-tip={
-            evasiveEffect?.summary ?? "Spend to roll 5+ and dodge an incoming attack."
-          }
-          aria-label={`${evasiveEffect?.name ?? "Evasive"} ${tokens.evasive}`}>
-          {evasiveEffect?.icon ?? "?"} {evasiveEffect?.name ?? "Evasive"} ×
-          {tokens.evasive}
-        </div>
-      )}
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 8,
+        alignItems: "center",
+      }}>
+      {CHIP_CONFIG.map((config) => {
+        const count = getStacks(tokens, config.id, 0);
+        if (count <= 0) return null;
+
+        const definition = getStatus(config.id);
+        const name = definition?.name ?? config.fallbackName;
+        const icon = definition?.icon ?? config.fallbackIcon;
+
+        return (
+          <div
+            key={config.id}
+            className='badge tooltip-anchor'
+            style={{
+              ...chipStyle,
+              background: config.background,
+              border: config.border,
+            }}
+            data-tip={config.tooltip}
+            aria-label={`${name} ${count}`}>
+            {icon} {name}
+            {config.showMultiplier ? ` \u00d7${count}` : null}
+            {config.renderContent ? config.renderContent(count) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }

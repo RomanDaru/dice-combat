@@ -1,10 +1,6 @@
-import type { OffensiveAbility, PlayerState, Tokens } from "./types";
+﻿import type { OffensiveAbility, PlayerState, Tokens } from "./types";
 import type { ResolvedDefenseState } from "./combat/types";
-import {
-  addStacks,
-  getStacks,
-  aggregateStatusSpendSummaries,
-} from "../engine/status";
+import { addStacks, getStacks, setStacks, aggregateStatusSpendSummaries } from "../engine/status";
 
 type ApplyAttackOptions = {
   defense?: ResolvedDefenseState | null;
@@ -14,11 +10,27 @@ const clampChi = (value: number) => Math.max(0, Math.min(3, value));
 
 const applyDefenseTokens = (tokens: Tokens, gains: Partial<Tokens>): Tokens => {
   if (!gains || Object.keys(gains).length === 0) return tokens;
-  return {
-    burn: Math.max(0, (tokens.burn ?? 0) + (gains.burn ?? 0)),
-    chi: clampChi((tokens.chi ?? 0) + (gains.chi ?? 0)),
-    evasive: Math.max(0, (tokens.evasive ?? 0) + (gains.evasive ?? 0)),
-  };
+
+  let updated = tokens;
+
+  if (typeof gains.burn === "number" && gains.burn !== 0) {
+    updated = addStacks(updated, "burn", gains.burn);
+  }
+
+  if (typeof gains.chi === "number" && gains.chi !== 0) {
+    const nextChi = clampChi(getStacks(updated, "chi", 0) + gains.chi);
+    updated = setStacks(updated, "chi", nextChi);
+  }
+
+  if (typeof gains.evasive === "number" && gains.evasive !== 0) {
+    const nextEvasive = Math.max(
+      0,
+      getStacks(updated, "evasive", 0) + gains.evasive
+    );
+    updated = setStacks(updated, "evasive", nextEvasive);
+  }
+
+  return updated;
 };
 
 export function applyAttack(
@@ -81,15 +93,25 @@ export function applyAttack(
     attacker.hp - reflect - retaliateDamage
   );
 
+  let attackerTokensNext = attacker.tokens;
+
+  if (typeof applyEffects.chi === "number" && applyEffects.chi !== 0) {
+    const nextChi = clampChi(getStacks(attackerTokensNext, "chi", 0) + applyEffects.chi);
+    attackerTokensNext = setStacks(attackerTokensNext, "chi", nextChi);
+  }
+
+  if (typeof applyEffects.evasive === "number" && applyEffects.evasive !== 0) {
+    const nextEvasive = Math.max(
+      0,
+      getStacks(attackerTokensNext, "evasive", 0) + applyEffects.evasive
+    );
+    attackerTokensNext = setStacks(attackerTokensNext, "evasive", nextEvasive);
+  }
+
   const nextAttacker: PlayerState = {
     ...attacker,
     hp: attackerHpAfter,
-    tokens: {
-      ...attacker.tokens,
-      chi: clampChi((attacker.tokens.chi ?? 0) + (applyEffects.chi ?? 0)),
-      evasive: Math.max(0, (attacker.tokens.evasive ?? 0) + (applyEffects.evasive ?? 0)),
-      burn: getStacks(attacker.tokens, "burn", 0),
-    },
+    tokens: attackerTokensNext,
   };
 
   const reflectTotal = reflect + retaliateDamage;
@@ -104,7 +126,8 @@ export function applyAttack(
 
   const chiGain = Math.max(
     0,
-    nextAttacker.tokens.chi - (attackerStart.tokens.chi ?? 0)
+    getStacks(nextAttacker.tokens, "chi", 0) -
+      getStacks(attackerStart.tokens, "chi", 0)
   );
   if (chiGain > 0) {
     notes.push(`${attacker.hero.id} gains Chi (+${chiGain}).`);
@@ -112,7 +135,8 @@ export function applyAttack(
 
   const evasiveGain = Math.max(
     0,
-    nextAttacker.tokens.evasive - (attackerStart.tokens.evasive ?? 0)
+    getStacks(nextAttacker.tokens, "evasive", 0) -
+      getStacks(attackerStart.tokens, "evasive", 0)
   );
   if (evasiveGain > 0) {
     notes.push(`${attacker.hero.id} gains Evasive (+${evasiveGain}).`);
@@ -137,6 +161,8 @@ export function applyAttack(
 
   return [nextAttacker, nextDefender, notes];
 }
+
+
 
 
 

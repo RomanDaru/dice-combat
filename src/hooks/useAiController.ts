@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+﻿import { useCallback } from "react";
 import { bestAbility, rollDie } from "../game/combos";
 import type { GameState } from "../game/state";
 import type { OffensiveAbility, PlayerState, Side } from "../game/types";
@@ -8,6 +8,7 @@ import type { GameFlowEvent } from "./useTurnController";
 import type { Rng } from "../engine/rng";
 import {
   getStatus,
+  getStacks,
   spendStatus,
   createStatusSpendSummary,
 } from "../engine/status";
@@ -90,7 +91,7 @@ export function useAiController({
 
   const chooseAiAttackChiSpend = useCallback(
     (attacker: PlayerState, defender: PlayerState, ability: OffensiveAbility) => {
-      const available = attacker.tokens.chi ?? 0;
+      const available = getStacks(attacker.tokens, "chi", 0);
       if (available <= 0) return 0;
       const requiredForLethal = Math.max(0, defender.hp - ability.damage);
       if (requiredForLethal <= 0) return 0;
@@ -164,7 +165,7 @@ export function useAiController({
             desiredChiSpend = Math.min(
               desired,
               turnChiAvailable.ai ?? 0,
-              latestAi.tokens.chi ?? 0
+              getStacks(latestAi.tokens, "chi", 0)
             );
           }
           let effectiveAbility = ab;
@@ -264,3 +265,4 @@ export function useAiController({
     aiPlay,
   };
 }
+

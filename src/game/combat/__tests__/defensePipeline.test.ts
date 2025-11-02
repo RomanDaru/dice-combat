@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { adjustDefenseWithChi, buildDefensePlan } from "../defensePipeline";
 import { HEROES } from "../../heroes";
 import type { BaseDefenseResolution } from "../types";
 import type { PlayerState } from "../../types";
-import { aggregateStatusSpendSummaries } from "../../../engine/status";
+import { aggregateStatusSpendSummaries, getStacks } from "../../../engine/status";
 
 const createBaseResolution = (
   overrides: Partial<BaseDefenseResolution> = {}
@@ -38,7 +38,7 @@ describe("defensePipeline", () => {
     });
 
     expect(result.resolution.statusSpends).toHaveLength(0);
-    expect(result.defenderAfter.tokens.chi).toBe(0);
+    expect(getStacks(result.defenderAfter.tokens, "chi", 0)).toBe(0);
     expect(result.resolution.baseBlock).toBe(baseResolution.baseBlock);
   });
 
@@ -57,7 +57,7 @@ describe("defensePipeline", () => {
     const spend = result.resolution.statusSpends[0];
     expect(spend.id).toBe("chi");
     expect(spend.stacksSpent).toBe(2);
-    expect(result.defenderAfter.tokens.chi).toBe(1);
+    expect(getStacks(result.defenderAfter.tokens, "chi", 0)).toBe(1);
     const totals = aggregateStatusSpendSummaries(result.resolution.statusSpends);
     expect(result.resolution.baseBlock).toBe(baseResolution.baseBlock);
     expect(totals.bonusBlock).toBeGreaterThan(0);
@@ -79,7 +79,7 @@ describe("defensePipeline", () => {
     const spend = plan.defense.statusSpends[0];
     expect(spend.id).toBe("chi");
     expect(spend.stacksSpent).toBe(1);
-    expect(plan.defenderAfter.tokens.chi).toBe(1);
+    expect(getStacks(plan.defenderAfter.tokens, "chi", 0)).toBe(1);
     const totals = aggregateStatusSpendSummaries(plan.defense.statusSpends);
     expect(plan.defense.baseBlock).toBe(baseResolution.baseBlock);
     expect(plan.defense.baseBlock + totals.bonusBlock).toBeGreaterThan(
@@ -87,4 +87,5 @@ describe("defensePipeline", () => {
     );
   });
 });
+
 
