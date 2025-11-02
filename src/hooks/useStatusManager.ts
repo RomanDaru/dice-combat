@@ -12,7 +12,14 @@ type UseStatusManagerArgs = {
     entry: string | string[],
     options?: { blankLineBefore?: boolean; blankLineAfter?: boolean }
   ) => void;
-  animateDefenseDie: (onDone: (roll: number) => void, duration?: number) => void;
+  animateDefenseDie: (
+    onDone: (roll: number) => void,
+    duration?: number,
+    options?: {
+      animateSharedDice?: boolean;
+      onTick?: (value: number) => void;
+    }
+  ) => void;
   restoreDiceAfterDefense: () => void;
   sendFlowEvent: (event: GameFlowEvent) => boolean;
   resumePendingStatus: () => void;

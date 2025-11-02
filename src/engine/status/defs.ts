@@ -17,10 +17,9 @@ defineStatus({
         };
       }
       if (phase === "defenseRoll") {
-        const block = (roll ?? 0) >= 5 ? 2 : 1;
         return {
-          bonusBlock: block,
-          log: `Chi -> +${block} block`,
+          bonusBlock: 1,
+          log: "Chi -> +1 block",
         };
       }
       return {};

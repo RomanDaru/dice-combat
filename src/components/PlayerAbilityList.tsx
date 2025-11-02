@@ -8,7 +8,9 @@ import {
 } from "../game/abilityBoards";
 import { getEffectDefinition } from "../game/effects";
 import type { Combo, DefensiveAbility, OffensiveAbility } from "../game/types";
+import { getStatus, getStacks, type StatusId } from "../engine/status";
 import abilityStyles from "./AbilityIcons.module.css";
+import ArtButton from "./ArtButton";
 
 type ApplyMap = {
   burn?: number;
@@ -48,11 +50,19 @@ export function PlayerAbilityList() {
     selectedAttackCombo,
     statusActive,
     impactLocked,
+    defenseBaseBlock,
   } = useGameData();
   const {
     onChooseDefenseOption,
     onSelectAttackCombo,
     onConfirmAttack,
+    onConfirmDefense,
+    onEndTurnNoAttack,
+    attackStatusRequests,
+    defenseStatusRequests,
+    requestStatusSpend,
+    undoStatusSpend,
+    turnChiAvailable,
   } = useGameController();
 
   const player = state.players.you;
@@ -120,6 +130,146 @@ export function PlayerAbilityList() {
     );
   };
 
+  const inRollPhase = state.phase === "roll";
+  const canSelectOffense =
+    state.turn === "you" && inRollPhase && !statusActive && !state.rolling.some(Boolean);
+  const selectedComboReady = selectedAttackCombo
+    ? Boolean(readyCombos?.[selectedAttackCombo])
+    : false;
+  const canConfirmAttack =
+    selectedAttackCombo !== null &&
+    state.turn === "you" &&
+    inRollPhase &&
+    !statusActive &&
+    !state.rolling.some(Boolean) &&
+    state.rollsLeft < 3 &&
+    selectedComboReady &&
+    !impactLocked;
+  const canConfirmDefense = awaitingDefenseSelection && !impactLocked;
+  const hasAttackOptions = Object.values(readyCombos ?? {}).some(Boolean);
+  const canEndTurn =
+    !isDefenseTurn &&
+    inRollPhase &&
+    !hasAttackOptions &&
+    state.rollsLeft <= 0 &&
+    state.turn === "you" &&
+    !statusActive &&
+    !impactLocked &&
+    !state.rolling.some(Boolean);
+
+  const spendControls = (() => {
+    const shouldShow =
+      (isDefenseTurn && awaitingDefenseSelection && !impactLocked) ||
+      (!isDefenseTurn && canConfirmAttack);
+    if (!shouldShow) return null;
+
+    const spendPhase = isDefenseTurn ? "defenseRoll" : "attackRoll";
+    const baseBlockForDefense = defenseBaseBlock ?? 0;
+    const statusRequests = isDefenseTurn
+      ? defenseStatusRequests
+      : attackStatusRequests;
+    const tokens = player.tokens ?? {};
+    const ids = new Set<StatusId>();
+
+    Object.entries(tokens).forEach(([rawId, stacks]) => {
+      if ((stacks ?? 0) <= 0) return;
+      const statusId = rawId as StatusId;
+      const definition = getStatus(statusId);
+      if (!definition?.spend) return;
+      if (
+        isDefenseTurn &&
+        statusId === "chi" &&
+        baseBlockForDefense <= 0
+      ) {
+        return;
+      }
+      if (definition.spend.needsRoll) return;
+      if (!definition.spend.allowedPhases.includes(spendPhase)) return;
+      ids.add(statusId);
+    });
+
+    Object.keys(statusRequests).forEach((rawId) => {
+      const statusId = rawId as StatusId;
+      const definition = getStatus(statusId);
+      if (!definition?.spend) return;
+      if (
+        isDefenseTurn &&
+        statusId === "chi" &&
+        baseBlockForDefense <= 0
+      ) {
+        return;
+      }
+      if (definition.spend.needsRoll) return;
+      if (!definition.spend.allowedPhases.includes(spendPhase)) return;
+      ids.add(statusId);
+    });
+
+    const spendable = Array.from(ids)
+      .map((statusId) => ({
+        statusId,
+        definition: getStatus(statusId),
+      }))
+      .sort((a, b) => {
+        const nameA = a.definition?.name ?? a.statusId;
+        const nameB = b.definition?.name ?? b.statusId;
+        return nameA.localeCompare(nameB);
+      });
+
+    if (spendable.length === 0) return null;
+
+    return (
+      <div className={abilityStyles.spendControls}>
+        {spendable.map(({ statusId, definition }) => {
+          const name = definition?.name ?? statusId;
+          const icon = definition?.icon ?? name.slice(0, 2).toUpperCase();
+          const ownedStacks = getStacks(player.tokens, statusId, 0);
+          const requested = statusRequests[statusId] ?? 0;
+          const maxSpend =
+            statusId === "chi"
+              ? Math.min(ownedStacks, turnChiAvailable.you ?? ownedStacks)
+              : ownedStacks;
+          const canIncrement = requested < maxSpend && maxSpend > 0;
+          const canDecrement = requested > 0;
+          const handleAdjust = (delta: number) => {
+            if (delta > 0) {
+              requestStatusSpend(spendPhase, statusId);
+            } else {
+              undoStatusSpend(spendPhase, statusId);
+            }
+          };
+
+          return (
+            <div key={statusId} className={abilityStyles.spendRow}>
+              <div className={abilityStyles.spendInfo}>
+                <span className={abilityStyles.spendBadge}>{icon}</span>
+                <span className={abilityStyles.spendLabel}>{name}</span>
+                <span className={abilityStyles.spendCount}>
+                  {requested}/{maxSpend}
+                </span>
+              </div>
+              <div className={abilityStyles.spendButtons}>
+                <ArtButton
+                  variant='square'
+                  className={abilityStyles.spendButton}
+                  onClick={() => handleAdjust(-1)}
+                  disabled={!canDecrement}>
+                  -
+                </ArtButton>
+                <ArtButton
+                  variant='square'
+                  className={abilityStyles.spendButton}
+                  onClick={() => handleAdjust(1)}
+                  disabled={!canIncrement}>
+                  +
+                </ArtButton>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  })();
+
   if (isDefenseTurn) {
     return (
       <div className={abilityStyles.panel}>
@@ -153,24 +303,23 @@ export function PlayerAbilityList() {
             });
           })}
         </div>
+        {awaitingDefenseSelection && (
+          <>
+            {spendControls}
+            <div className={abilityStyles.actions}>
+              <button
+                type='button'
+                className='btn success'
+                onClick={onConfirmDefense}
+                disabled={!canConfirmDefense}>
+                Confirm Defense
+              </button>
+            </div>
+          </>
+        )}
       </div>
     );
   }
-
-  const canSelectOffense =
-    state.turn === "you" && !statusActive && !state.rolling.some(Boolean);
-  const selectedComboReady = selectedAttackCombo
-    ? Boolean(readyCombos?.[selectedAttackCombo])
-    : false;
-  const canConfirmAttack =
-    selectedAttackCombo !== null &&
-    state.turn === "you" &&
-    !statusActive &&
-    !state.rolling.some(Boolean) &&
-    state.rollsLeft < 3 &&
-    selectedComboReady &&
-    !impactLocked;
-
   return (
     <div className={abilityStyles.panel}>
       <div className={abilityStyles.title}>{`Your Abilities (${hero.name})`}</div>
@@ -194,6 +343,17 @@ export function PlayerAbilityList() {
           });
         })}
       </div>
+      {selectedAttackCombo && spendControls}
+      {!selectedAttackCombo && canEndTurn && (
+        <div className={abilityStyles.actions}>
+          <button
+            type='button'
+            className='btn secondary'
+            onClick={onEndTurnNoAttack}>
+            End Turn
+          </button>
+        </div>
+      )}
       {selectedAttackCombo && (
         <div className={abilityStyles.actions}>
           <button

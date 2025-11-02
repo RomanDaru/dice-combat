@@ -49,6 +49,7 @@ export interface StatusCleanseRoll {
   type: "roll";
   threshold: number;
   resolve: (roll: number, currentStacks: number) => StatusCleanseRollResult;
+  animationDuration?: number;
 }
 
 export interface StatusModifyContext {

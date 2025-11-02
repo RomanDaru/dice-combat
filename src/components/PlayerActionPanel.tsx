@@ -82,41 +82,6 @@ export function PlayerActionPanel() {
     pushLog,
   ]);
 
-  const statusCard = statusActive && pendingStatusClear && (
-    <div className={clsx("card", styles.statusCard)}>
-      <div className={styles.statusHeader}>
-        <span className='badge indigo'>
-          {pendingStatusClear.side === "you" ? you.hero.name : ai.hero.name}
-        </span>
-        <span>Burn stacks: {pendingStatusClear.stacks}</span>
-      </div>
-      <div className={styles.statusActions}>
-        {pendingStatusClear.side === "you" ? (
-          <button
-            className='btn success'
-            onClick={handleStatusRoll}
-            disabled={impactLocked}>
-            Status Roll
-          </button>
-        ) : (
-          <div className={styles.statusInfoColumn}>
-            <div className={styles.statusInfoText}>
-              {pendingStatusClear.rolling
-                ? "AI is rolling..."
-                : "AI will roll automatically."}
-            </div>
-          </div>
-        )}
-        {pendingStatusClear.roll !== undefined && (
-          <div className={styles.statusRollText}>
-            Roll: <b>{pendingStatusClear.roll}</b>{" "}
-            {pendingStatusClear.success ? "-> Burn cleared" : "-> Burn sticks"}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
   const aiEvasiveRoll = aiDefense.evasiveRoll;
   const aiDefenseDice = aiDefense.defenseDice;
   const aiDefenseCombo = aiDefense.defenseCombo;
@@ -167,6 +132,52 @@ export function PlayerActionPanel() {
     performStatusClearRoll("you");
   };
 
+  const statusCard =
+    statusActive &&
+    pendingStatusClear && (
+      <div className={clsx("card", styles.statusCard)}>
+        <div className={styles.statusHeader}>
+          <span className='badge indigo'>
+            {pendingStatusClear.side === "you" ? you.hero.name : ai.hero.name}
+          </span>
+          <span>Burn stacks: {pendingStatusClear.stacks}</span>
+        </div>
+        <div className={styles.statusActions}>
+          {pendingStatusClear.side === "you" ? (
+            <button
+              className='btn success'
+              onClick={handleStatusRoll}
+              disabled={impactLocked}>
+              Status Roll
+            </button>
+          ) : (
+            <div className={styles.statusInfoColumn}>
+              <div className={styles.statusInfoText}>
+                {pendingStatusClear.rolling
+                  ? "AI is rolling..."
+                  : "AI will roll automatically."}
+              </div>
+            </div>
+          )}
+          {pendingStatusClear.roll !== undefined && (
+            <div className={styles.statusRollText}>
+              Roll: <b>{pendingStatusClear.roll}</b>{" "}
+              {pendingStatusClear.success
+                ? "-> Burn cleared"
+                : "-> Burn sticks"}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+
+  const previewLabel = isDefenseTurn
+    ? "Roll For Defense"
+    : `Rolls left: ${rollsLeft}`;
+  const previewHint = isDefenseTurn
+    ? "Open the tray to roll your defense dice."
+    : "Tap dice to hold or release them before the next roll.";
+
   return (
     <div className={styles.panel} onClick={handleOpenTray}>
       <div
@@ -177,7 +188,7 @@ export function PlayerActionPanel() {
         )}
         role='presentation'
         aria-hidden='true'>
-        <span className={styles.dicePreviewLabel}>Rolls left: {rollsLeft}</span>
+        <span className={styles.dicePreviewLabel}>{previewLabel}</span>
         <div className={styles.dicePreviewFaces}>
           {dice.map((value, index) => {
             const dieClass = clsx(styles.dicePreviewDie, {
@@ -209,7 +220,7 @@ export function PlayerActionPanel() {
             );
           })}
         </div>
-        <span className={styles.dicePreviewHint}>Tap to roll / open</span>
+        <span className={styles.dicePreviewHint}>{previewHint}</span>
       </div>
       {statusCard}
       {defenseIndicators}

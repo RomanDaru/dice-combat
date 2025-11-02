@@ -8,6 +8,16 @@ type DiceUpdater = number[] | ((prev: number[]) => number[]);
 type HeldUpdater = boolean[] | ((prev: boolean[]) => boolean[]);
 type RollsUpdater = number | ((prev: number) => number);
 
+type AnimateDefenseRollOptions = {
+  animateSharedDice?: boolean;
+  onTick?: (dice: number[]) => void;
+};
+
+type AnimateDefenseDieOptions = {
+  animateSharedDice?: boolean;
+  onTick?: (value: number) => void;
+};
+
 type UseDiceAnimatorArgs = {
   defenseDieIndex: number;
   rng: Rng;
@@ -78,28 +88,51 @@ export function useDiceAnimator({
   }, [setDice, setHeld, setRolling, setRollsLeft]);
 
   const animateDefenseDie = useCallback(
-    (onDone: (roll: number) => void, duration = 700) => {
-      if (!latestState.current.savedDefenseDice) {
+    (
+      onDone: (roll: number) => void,
+      duration = 700,
+      options: AnimateDefenseDieOptions = {}
+    ) => {
+      const { animateSharedDice = true, onTick } = options;
+      if (animateSharedDice && !latestState.current.savedDefenseDice) {
         setSavedDiceForDefense([...latestState.current.dice]);
       }
-      const mask = [false, false, false, false, false];
-      mask[defenseDieIndex] = true;
-      setRolling(mask);
+      if (animateSharedDice) {
+        const mask = [false, false, false, false, false];
+        mask[defenseDieIndex] = true;
+        setRolling(mask);
+      }
       const start = Date.now();
-      let workingDice = [...latestState.current.dice];
+      let workingDice = animateSharedDice
+        ? [...latestState.current.dice]
+        : null;
+      let workingValue = animateSharedDice && workingDice
+        ? workingDice[defenseDieIndex]
+        : 1 + Math.floor(Math.random() * 6);
       const timer = window.setInterval(() => {
-        workingDice = workingDice.map((value, index) =>
-          index === defenseDieIndex ? 1 + Math.floor(Math.random() * 6) : value
-        );
-        setDice([...workingDice]);
+        workingValue = 1 + Math.floor(Math.random() * 6);
+        if (animateSharedDice && workingDice) {
+          workingDice = workingDice.map((value, index) =>
+            index === defenseDieIndex ? workingValue : value
+          );
+          setDice([...workingDice]);
+        }
+        if (onTick) {
+          onTick(workingValue);
+        }
         if (Date.now() - start > duration) {
           window.clearInterval(timer);
           const result = rollDie(rng);
-          workingDice = workingDice.map((value, index) =>
-            index === defenseDieIndex ? result : value
-          );
-          setDice([...workingDice]);
-          setRolling([false, false, false, false, false]);
+          if (animateSharedDice && workingDice) {
+            workingDice = workingDice.map((value, index) =>
+              index === defenseDieIndex ? result : value
+            );
+            setDice([...workingDice]);
+            setRolling([false, false, false, false, false]);
+          }
+          if (onTick) {
+            onTick(result);
+          }
           window.setTimeout(() => onDone(result), 50);
         }
       }, 90);
@@ -115,22 +148,41 @@ export function useDiceAnimator({
   );
 
   const animateDefenseRoll = useCallback(
-    (onDone: (dice: number[]) => void, duration = 700) => {
-      if (!latestState.current.savedDefenseDice) {
+    (
+      onDone: (dice: number[]) => void,
+      duration = 700,
+      options: AnimateDefenseRollOptions = {}
+    ) => {
+      const { animateSharedDice = true, onTick } = options;
+      if (animateSharedDice && !latestState.current.savedDefenseDice) {
         setSavedDiceForDefense([...latestState.current.dice]);
       }
-      const mask = [true, true, true, true, true];
-      setRolling(mask);
-      let workingDice = [...latestState.current.dice];
+      if (animateSharedDice) {
+        const mask = [true, true, true, true, true];
+        setRolling(mask);
+      }
+      let workingDice = animateSharedDice
+        ? [...latestState.current.dice]
+        : Array.from({ length: 5 }, () => rollDie(rng));
       const startedAt = Date.now();
       const timer = window.setInterval(() => {
         workingDice = workingDice.map(() => rollDie(rng));
-        setDice([...workingDice]);
+        if (animateSharedDice) {
+          setDice([...workingDice]);
+        }
+        if (onTick) {
+          onTick([...workingDice]);
+        }
         if (Date.now() - startedAt > duration) {
           window.clearInterval(timer);
           const result = Array.from({ length: 5 }, () => rollDie(rng));
-          setDice(result);
-          setRolling([false, false, false, false, false]);
+          if (animateSharedDice) {
+            setDice(result);
+            setRolling([false, false, false, false, false]);
+          }
+          if (onTick) {
+            onTick([...result]);
+          }
           window.setTimeout(() => onDone(result), 50);
         }
       }, 90);

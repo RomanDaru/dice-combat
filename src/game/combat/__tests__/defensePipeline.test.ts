@@ -61,7 +61,9 @@ describe("defensePipeline", () => {
     const totals = aggregateStatusSpendSummaries(result.resolution.statusSpends);
     expect(result.resolution.baseBlock).toBe(baseResolution.baseBlock);
     expect(totals.bonusBlock).toBeGreaterThan(0);
-    expect(result.resolution.baseBlock + totals.bonusBlock).toBe(6);
+    expect(result.resolution.baseBlock + totals.bonusBlock).toBe(
+      baseResolution.baseBlock + spend.stacksSpent
+    );
   });
 
   it("builds defense plan with chi spend applied", () => {

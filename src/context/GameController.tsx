@@ -72,8 +72,15 @@ type ComputedData = {
   defenseSelection: Combo | null;
   awaitingDefenseSelection: boolean;
   impactLocked: boolean;
+  defenseStatusRoll: {
+    dice: number[];
+    inProgress: boolean;
+    label: string | null;
+    outcome: "success" | "failure" | null;
+  } | null;
   attackBaseDamage: number;
   defenseBaseBlock: number;
+  defenseStatusMessage: string | null;
 };
 
 type StatusSpendPhase = "attackRoll" | "defenseRoll";
@@ -105,6 +112,15 @@ type ControllerContext = {
   onConfirmDefense: () => void;
   activeAbilities: ActiveAbility[];
   onPerformActiveAbility: (abilityId: string) => boolean;
+  setDefenseStatusMessage: (message: string | null) => void;
+  setDefenseStatusRollDisplay: (
+    display: {
+      dice: number[];
+      inProgress: boolean;
+      label: string | null;
+      outcome: "success" | "failure" | null;
+    } | null
+  ) => void;
 };
 
 const GameDataContext = createContext<ComputedData | null>(null);
@@ -142,8 +158,25 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const [playerAttackSelection, setPlayerAttackSelection] =
     useState<Combo | null>(null);
   const [diceTrayVisible, setDiceTrayVisible] = useState(false);
-  const openDiceTray = useCallback(() => setDiceTrayVisible(true), []);
-  const closeDiceTray = useCallback(() => setDiceTrayVisible(false), []);
+  const [defenseStatusMessage, setDefenseStatusMessage] = useState<string | null>(
+    null
+  );
+  const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
+    dice: number[];
+    inProgress: boolean;
+    label: string | null;
+    outcome: "success" | "failure" | null;
+  } | null>(null);
+  const openDiceTray = useCallback(() => {
+    setDefenseStatusMessage(null);
+    setDefenseStatusRoll(null);
+    setDiceTrayVisible(true);
+  }, [setDefenseStatusMessage, setDefenseStatusRoll]);
+  const closeDiceTray = useCallback(() => {
+    setDefenseStatusMessage(null);
+    setDefenseStatusRoll(null);
+    setDiceTrayVisible(false);
+  }, [setDefenseStatusMessage, setDefenseStatusRoll]);
   const [impactLocked, setImpactLocked] = useState(false);
   const impactTimerRef = useRef<number | null>(null);
 
@@ -590,6 +623,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     playerDefenseState,
     setPlayerDefenseState,
     applyTurnEndResolution,
+    setDefenseStatusMessage,
+    setDefenseStatusRollDisplay: setDefenseStatusRoll,
   });
 
   const handleAbilityControllerAction = useCallback(
@@ -776,8 +811,10 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       defenseSelection: playerDefenseState?.selectedCombo ?? null,
       awaitingDefenseSelection: !!playerDefenseState,
       impactLocked,
+      defenseStatusRoll,
       attackBaseDamage,
       defenseBaseBlock,
+      defenseStatusMessage,
     }),
     [
       ability,
@@ -793,8 +830,10 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       initialRoll,
       playerDefenseState,
       impactLocked,
+      defenseStatusRoll,
       attackBaseDamage,
       defenseBaseBlock,
+      defenseStatusMessage,
     ]
   );
 
@@ -826,6 +865,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       onUserEvasiveRoll,
       activeAbilities,
       onPerformActiveAbility,
+      setDefenseStatusMessage,
+      setDefenseStatusRollDisplay: setDefenseStatusRoll,
     }),
     [
       attackStatusRequests,
@@ -854,6 +895,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       popDamage,
       startInitialRoll,
       confirmInitialRoll,
+      setDefenseStatusMessage,
+      setDefenseStatusRoll,
     ]
   );
 

@@ -392,6 +392,43 @@ describe("resolveAttack with modifiers", () => {
     ).toBe(true);
   });
 
+  it("does not allow Chi block spend when base block is 0", () => {
+    const baseState = createInitialState(
+      HEROES.Pyromancer,
+      HEROES["Shadow Monk"]
+    );
+    const attacker = clonePlayer(baseState.players.you);
+    const defender = clonePlayer(baseState.players.ai);
+
+    const offense: OffensiveAbility = {
+      combo: "3OAK",
+      damage: 7,
+      label: "Chi Punch",
+    };
+
+    const defenseResolution = makeDefenseState({
+      baseBlock: 0,
+      statusSpends: [chiSpend({ bonusBlock: 3, log: "+3 block" })],
+    });
+
+    const resolution = resolveAttack({
+      source: "player",
+      attackerSide: "you",
+      defenderSide: "ai",
+      attacker,
+      defender,
+      ability: offense,
+      baseDamage: offense.damage,
+      attackStatusSpends: [],
+      defense: { resolution: defenseResolution },
+    });
+
+    expect(resolution.updatedDefender.hp).toBe(defender.hp - offense.damage);
+    expect(
+      resolution.logs.some((line) => line.includes("+3 block"))
+    ).toBe(false);
+  });
+
   it("applies defense spends when modifiers grant base block", () => {
     const baseState = createInitialState(
       HEROES.Pyromancer,

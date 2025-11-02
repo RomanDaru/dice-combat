@@ -21,7 +21,7 @@ const basePlayer = {
 };
 
 const mockState: GameState = {
-  log: [],
+  log: [] as { t: string }[],
   rngSeed: 1,
   players: {
     you: { ...basePlayer },
@@ -39,11 +39,12 @@ const mockState: GameState = {
   round: 1,
   dice: [1, 1, 1, 1, 1],
   held: [false, false, false, false, false],
-  rolling: [false, false, false],
+  rolling: [false, false, false, false, false],
   rollsLeft: 3,
   aiPreview: {
     active: false,
     rolling: false,
+    dice: [1, 1, 1, 1, 1],
     held: [false, false, false, false, false],
   },
   aiDefense: {
@@ -55,6 +56,19 @@ const mockState: GameState = {
   },
   pendingAttack: null,
   pendingStatusClear: null,
+  savedDefenseDice: null,
+  fx: {
+    floatDamage: { you: null, ai: null },
+    shake: { you: false, ai: false },
+  },
+  initialRoll: {
+    you: null,
+    ai: null,
+    inProgress: false,
+    winner: null,
+    tie: false,
+    awaitingConfirmation: false,
+  },
 };
 
 vi.mock("../../context/GameContext", () => ({

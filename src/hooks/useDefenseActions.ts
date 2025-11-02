@@ -1,4 +1,4 @@
-﻿import { useCallback, useRef } from "react";
+import { useCallback, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import {
   evaluateDefenseRoll,
@@ -15,7 +15,7 @@ import {
   createStatusSpendSummary,
   aggregateStatusSpendSummaries,
 } from "../engine/status";
-import type { StatusId } from "../engine/status";
+import type { StatusId, StatusSpend } from "../engine/status";
 import { ActiveAbilityIds } from "../game/activeAbilities";
 import { useGame } from "../context/GameContext";
 import { useActiveAbilities } from "./useActiveAbilities";
@@ -71,11 +71,19 @@ type UseDefenseActionsArgs = {
   ) => void;
   animateDefenseDie: (
     onDone: (roll: number) => void,
-    duration?: number
+    duration?: number,
+    options?: {
+      animateSharedDice?: boolean;
+      onTick?: (value: number) => void;
+    }
   ) => void;
   animateDefenseRoll: (
     onDone: (dice: number[]) => void,
-    duration?: number
+    duration?: number,
+    options?: {
+      animateSharedDice?: boolean;
+      onTick?: (dice: number[]) => void;
+    }
   ) => void;
   openDiceTray: () => void;
   closeDiceTray: () => void;
@@ -86,10 +94,19 @@ type UseDefenseActionsArgs = {
   aiStepDelay: number;
   playerDefenseState: PlayerDefenseState | null;
   setPlayerDefenseState: Dispatch<SetStateAction<PlayerDefenseState | null>>;
+  setDefenseStatusRollDisplay: (
+    display: {
+      dice: number[];
+      inProgress: boolean;
+      label: string | null;
+      outcome: "success" | "failure" | null;
+    } | null
+  ) => void;
   applyTurnEndResolution: (
     resolution: TurnEndResolution,
     logOptions?: { blankLineBefore?: boolean; blankLineAfter?: boolean }
   ) => void;
+  setDefenseStatusMessage: (message: string | null) => void;
 };
 
 export function useDefenseActions({
@@ -119,7 +136,9 @@ export function useDefenseActions({
   aiStepDelay,
   playerDefenseState,
   setPlayerDefenseState,
+  setDefenseStatusRollDisplay,
   applyTurnEndResolution,
+  setDefenseStatusMessage,
 }: UseDefenseActionsArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
@@ -279,6 +298,8 @@ export function useDefenseActions({
     if (!selectedAbility) {
       clearAttackStatusRequests();
       logPlayerNoCombo(dice, you.hero.name);
+      setDefenseStatusMessage(null);
+      setDefenseStatusRollDisplay(null);
       applyTurnEndResolution(resolvePassTurn({ side: "you" }));
       return;
     }
@@ -449,19 +470,22 @@ export function useDefenseActions({
         }, 600);
       };
 
-      const runDefenseRoll = (
-        defenderState: PlayerState,
-        { showTray = false }: { showTray?: boolean } = {}
-      ) => {
-        setPhase("defense");
-        if (showTray) {
-          openDiceTray();
-        }
-        animateDefenseRoll((rolledDice) => {
-          const defenseRollResult = evaluateDefenseRoll(
-            defenderState.hero,
-            rolledDice
-          );
+  const runDefenseRoll = (
+    defenderState: PlayerState,
+    { showTray = false }: { showTray?: boolean } = {}
+  ) => {
+    setDefenseStatusMessage(null);
+    setDefenseStatusRollDisplay(null);
+    setPhase("defense");
+    if (showTray) {
+      openDiceTray();
+    }
+    animateDefenseRoll(
+      (rolledDice) => {
+      const defenseRollResult = evaluateDefenseRoll(
+        defenderState.hero,
+        rolledDice
+      );
           if (defenseRollResult.options.length === 0) {
             pushLog(
               `[Defense] ${defenderState.hero.name} found no defensive combos and will block 0 damage.`,
@@ -506,16 +530,25 @@ export function useDefenseActions({
             setPlayer("ai", updatedDefender);
           }
 
-          resolveAfterDefense(updatedDefender, defensePlan.defense);
-        });
-      };
+      resolveAfterDefense(updatedDefender, defensePlan.defense);
+      },
+      undefined,
+      {
+        animateSharedDice: false,
+        onTick: (frame) => {
+          patchAiDefense({ defenseDice: frame });
+        },
+      }
+    );
+  };
 
       if (
         aiShouldAttemptEvasive &&
         getStacks(defender.tokens, "evasive", 0) > 0
       ) {
         setPhase("defense");
-        animateDefenseDie((roll) => {
+        animateDefenseDie(
+          (roll) => {
           const spendResult = spendStatus(
             defender.tokens,
             "evasive",
@@ -568,7 +601,10 @@ export function useDefenseActions({
           window.setTimeout(() => {
             runDefenseRoll(consumedDefender);
           }, 360);
-        }, 650);
+          },
+          650,
+          { animateSharedDice: false }
+        );
         return;
       }
 
@@ -608,6 +644,8 @@ export function useDefenseActions({
     if (!pendingAttack || pendingAttack.defender !== "you") return;
     if (playerDefenseState) return;
 
+    setDefenseStatusMessage(null);
+    setDefenseStatusRollDisplay(null);
     openDiceTray();
     const snapshot = latestState.current;
     const attacker = snapshot.players[pendingAttack.attacker];
@@ -643,8 +681,10 @@ export function useDefenseActions({
     pendingAttack,
     playerDefenseState,
     pushLog,
+    setDefenseStatusRollDisplay,
     setPhase,
     setPlayerDefenseState,
+    setDefenseStatusMessage,
   ]);
 
   const onChooseDefenseOption = useCallback(
@@ -767,72 +807,135 @@ export function useDefenseActions({
       getStacks(defenderSnapshot.tokens, "evasive", 0) <= 0
     )
       return;
+    const evasiveStatus = getStatus("evasive");
+    const evasiveSpend = evasiveStatus?.spend as (StatusSpend & {
+      diceCount?: number;
+    }) | undefined;
+    const diceCount = Math.max(
+      1,
+      typeof evasiveSpend?.diceCount === "number"
+        ? evasiveSpend.diceCount
+        : 1
+    );
+    const seedFrame = Array.from(
+      { length: diceCount },
+      () => 1 + Math.floor(Math.random() * 6)
+    );
+    setDefenseStatusMessage("Rolling for evasive...");
+    setDefenseStatusRollDisplay({
+      dice: seedFrame,
+      inProgress: true,
+      label: "Evasive Roll",
+      outcome: null,
+    });
     openDiceTray();
     setPhase("defense");
-    animateDefenseDie((evasiveRoll) => {
-      const snapshot = latestState.current;
-      const attacker = snapshot.players[pendingAttack.attacker];
-      const defender = snapshot.players[pendingAttack.defender];
-      if (!attacker || !defender) return;
-      const spendResult = spendStatus(
-        defender.tokens,
-        "evasive",
-        "defenseRoll",
-        { phase: "defenseRoll", roll: evasiveRoll }
-      );
-      if (!spendResult) return;
-      const consumedDefender = {
-        ...defender,
-        tokens: spendResult.next,
-      };
-      const evasiveCost = getStatus("evasive")?.spend?.costStacks ?? 1;
-      const evasiveSummary = createStatusSpendSummary("evasive", evasiveCost, [
-        spendResult.spend,
-      ]);
-      const evadeSuccess =
-        typeof spendResult.spend.success === "boolean"
-          ? spendResult.spend.success
-          : !!spendResult.spend.negateIncoming;
-      setPlayer(pendingAttack.defender, consumedDefender);
-      if (evadeSuccess) {
-        const attackStatusSpends = pendingAttack.modifiers?.statusSpends ?? [];
-        const attackBonusDamage = attackStatusSpends.reduce(
-          (sum, spend) => sum + spend.bonusDamage,
-          0
+    animateDefenseDie(
+      (evasiveRoll) => {
+        const snapshot = latestState.current;
+        const attacker = snapshot.players[pendingAttack.attacker];
+        const defender = snapshot.players[pendingAttack.defender];
+        if (!attacker || !defender) return;
+        const spendResult = spendStatus(
+          defender.tokens,
+          "evasive",
+          "defenseRoll",
+          { phase: "defenseRoll", roll: evasiveRoll }
         );
-        const baseAttackDamage =
-          pendingAttack.baseDamage ??
-          Math.max(0, pendingAttack.ability.damage - attackBonusDamage);
-        const resolution = resolveAttack({
-          source: "ai",
-          attackerSide: pendingAttack.attacker,
-          defenderSide: pendingAttack.defender,
-          attacker,
-          defender: consumedDefender,
-          ability: pendingAttack.ability,
-          baseDamage: baseAttackDamage,
-          attackStatusSpends,
-          defense: {
-            resolution: combineDefenseSpends(null, [evasiveSummary]),
-          },
-        });
-        resetDefenseRequests();
-        setPendingAttackDispatch(null);
-        setPlayerDefenseState(null);
-        closeDiceTray();
-        resolveWithEvents(
-          resolution,
-          pendingAttack.attacker,
-          pendingAttack.defender
-        );
-        return;
-      }
+        if (!spendResult) return;
+        const consumedDefender = {
+          ...defender,
+          tokens: spendResult.next,
+        };
+        const evasiveCost = getStatus("evasive")?.spend?.costStacks ?? 1;
+        const evasiveSummary = createStatusSpendSummary("evasive", evasiveCost, [
+          spendResult.spend,
+        ]);
+        const evadeSuccess =
+          typeof spendResult.spend.success === "boolean"
+            ? spendResult.spend.success
+            : !!spendResult.spend.negateIncoming;
+        setPlayer(pendingAttack.defender, consumedDefender);
+        if (evadeSuccess) {
+          const resultDice = Array.from(
+            { length: diceCount },
+            () => evasiveRoll
+          );
+          setDefenseStatusRollDisplay({
+            dice: resultDice,
+            inProgress: false,
+            label: "Evasive Roll",
+            outcome: "success",
+          });
+          setDefenseStatusMessage("Evasive successful! You blocked all damage.");
+          const attackStatusSpends = pendingAttack.modifiers?.statusSpends ?? [];
+          const attackBonusDamage = attackStatusSpends.reduce(
+            (sum, spend) => sum + spend.bonusDamage,
+            0
+          );
+          const baseAttackDamage =
+            pendingAttack.baseDamage ??
+            Math.max(0, pendingAttack.ability.damage - attackBonusDamage);
+          const resolution = resolveAttack({
+            source: "ai",
+            attackerSide: pendingAttack.attacker,
+            defenderSide: pendingAttack.defender,
+            attacker,
+            defender: consumedDefender,
+            ability: pendingAttack.ability,
+            baseDamage: baseAttackDamage,
+            attackStatusSpends,
+            defense: {
+              resolution: combineDefenseSpends(null, [evasiveSummary]),
+            },
+          });
+          resetDefenseRequests();
+          setPendingAttackDispatch(null);
+          setPlayerDefenseState(null);
+          window.setTimeout(() => {
+            closeDiceTray();
+          }, 1200);
+          resolveWithEvents(
+            resolution,
+            pendingAttack.attacker,
+            pendingAttack.defender
+          );
+          return;
+        }
 
-      pendingDefenseSpendsRef.current = [
-        ...pendingDefenseSpendsRef.current,
-        evasiveSummary,
-      ];
-    }, 650);
+        const resultDice = Array.from(
+          { length: diceCount },
+          () => evasiveRoll
+        );
+        setDefenseStatusRollDisplay({
+          dice: resultDice,
+          inProgress: false,
+          label: "Evasive Roll",
+          outcome: "failure",
+        });
+        setDefenseStatusMessage("Evasive failed. Roll for Defense!");
+        pendingDefenseSpendsRef.current = [
+          ...pendingDefenseSpendsRef.current,
+          evasiveSummary,
+        ];
+      },
+      650,
+      {
+        animateSharedDice: false,
+        onTick: () => {
+          const frame = Array.from(
+            { length: diceCount },
+            () => 1 + Math.floor(Math.random() * 6)
+          );
+          setDefenseStatusRollDisplay({
+            dice: frame,
+            inProgress: true,
+            label: "Evasive Roll",
+            outcome: null,
+          });
+        },
+      }
+    );
   }, [
     animateDefenseDie,
     resetDefenseRequests,
@@ -847,8 +950,9 @@ export function useDefenseActions({
     setPhase,
     setPlayer,
     setPlayerDefenseState,
+    setDefenseStatusRollDisplay,
+    setDefenseStatusMessage,
   ]);
-
   return {
     onConfirmAttack,
     onUserDefenseRoll,

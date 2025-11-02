@@ -17,6 +17,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
   } = context;
 
   const defenseResolution = defense.resolution ?? null;
+  const defenseStatusSpendsRaw = defenseResolution?.statusSpends ?? [];
   const initialBaseBlock = defenseResolution
     ? Math.max(0, defenseResolution.baseBlock)
     : 0;
@@ -41,9 +42,15 @@ export function resolveAttack(context: AttackContext): AttackResolution {
   const modifiedBaseBlock = Math.max(0, defenseModifier.ctx.baseBlock);
 
   const attackTotals = aggregateStatusSpendSummaries(attackStatusSpends);
-  const defenseTotals = aggregateStatusSpendSummaries(
-    defenseResolution?.statusSpends ?? []
-  );
+  const defenseStatusSpends =
+    modifiedBaseBlock > 0
+      ? defenseStatusSpendsRaw
+      : defenseStatusSpendsRaw.filter(
+          (spend) =>
+            spend.negateIncoming || (spend.bonusDamage ?? 0) !== 0
+        );
+
+  const defenseTotals = aggregateStatusSpendSummaries(defenseStatusSpends);
 
   if (attackModifier.logs.length) {
     attackTotals.logs.push(...attackModifier.logs);
@@ -60,7 +67,11 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     modifiedBaseBlock > 0 ? defenseTotals.bonusBlock : 0;
   const totalBlock = Math.max(0, modifiedBaseBlock + effectiveBonusBlock);
   const defenseState = defenseResolution
-    ? { ...defenseResolution, baseBlock: totalBlock }
+    ? {
+        ...defenseResolution,
+        baseBlock: totalBlock,
+        statusSpends: defenseStatusSpends,
+      }
     : null;
 
   let nextAttacker = attacker;
