@@ -1,5 +1,6 @@
 import React from "react";
 import DiceGrid from "./DiceGrid";
+import ArtButton from "./ArtButton";
 import { useGame } from "../context/GameContext";
 import { useGameData, useGameController } from "../context/GameController";
 import styles from "./DiceTrayOverlay.module.css";
@@ -27,7 +28,7 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
     : Boolean(rolling);
   const canInteract =
     turn === "you" && !statusActive && !isDefenseTurn && !isRolling;
-  const showRollAction = !isDefenseTurn;
+  const showRollAction = !isDefenseTurn && rollsLeft > 0;
 
   return (
     <div className={styles.overlay}>
@@ -43,9 +44,13 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
         <div className={styles.trayContent}>
           <div className={styles.header}>
             <span>Dice Tray</span>
-            <button className='btn' onClick={closeDiceTray}>
-              Close
-            </button>
+            <ArtButton
+              variant='square'
+              className={styles.closeButton}
+              onClick={closeDiceTray}
+              aria-label='Close dice tray'>
+              ✕
+            </ArtButton>
           </div>
           <div className={styles.trayBody}>
             <div className={styles.diceWrapper}>
@@ -64,16 +69,20 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
             </div>
             <div className={styles.actions}>
               {showRollAction && (
-                <button
-                  className='btn primary'
+                <ArtButton
+                  variant='medium'
+                  className={styles.actionButton}
                   onClick={onRoll}
-                  disabled={!canInteract || rollsLeft <= 0}>
+                  disabled={!canInteract}>
                   Roll ({rollsLeft})
-                </button>
+                </ArtButton>
               )}
-              <button className='btn' onClick={closeDiceTray}>
-                Done
-              </button>
+              <ArtButton
+                variant='medium'
+                className={styles.actionButton}
+                onClick={closeDiceTray}>
+                Select Attack
+              </ArtButton>
             </div>
             <div className={styles.helper}>
               {canInteract

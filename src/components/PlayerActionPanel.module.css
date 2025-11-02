@@ -140,3 +140,93 @@
   color: #bae6fd;
 }
 
+.dicePreviewPanel {
+  width: 100%;
+  border-radius: 18px;
+  border: none;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #e2e8f0;
+  background: transparent;
+}
+
+.dicePreviewPanelDisabled {
+  opacity: 0.6;
+}
+
+.dicePreviewPanelActive {
+  box-shadow: 0 16px 32px rgba(9, 12, 23, 0.35);
+}
+
+.dicePreviewLabel {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #cbd5f5;
+}
+
+.dicePreviewFaces {
+  display: flex;
+  gap: 10px;
+}
+
+.dicePreviewDie {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 20px;
+  color: #f8fafc;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.dicePreviewDieHeld {
+  border-color: rgba(74, 222, 128, 0.7);
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.45);
+}
+
+.dicePreviewDieRolling {
+  border-color: rgba(56, 189, 248, 0.75);
+  animation: previewDiePulse 0.6s ease-in-out infinite;
+}
+
+.dicePreviewDieImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.dicePreviewValue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.dicePreviewHint {
+  font-size: 11px;
+  color: rgba(226, 232, 240, 0.75);
+  letter-spacing: 0.03em;
+}
+
+@keyframes previewDiePulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

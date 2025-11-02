@@ -96,7 +96,7 @@ const SettingsMenu = ({ onReset, onHeroSelect }: SettingsMenuProps) => {
 
 const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
   const { state } = useGame();
-  const { handleReset, startInitialRoll, confirmInitialRoll } =
+  const { handleReset, startInitialRoll, confirmInitialRoll, openDiceTray } =
     useGameController();
   const { phase, initialRoll } = useGameData();
   const { players, turn, round } = state;
@@ -421,7 +421,17 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
                           className={styles.playerTray}
                           style={{
                             backgroundImage: `url(${playerTrayImage})`,
-                          }}>
+                          }}
+                          role='button'
+                          tabIndex={0}
+                          onClick={openDiceTray}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              openDiceTray();
+                            }
+                          }}
+                          aria-label='Open dice tray'>
                           <div className={styles.playerTrayInner}>
                             <PlayerActionPanel />
                           </div>

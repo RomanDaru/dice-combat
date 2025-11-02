@@ -3,101 +3,39 @@ import clsx from "clsx";
 import { useGame } from "../context/GameContext";
 import { useGameController, useGameData } from "../context/GameController";
 import { useCombatLog, indentLog } from "../hooks/useCombatLog";
+import { getHeroSkin } from "../game/visuals";
 import styles from "./PlayerActionPanel.module.css";
-import { getStatus, getStacks } from "../engine/status";
 
 export function PlayerActionPanel() {
   const { state } = useGame();
-  const {
-    onRoll,
-    onConfirmAttack,
-    onEndTurnNoAttack,
-    onUserDefenseRoll,
-    onChooseDefenseOption,
-    onConfirmDefense,
-    onUserEvasiveRoll,
-    performStatusClearRoll,
-    activeAbilities,
-    onPerformActiveAbility,
-    attackStatusRequests,
-    defenseStatusRequests,
-    requestStatusSpend,
-    undoStatusSpend,
-    turnChiAvailable,
-    openDiceTray,
-    closeDiceTray,
-  } = useGameController();
-  const {
-    statusActive,
-    isDefenseTurn,
-    ability,
-    suggestedAbility,
-    selectedAttackCombo,
-    defenseRoll,
-    defenseSelection,
-    awaitingDefenseSelection,
-    diceTrayVisible,
-    impactLocked,
-    attackBaseDamage,
-    defenseBaseBlock,
-  } = useGameData();
+  const { performStatusClearRoll, openDiceTray } = useGameController();
+  const { statusActive, isDefenseTurn, diceTrayVisible, impactLocked } =
+    useGameData();
+  const { pushLog } = useCombatLog();
+  const lastThreatLog = useRef<string | null>(null);
 
   const {
-    phase,
-    rollsLeft,
-    rolling,
+    players,
     turn,
+    dice,
+    held,
+    rolling,
+    rollsLeft,
     pendingAttack,
     pendingStatusClear,
     aiDefense,
   } = state;
 
-  const you = state.players.you;
-  const ai = state.players.ai;
-  const chiDef = getStatus("chi");
-  const evasiveDef = getStatus("evasive");
-  const chiSpend = chiDef?.spend;
-  const evasiveSpend = evasiveDef?.spend;
-  const chiAttackEnabled =
-    !!chiSpend?.allowedPhases?.includes("attackRoll");
-  const chiDefenseEnabled =
-    !!chiSpend?.allowedPhases?.includes("defenseRoll");
-  const evasiveEnabled =
-    !!evasiveSpend?.allowedPhases?.includes("defenseRoll");
-  const evasiveNeedsRoll = !!evasiveSpend?.needsRoll;
-  const evasiveButtonLabel = evasiveNeedsRoll
-    ? `${evasiveDef?.name ?? "Evasive"} Roll`
-    : `Use ${evasiveDef?.name ?? "Evasive"}`;
-  const availableChiTokens = getStacks(you.tokens, "chi", 0);
-  const turnChiCap = Math.max(
-    0,
-    Math.min(availableChiTokens, turnChiAvailable.you ?? 0)
-  );
-  const attackChiCap =
-    turn === "you" && selectedAttackCombo && attackBaseDamage > 0
-      ? turnChiCap
-      : 0;
-  const defenseChiCap =
-    awaitingDefenseSelection && defenseBaseBlock > 0 ? turnChiCap : 0;
-  const attackChiRequest = Math.min(
-    attackStatusRequests.chi ?? 0,
-    attackChiCap
-  );
-  const defenseChiRequest = Math.min(
-    defenseStatusRequests.chi ?? 0,
-    defenseChiCap
-  );
+  const you = players.you;
+  const ai = players.ai;
 
-  const canInteract =
-    turn === "you" && !isDefenseTurn && !statusActive && !impactLocked;
-  const aiEvasiveRoll = aiDefense.evasiveRoll;
-  const aiDefenseDice = aiDefense.defenseDice;
-  const aiDefenseCombo = aiDefense.defenseCombo;
-  const aiDefenseBlock = aiDefense.defenseRoll;
-  const aiDefenseSim =
-    aiDefense.inProgress || !!aiDefenseDice || aiEvasiveRoll !== null;
+  const youSkin = getHeroSkin(you.hero.skin);
+  const dicePreviewFaces = youSkin.diceSet?.faces ?? null;
+
+  const previewDisabled = impactLocked || rolling.some(Boolean);
+
   const incomingAttack = isDefenseTurn && pendingAttack ? pendingAttack : null;
-  const incomingAbility = incomingAttack?.ability;
+  const incomingAbility = incomingAttack?.ability ?? null;
   const threatenedDamage = incomingAbility?.damage ?? null;
   const incomingStatusSpends = incomingAttack?.modifiers?.statusSpends ?? [];
   const attackChiSummary = incomingStatusSpends.find(
@@ -106,26 +44,9 @@ export function PlayerActionPanel() {
   const attackChiStacks = attackChiSummary?.stacksSpent ?? 0;
   const attackChiBonusDamage = attackChiSummary?.bonusDamage ?? 0;
   const attackerHero =
-    incomingAttack && state.players[incomingAttack.attacker]
-      ? state.players[incomingAttack.attacker].hero
+    incomingAttack && players[incomingAttack.attacker]
+      ? players[incomingAttack.attacker].hero
       : null;
-  const canAdjustAttackChi =
-    canInteract && chiAttackEnabled && attackChiCap > 0;
-  const canAdjustDefenseChi =
-    isDefenseTurn &&
-    chiDefenseEnabled &&
-    defenseChiCap > 0 &&
-    awaitingDefenseSelection &&
-    !impactLocked;
-  const playerEvasiveStacks = getStacks(you.tokens, "evasive", 0);
-  const canUseEvasive =
-    isDefenseTurn &&
-    evasiveEnabled &&
-    playerEvasiveStacks > 0 &&
-    !impactLocked;
-  const hasDefenseCombos = Boolean(defenseRoll && defenseRoll.options.length);
-  const { pushLog } = useCombatLog();
-  const lastThreatLog = useRef<string | null>(null);
 
   useEffect(() => {
     if (!incomingAttack || !incomingAbility) {
@@ -137,7 +58,9 @@ export function PlayerActionPanel() {
       attackerHero?.name ??
       (incomingAttack.attacker === "you" ? "You" : "Opponent");
     const abilityName =
-      incomingAbility.displayName ?? incomingAbility.label ?? incomingAbility.combo;
+      incomingAbility.displayName ??
+      incomingAbility.label ??
+      incomingAbility.combo;
     const threatened = threatenedDamage ?? 0;
     const chiText =
       attackChiStacks > 0
@@ -159,22 +82,6 @@ export function PlayerActionPanel() {
     pushLog,
   ]);
 
-  const spendAttackChi = () => {
-    requestStatusSpend("attackRoll", "chi");
-  };
-
-  const undoAttackChi = () => {
-    undoStatusSpend("attackRoll", "chi");
-  };
-
-  const spendDefenseChi = () => {
-    requestStatusSpend("defenseRoll", "chi");
-  };
-
-  const undoDefenseChi = () => {
-    undoStatusSpend("defenseRoll", "chi");
-  };
-
   const statusCard = statusActive && pendingStatusClear && (
     <div className={clsx("card", styles.statusCard)}>
       <div className={styles.statusHeader}>
@@ -187,7 +94,7 @@ export function PlayerActionPanel() {
         {pendingStatusClear.side === "you" ? (
           <button
             className='btn success'
-            onClick={() => performStatusClearRoll("you")}
+            onClick={handleStatusRoll}
             disabled={impactLocked}>
             Status Roll
           </button>
@@ -209,6 +116,13 @@ export function PlayerActionPanel() {
       </div>
     </div>
   );
+
+  const aiEvasiveRoll = aiDefense.evasiveRoll;
+  const aiDefenseDice = aiDefense.defenseDice;
+  const aiDefenseCombo = aiDefense.defenseCombo;
+  const aiDefenseBlock = aiDefense.defenseRoll;
+  const aiDefenseSim =
+    aiDefense.inProgress || !!aiDefenseDice || aiEvasiveRoll !== null;
 
   const defenseIndicators = aiDefenseSim && (
     <div className={styles.defenseIndicators}>
@@ -238,166 +152,64 @@ export function PlayerActionPanel() {
     </div>
   );
 
-  const showRollButton = !isDefenseTurn;
-  const rollDisabled =
-    turn !== "you" ||
-    statusActive ||
-    rollsLeft <= 0 ||
-    rolling.some(Boolean) ||
-    impactLocked;
-  const trayToggleDisabled =
-    turn !== "you" ||
-    statusActive ||
-    rolling.some(Boolean) ||
-    impactLocked;
+  const handleOpenTray = (
+    event?: React.SyntheticEvent<HTMLDivElement | HTMLButtonElement>
+  ) => {
+    event?.stopPropagation();
+    if (previewDisabled && !diceTrayVisible) return;
+    openDiceTray();
+  };
 
-  const actionRowClass = clsx(
-    styles.actionRow,
-    impactLocked && styles.actionRowLocked
-  );
+  const handleStatusRoll = (
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ) => {
+    event.stopPropagation();
+    performStatusClearRoll("you");
+  };
 
   return (
-    <div className={styles.panel}>
-      <div className={actionRowClass}>
-        {showRollButton && (
-          <button
-            className='btn primary'
-            onClick={onRoll}
-            disabled={rollDisabled}>
-            Roll ({rollsLeft})
-          </button>
+    <div className={styles.panel} onClick={handleOpenTray}>
+      <div
+        className={clsx(
+          styles.dicePreviewPanel,
+          diceTrayVisible && styles.dicePreviewPanelActive,
+          previewDisabled && styles.dicePreviewPanelDisabled
         )}
-        {!isDefenseTurn && (
-          <button
-            className='btn'
-            onClick={() => {
-              if (diceTrayVisible) {
-                closeDiceTray();
-              } else {
-                openDiceTray();
-              }
-            }}
-            disabled={trayToggleDisabled}>
-            {diceTrayVisible ? "Hide Dice Tray" : "Open Dice Tray"}
-          </button>
-        )}
-        {canAdjustAttackChi && (
-          <div className={styles.chiSpendControl}>
-            <span className={styles.chiSpendLabel}>Chi for attack</span>
-            <div className={styles.chiStepper}>
-              <button
-                type='button'
-                className={styles.chiStepperBtn}
-                onClick={spendAttackChi}
-                disabled={attackChiRequest >= attackChiCap || impactLocked}>
-                Spend
-              </button>
-              <span className={styles.chiValue}>{attackChiRequest}</span>
-              <button
-                type='button'
-                className={styles.chiStepperBtn}
-                onClick={undoAttackChi}
-                disabled={attackChiRequest <= 0 || impactLocked}>
-                Undo
-              </button>
-              <span className={styles.chiMax}>/ {attackChiCap}</span>
-            </div>
-          </div>
-        )}
-        {!statusActive &&
-          (isDefenseTurn ? (
-            <>
-              <button
-                className='btn success'
-                onClick={onUserDefenseRoll}
-                disabled={Boolean(defenseRoll) || impactLocked}>
-                {defenseRoll ? "Defense Rolled" : "Defense Roll"}
-              </button>
-              {canUseEvasive && (
-                <button
-                  className='btn warning'
-                  onClick={onUserEvasiveRoll}
-                  disabled={impactLocked}>
-                  {evasiveButtonLabel}
-                </button>
-              )}
-              {defenseRoll && (
-                <>
-                  {hasDefenseCombos && (
-                    <button
-                      className='btn'
-                      onClick={() => onChooseDefenseOption(null)}
-                      disabled={impactLocked}>
-                      Skip ability
-                    </button>
-                  )}
-                  <button
-                    className='btn success'
-                    onClick={onConfirmDefense}
-                    disabled={!awaitingDefenseSelection || impactLocked}>
-                    Confirm Defense
-                  </button>
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              <button
-                className='btn success'
-                onClick={onConfirmAttack}
-                disabled={turn !== "you" || rollsLeft === 3 || impactLocked}
-                title={
-                  rollsLeft === 3
-                    ? "Roll at least once before attacking"
-                    : "Confirm attack"
-                }>
-                Confirm Attack
-              </button>
-              <button
-                className='btn'
-                onClick={onEndTurnNoAttack}
-                disabled={turn !== "you" || impactLocked}>
-                Pass Turn
-              </button>
-            </>
-          ))}
-        {canAdjustDefenseChi && (
-          <div className={styles.chiSpendControl}>
-            <span className={styles.chiSpendLabel}>Chi for block</span>
-            <div className={styles.chiStepper}>
-              <button
-                type='button'
-                className={styles.chiStepperBtn}
-                onClick={spendDefenseChi}
-                disabled={defenseChiRequest >= defenseChiCap || impactLocked}>
-                Spend
-              </button>
-              <span className={styles.chiValue}>{defenseChiRequest}</span>
-              <button
-                type='button'
-                className={styles.chiStepperBtn}
-                onClick={undoDefenseChi}
-                disabled={defenseChiRequest <= 0 || impactLocked}>
-                Undo
-              </button>
-              <span className={styles.chiMax}>/ {defenseChiCap}</span>
-            </div>
-          </div>
-        )}
-        {!statusActive && activeAbilities.length > 0 && (
-          <div className={styles.activeAbilityRow}>
-            {activeAbilities.map((activeAbility) => (
-              <button
-                key={activeAbility.id}
-                className='btn'
-                onClick={() => onPerformActiveAbility(activeAbility.id)}
-                disabled={impactLocked}
-                title={activeAbility.description ?? activeAbility.label}>
-                {activeAbility.label}
-              </button>
-            ))}
-          </div>
-        )}
+        role='presentation'
+        aria-hidden='true'>
+        <span className={styles.dicePreviewLabel}>Rolls left: {rollsLeft}</span>
+        <div className={styles.dicePreviewFaces}>
+          {dice.map((value, index) => {
+            const dieClass = clsx(styles.dicePreviewDie, {
+              [styles.dicePreviewDieHeld]: held[index],
+              [styles.dicePreviewDieRolling]: rolling[index],
+            });
+            const faceImage =
+              typeof value === "number" && value >= 1 && value <= 6
+                ? dicePreviewFaces?.[value - 1] ?? null
+                : null;
+            return (
+              <span
+                key={index}
+                className={dieClass}
+                aria-label={`Die ${index + 1}: ${value}${
+                  held[index] ? " held" : ""
+                }${rolling[index] ? " rolling" : ""}`}>
+                {faceImage ? (
+                  <img
+                    src={faceImage}
+                    alt={`Die face ${value}`}
+                    className={styles.dicePreviewDieImage}
+                    draggable={false}
+                  />
+                ) : (
+                  <span className={styles.dicePreviewValue}>{value}</span>
+                )}
+              </span>
+            );
+          })}
+        </div>
+        <span className={styles.dicePreviewHint}>Tap to roll / open</span>
       </div>
       {statusCard}
       {defenseIndicators}

@@ -47,8 +47,13 @@ export function PlayerAbilityList() {
     awaitingDefenseSelection,
     selectedAttackCombo,
     statusActive,
+    impactLocked,
   } = useGameData();
-  const { onChooseDefenseOption, onSelectAttackCombo } = useGameController();
+  const {
+    onChooseDefenseOption,
+    onSelectAttackCombo,
+    onConfirmAttack,
+  } = useGameController();
 
   const player = state.players.you;
   const hero = player.hero;
@@ -154,6 +159,17 @@ export function PlayerAbilityList() {
 
   const canSelectOffense =
     state.turn === "you" && !statusActive && !state.rolling.some(Boolean);
+  const selectedComboReady = selectedAttackCombo
+    ? Boolean(readyCombos?.[selectedAttackCombo])
+    : false;
+  const canConfirmAttack =
+    selectedAttackCombo !== null &&
+    state.turn === "you" &&
+    !statusActive &&
+    !state.rolling.some(Boolean) &&
+    state.rollsLeft < 3 &&
+    selectedComboReady &&
+    !impactLocked;
 
   return (
     <div className={abilityStyles.panel}>
@@ -178,6 +194,22 @@ export function PlayerAbilityList() {
           });
         })}
       </div>
+      {selectedAttackCombo && (
+        <div className={abilityStyles.actions}>
+          <button
+            type='button'
+            className='btn success'
+            onClick={onConfirmAttack}
+            disabled={!canConfirmAttack}
+            title={
+              state.rollsLeft >= 3
+                ? "Roll at least once before confirming"
+                : "Confirm selected attack"
+            }>
+            Confirm Attack
+          </button>
+        </div>
+      )}
     </div>
   );
 }
