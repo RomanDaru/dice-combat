@@ -38,10 +38,7 @@ import type {
   StatusSpendApplyResult,
   StatusSpendSummary,
 } from "../engine/status";
-import {
-  resolvePassTurn,
-  type TurnEndResolution,
-} from "../game/flow/turnEnd";
+import { resolvePassTurn, type TurnEndResolution } from "../game/flow/turnEnd";
 
 type PlayerDefenseState = {
   roll: DefenseRollResult;
@@ -72,7 +69,10 @@ type UseDefenseActionsArgs = {
     entry: string | string[],
     options?: { blankLineBefore?: boolean; blankLineAfter?: boolean }
   ) => void;
-  animateDefenseDie: (onDone: (roll: number) => void, duration?: number) => void;
+  animateDefenseDie: (
+    onDone: (roll: number) => void,
+    duration?: number
+  ) => void;
   animateDefenseRoll: (
     onDone: (dice: number[]) => void,
     duration?: number
@@ -85,9 +85,7 @@ type UseDefenseActionsArgs = {
   aiPlay: () => void;
   aiStepDelay: number;
   playerDefenseState: PlayerDefenseState | null;
-  setPlayerDefenseState: Dispatch<
-    SetStateAction<PlayerDefenseState | null>
-  >;
+  setPlayerDefenseState: Dispatch<SetStateAction<PlayerDefenseState | null>>;
   applyTurnEndResolution: (
     resolution: TurnEndResolution,
     logOptions?: { blankLineBefore?: boolean; blankLineAfter?: boolean }
@@ -182,13 +180,15 @@ export function useDefenseActions({
     []
   );
 
-  const { abilities: aiActiveAbilities, performAbility: performAiActiveAbility } =
-    useActiveAbilities({
-      side: "ai",
-      pushLog,
-      popDamage,
-      handleControllerAction: handleAiAbilityControllerAction,
-    });
+  const {
+    abilities: aiActiveAbilities,
+    performAbility: performAiActiveAbility,
+  } = useActiveAbilities({
+    side: "ai",
+    pushLog,
+    popDamage,
+    handleControllerAction: handleAiAbilityControllerAction,
+  });
 
   const patchAiDefense = useCallback(
     (partial: Partial<GameState["aiDefense"]>) => {
@@ -274,7 +274,6 @@ export function useDefenseActions({
   );
 
   const onConfirmAttack = useCallback(() => {
-    
     if (turn !== "you" || rolling.some(Boolean)) return;
     const selectedAbility = ability;
     if (!selectedAbility) {
@@ -315,55 +314,64 @@ export function useDefenseActions({
       let workingTokens = attacker.tokens;
       let tokensChanged = false;
 
-      Object.entries(attackStatusRequests).forEach(([rawStatusId, requested]) => {
-        const statusId = rawStatusId as StatusId;
-        if (requested <= 0) return;
-        const statusDef = getStatus(statusId);
-        const spendDef = statusDef?.spend;
-        if (!spendDef || !spendDef.allowedPhases.includes("attackRoll")) {
-          return;
-        }
-        if (baseDamage <= 0) return;
-        const costStacks = spendDef.costStacks || 1;
-        const availableStacks =
-          statusId === "chi"
-            ? Math.max(
-                0,
-                Math.min(
-                  requested,
-                  getStacks(workingTokens, "chi", 0),
-                  turnChiAvailable.you ?? 0
+      Object.entries(attackStatusRequests).forEach(
+        ([rawStatusId, requested]) => {
+          const statusId = rawStatusId as StatusId;
+          if (requested <= 0) return;
+          const statusDef = getStatus(statusId);
+          const spendDef = statusDef?.spend;
+          if (!spendDef || !spendDef.allowedPhases.includes("attackRoll")) {
+            return;
+          }
+          if (baseDamage <= 0) return;
+          const costStacks = spendDef.costStacks || 1;
+          const availableStacks =
+            statusId === "chi"
+              ? Math.max(
+                  0,
+                  Math.min(
+                    requested,
+                    getStacks(workingTokens, "chi", 0),
+                    turnChiAvailable.you ?? 0
+                  )
                 )
-              )
-            : Math.max(
-                0,
-                Math.min(requested, getStacks(workingTokens, statusId, 0))
-              );
-        const attempts =
-          costStacks > 0 ? Math.floor(availableStacks / costStacks) : 0 : 0;
-        if (attempts <= 0) return;
-        let localTokens = workingTokens;
-        const spendResults: StatusSpendApplyResult[] = [];
-        let damageContext = baseDamage;
-        for (let i = 0; i < attempts; i += 1) {
-          const spendResult = spendStatus(localTokens, statusId, "attackRoll", {
-            phase: "attackRoll",
-            baseDamage: damageContext,
-          });
-          if (!spendResult) break;
-          localTokens = spendResult.next;
-          spendResults.push(spendResult.spend);
-          damageContext += spendResult.spend.bonusDamage ?? 0;
+              : Math.max(
+                  0,
+                  Math.min(requested, getStacks(workingTokens, statusId, 0))
+                );
+          const attempts =
+            costStacks > 0 ? Math.floor(availableStacks / costStacks) : 0;
+          if (attempts <= 0) return;
+          let localTokens = workingTokens;
+          const spendResults: StatusSpendApplyResult[] = [];
+          let damageContext = baseDamage;
+          for (let i = 0; i < attempts; i += 1) {
+            const spendResult = spendStatus(
+              localTokens,
+              statusId,
+              "attackRoll",
+              {
+                phase: "attackRoll",
+                baseDamage: damageContext,
+              }
+            );
+            if (!spendResult) break;
+            localTokens = spendResult.next;
+            spendResults.push(spendResult.spend);
+            if (typeof spendResult.spend.bonusDamage === "number") {
+              damageContext += spendResult.spend.bonusDamage;
+            }
+          }
+          if (spendResults.length > 0) {
+            const stacksSpent = spendResults.length * costStacks;
+            workingTokens = localTokens;
+            tokensChanged = true;
+            attackStatusSpends.push(
+              createStatusSpendSummary(statusId, stacksSpent, spendResults)
+            );
+          }
         }
-        if (spendResults.length > 0) {
-          const stacksSpent = spendResults.length * costStacks;
-          workingTokens = localTokens;
-          tokensChanged = true;
-          attackStatusSpends.push(
-            createStatusSpendSummary(statusId, stacksSpent, spendResults)
-          );
-        }
-      });
+      );
 
       clearAttackStatusRequests();
 
@@ -410,17 +418,19 @@ export function useDefenseActions({
 
       const resolveAfterDefense = (
         defenderState: PlayerState,
-        defenseResolution: ReturnType<typeof buildDefensePlan>["defense"] | null,
+        defenseResolution:
+          | ReturnType<typeof buildDefensePlan>["defense"]
+          | null,
         additionalSpends: StatusSpendSummary[] = []
       ) => {
         window.setTimeout(() => {
           closeDiceTray();
           const pendingSpends = pendingDefenseSpendsRef.current;
           pendingDefenseSpendsRef.current = [];
-          const mergedResolution = combineDefenseSpends(
-            defenseResolution,
-            [...pendingSpends, ...additionalSpends]
-          );
+          const mergedResolution = combineDefenseSpends(defenseResolution, [
+            ...pendingSpends,
+            ...additionalSpends,
+          ]);
           const resolution = resolveAttack({
             source: "player",
             attackerSide: "you",
@@ -482,8 +492,7 @@ export function useDefenseActions({
           patchAiDefense({
             inProgress: false,
             defenseDice: rolledDice,
-            defenseCombo:
-              defensePlan.defense.selection.selected?.combo ?? null,
+            defenseCombo: defensePlan.defense.selection.selected?.combo ?? null,
             defenseRoll: totalBlock,
           });
 
@@ -501,7 +510,10 @@ export function useDefenseActions({
         });
       };
 
-      if (aiShouldAttemptEvasive && getStacks(defender.tokens, "evasive", 0) > 0) {
+      if (
+        aiShouldAttemptEvasive &&
+        getStacks(defender.tokens, "evasive", 0) > 0
+      ) {
         setPhase("defense");
         animateDefenseDie((roll) => {
           const spendResult = spendStatus(
@@ -528,8 +540,7 @@ export function useDefenseActions({
               ? spendResult.spend.success
               : !!spendResult.spend.negateIncoming;
 
-          const evasiveCost =
-            getStatus("evasive")?.spend?.costStacks ?? 1;
+          const evasiveCost = getStatus("evasive")?.spend?.costStacks ?? 1;
           const evasiveSummary = createStatusSpendSummary(
             "evasive",
             evasiveCost,
@@ -691,8 +702,7 @@ export function useDefenseActions({
     });
     setPlayer("you", defender);
 
-    const attackStatusSpends =
-      pendingAttack.modifiers?.statusSpends ?? [];
+    const attackStatusSpends = pendingAttack.modifiers?.statusSpends ?? [];
     const attackBonusDamage = attackStatusSpends.reduce(
       (sum, spend) => sum + spend.bonusDamage,
       0
@@ -726,7 +736,11 @@ export function useDefenseActions({
     setPendingAttackDispatch(null);
     setPlayerDefenseState(null);
     closeDiceTray();
-    resolveWithEvents(resolution, pendingAttack.attacker, pendingAttack.defender);
+    resolveWithEvents(
+      resolution,
+      pendingAttack.attacker,
+      pendingAttack.defender
+    );
   }, [
     resetDefenseRequests,
     defenseStatusRequests,
@@ -746,8 +760,13 @@ export function useDefenseActions({
 
   const onUserEvasiveRoll = useCallback(() => {
     if (!pendingAttack || pendingAttack.defender !== "you") return;
-    const defenderSnapshot = latestState.current.players[pendingAttack.defender];
-    if (!defenderSnapshot || getStacks(defenderSnapshot.tokens, "evasive", 0) <= 0) return;
+    const defenderSnapshot =
+      latestState.current.players[pendingAttack.defender];
+    if (
+      !defenderSnapshot ||
+      getStacks(defenderSnapshot.tokens, "evasive", 0) <= 0
+    )
+      return;
     openDiceTray();
     setPhase("defense");
     animateDefenseDie((evasiveRoll) => {
@@ -766,21 +785,17 @@ export function useDefenseActions({
         ...defender,
         tokens: spendResult.next,
       };
-      const evasiveCost =
-        getStatus("evasive")?.spend?.costStacks ?? 1;
-      const evasiveSummary = createStatusSpendSummary(
-        "evasive",
-        evasiveCost,
-        [spendResult.spend]
-      );
+      const evasiveCost = getStatus("evasive")?.spend?.costStacks ?? 1;
+      const evasiveSummary = createStatusSpendSummary("evasive", evasiveCost, [
+        spendResult.spend,
+      ]);
       const evadeSuccess =
         typeof spendResult.spend.success === "boolean"
           ? spendResult.spend.success
           : !!spendResult.spend.negateIncoming;
       setPlayer(pendingAttack.defender, consumedDefender);
       if (evadeSuccess) {
-        const attackStatusSpends =
-          pendingAttack.modifiers?.statusSpends ?? [];
+        const attackStatusSpends = pendingAttack.modifiers?.statusSpends ?? [];
         const attackBonusDamage = attackStatusSpends.reduce(
           (sum, spend) => sum + spend.bonusDamage,
           0
@@ -805,7 +820,11 @@ export function useDefenseActions({
         setPendingAttackDispatch(null);
         setPlayerDefenseState(null);
         closeDiceTray();
-        resolveWithEvents(resolution, pendingAttack.attacker, pendingAttack.defender);
+        resolveWithEvents(
+          resolution,
+          pendingAttack.attacker,
+          pendingAttack.defender
+        );
         return;
       }
 
@@ -838,5 +857,3 @@ export function useDefenseActions({
     onUserEvasiveRoll,
   };
 }
-
-
