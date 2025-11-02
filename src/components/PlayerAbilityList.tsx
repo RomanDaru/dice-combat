@@ -99,6 +99,7 @@ export function PlayerAbilityList() {
       disabled: boolean;
       onClick: () => void;
       tooltipParts: string[];
+      variant: "offense" | "defense";
     }
   ) => {
     const abilityName =
@@ -107,7 +108,9 @@ export function PlayerAbilityList() {
       "ultimate" in (ability as Partial<OffensiveAbility>) &&
       Boolean((ability as Partial<OffensiveAbility>).ultimate);
     const iconSources =
-      getAbilityIcon(hero.id, ability.combo as Combo) ?? null;
+      getAbilityIcon(hero.id, ability.combo as Combo, {
+        variant: options.variant,
+      }) ?? null;
 
     return (
       <button
@@ -293,9 +296,9 @@ export function PlayerAbilityList() {
         <div className={abilityStyles.title}>{`Defensive Abilities (${hero.name})`}</div>
         <div className={abilityStyles.grid}>
           {(defenseAbilities as DefensiveAbility[]).map((ability) => {
-            const ready = !!readyCombos[ability.combo];
-            const selected = defenseSelection === ability.combo;
-            const canSelect = awaitingDefenseSelection && ready;
+          const ready = !!readyCombos[ability.combo];
+          const selected = defenseSelection === ability.combo;
+          const canSelect = awaitingDefenseSelection && ready;
 
             const tooltipParts: string[] = [];
             if (ability.block != null)
@@ -317,6 +320,7 @@ export function PlayerAbilityList() {
               disabled: !canSelect,
               onClick: () => onChooseDefenseOption(ability.combo),
               tooltipParts,
+              variant: "defense",
             });
           })}
         </div>
@@ -357,6 +361,7 @@ export function PlayerAbilityList() {
             onClick: () =>
               onSelectAttackCombo(selected ? null : ability.combo),
             tooltipParts,
+            variant: "offense",
           });
         })}
       </div>
