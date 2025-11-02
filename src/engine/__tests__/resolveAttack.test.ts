@@ -70,6 +70,30 @@ describe("resolveAttack with modifiers", () => {
         log: "Block +2.",
       }),
     });
+
+    defineStatus({
+      id: "test_block_nullify",
+      kind: "negative",
+      name: "Block Nullify",
+      icon: "N",
+      priority: 1,
+      onModify: () => ({
+        baseBlock: 0,
+        log: "Block removed.",
+      }),
+    });
+
+    defineStatus({
+      id: "test_block_seed",
+      kind: "positive",
+      name: "Block Seed",
+      icon: "S",
+      priority: 3,
+      onModify: (_instance, ctx) => ({
+        baseBlock: Math.max(ctx.baseBlock, 1),
+        log: "Seed block 1.",
+      }),
+    });
   });
 
   it("ignores damage spends when modifiers reduce base damage to zero", () => {
@@ -201,6 +225,79 @@ describe("resolveAttack with modifiers", () => {
     ).toBe(true);
   });
 
+  it("ignores defense spends when modifiers reduce base block to zero", () => {
+    const baseState = createInitialState(
+      HEROES.Pyromancer,
+      HEROES["Shadow Monk"]
+    );
+    const attacker = clonePlayer(baseState.players.you);
+    const defender = clonePlayer(baseState.players.ai, {
+      ...baseState.players.ai.tokens,
+      test_block_nullify: 1,
+    });
+
+    const ability: OffensiveAbility = {
+      combo: "4OAK",
+      damage: 8,
+      label: "Null Strike",
+    };
+
+    const defenseResolution = makeDefenseState({
+      baseBlock: 3,
+      statusSpends: [chiSpend({ bonusBlock: 2, log: "+2 block" })],
+    });
+
+    const resolution = resolveAttack({
+      source: "player",
+      attackerSide: "you",
+      defenderSide: "ai",
+      attacker,
+      defender,
+      ability,
+      baseDamage: ability.damage,
+      attackStatusSpends: [],
+      defense: { resolution: defenseResolution },
+    });
+
+    expect(resolution.updatedDefender.hp).toBe(defender.hp - ability.damage);
+  });
+
+  it("clamps damage to zero when block fully absorbs the attack", () => {
+    const baseState = createInitialState(
+      HEROES.Pyromancer,
+      HEROES["Shadow Monk"]
+    );
+    const attacker = clonePlayer(baseState.players.you);
+    const defender = clonePlayer(baseState.players.ai);
+
+    const ability: OffensiveAbility = {
+      combo: "PAIR_PAIR",
+      damage: 5,
+      label: "Soft Hit",
+    };
+
+    const defenseResolution = makeDefenseState({
+      baseBlock: 8,
+    });
+
+    const resolution = resolveAttack({
+      source: "player",
+      attackerSide: "you",
+      defenderSide: "ai",
+      attacker,
+      defender,
+      ability,
+      baseDamage: ability.damage,
+      attackStatusSpends: [],
+      defense: { resolution: defenseResolution },
+    });
+
+    expect(resolution.updatedDefender.hp).toBe(defender.hp);
+    expect(
+      resolution.logs.some((line) => line.includes("receives 0 dmg"))
+    ).toBe(true);
+  });
+
   it("short-circuits attack when defense negates incoming damage", () => {
     const baseState = createInitialState(
       HEROES.Pyromancer,
@@ -226,6 +323,8 @@ describe("resolveAttack with modifiers", () => {
       attackStatusSpends: [],
       defense: {
         resolution: makeDefenseState({
+          reflect: 4,
+          retaliatePercent: 0.5,
           statusSpends: [
             createStatusSpendSummary("evasive", 1, [
               { negateIncoming: true, success: true, log: "Dodge!" },
@@ -240,6 +339,96 @@ describe("resolveAttack with modifiers", () => {
     expect(resolution.fx).toHaveLength(0);
     expect(
       resolution.logs.some((line) => line.includes("receives 0 dmg"))
+    ).toBe(true);
+  });
+
+  it("applies pure base block without logging spends", () => {
+    const baseState = createInitialState(
+      HEROES.Pyromancer,
+      HEROES["Shadow Monk"]
+    );
+    const attacker = clonePlayer(baseState.players.you);
+    const defender = clonePlayer(baseState.players.ai);
+
+    const ability: OffensiveAbility = {
+      combo: "3OAK",
+      damage: 7,
+      label: "Solid Punch",
+    };
+
+    const defenseAbility = {
+      combo: "FULL_HOUSE",
+      ability: {
+        combo: "FULL_HOUSE",
+        block: 5,
+        label: "Iron Wall",
+      },
+    } as ResolvedDefenseState["selection"]["selected"];
+
+    const defenseResolution = makeDefenseState({
+      baseBlock: 5,
+      statusSpends: [],
+      selection: {
+        roll: { dice: [], combos: [], options: [] },
+        selected: defenseAbility,
+      },
+    });
+
+    const resolution = resolveAttack({
+      source: "player",
+      attackerSide: "you",
+      defenderSide: "ai",
+      attacker,
+      defender,
+      ability,
+      baseDamage: ability.damage,
+      attackStatusSpends: [],
+      defense: { resolution: defenseResolution },
+    });
+
+    expect(resolution.updatedDefender.hp).toBe(defender.hp - 2);
+    expect(
+      resolution.logs.every((line) => !line.includes("Spend:"))
+    ).toBe(true);
+  });
+
+  it("applies defense spends when modifiers grant base block", () => {
+    const baseState = createInitialState(
+      HEROES.Pyromancer,
+      HEROES["Shadow Monk"]
+    );
+    const attacker = clonePlayer(baseState.players.you);
+    const defender = clonePlayer(baseState.players.ai, {
+      ...baseState.players.ai.tokens,
+      test_block_seed: 1,
+    });
+
+    const offense: OffensiveAbility = {
+      combo: "5OAK",
+      damage: 5,
+      label: "Precision Shot",
+    };
+
+    const defenseResolution = makeDefenseState({
+      baseBlock: 0,
+      statusSpends: [chiSpend({ bonusBlock: 2, log: "+2 block" })],
+    });
+
+    const resolution = resolveAttack({
+      source: "player",
+      attackerSide: "you",
+      defenderSide: "ai",
+      attacker,
+      defender,
+      ability: offense,
+      baseDamage: offense.damage,
+      attackStatusSpends: [],
+      defense: { resolution: defenseResolution },
+    });
+
+    expect(resolution.updatedDefender.hp).toBe(defender.hp - 2);
+    expect(
+      resolution.logs.some((line) => line.includes("+2 block"))
     ).toBe(true);
   });
 });

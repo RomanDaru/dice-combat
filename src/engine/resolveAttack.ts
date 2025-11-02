@@ -56,7 +56,9 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     modifiedBaseDamage > 0 ? attackTotals.bonusDamage : 0;
   const attackDamage = Math.max(0, modifiedBaseDamage + effectiveBonusDamage);
   const baseBlock = modifiedBaseBlock;
-  const totalBlock = Math.max(0, modifiedBaseBlock + defenseTotals.bonusBlock);
+  const effectiveBonusBlock =
+    modifiedBaseBlock > 0 ? defenseTotals.bonusBlock : 0;
+  const totalBlock = Math.max(0, modifiedBaseBlock + effectiveBonusBlock);
   const defenseState = defenseResolution
     ? { ...defenseResolution, baseBlock: totalBlock }
     : null;
