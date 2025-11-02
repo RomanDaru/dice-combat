@@ -11,6 +11,7 @@ import type { Combo, DefensiveAbility, OffensiveAbility } from "../game/types";
 import { getStatus, getStacks, type StatusId } from "../engine/status";
 import abilityStyles from "./AbilityIcons.module.css";
 import ArtButton from "./ArtButton";
+import { getAbilityIcon } from "../assets/abilityIconMap";
 
 type ApplyMap = {
   burn?: number;
@@ -105,6 +106,8 @@ export function PlayerAbilityList() {
     const hasUltimate =
       "ultimate" in (ability as Partial<OffensiveAbility>) &&
       Boolean((ability as Partial<OffensiveAbility>).ultimate);
+    const iconSources =
+      getAbilityIcon(hero.id, ability.combo as Combo) ?? null;
 
     return (
       <button
@@ -120,9 +123,23 @@ export function PlayerAbilityList() {
         disabled={options.disabled}
         title={[abilityName, ...options.tooltipParts].join(" - ")}
       >
-        <span className={abilityStyles.iconLabel}>
-          {abilityInitials(abilityName)}
-        </span>
+        {iconSources ? (
+          <picture className={abilityStyles.iconPicture}>
+            {iconSources.webp && (
+              <source srcSet={iconSources.webp} type='image/webp' />
+            )}
+            <img
+              src={iconSources.png}
+              alt={abilityName}
+              className={abilityStyles.iconImage}
+              draggable={false}
+            />
+          </picture>
+        ) : (
+          <span className={abilityStyles.iconLabel}>
+            {abilityInitials(abilityName)}
+          </span>
+        )}
         {hasUltimate && (
           <span className={abilityStyles.smallBadge}>ULT</span>
         )}

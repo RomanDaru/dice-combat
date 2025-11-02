@@ -101,9 +101,10 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     reflectDealt = Math.max(0, attacker.hp - attackerAfter.hp);
   }
 
-  const blocked = wasNegated
+  const damageWithoutBlock = Math.min(attackDamage, defender.hp);
+  const reportedBlocked = wasNegated
     ? attackDamage
-    : Math.max(0, attackDamage - damageDealt);
+    : Math.max(0, damageWithoutBlock - damageDealt);
 
   const logs = buildAttackResolutionLines({
     attackerBefore: attacker,
@@ -114,7 +115,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     attackTotals,
     defenseTotals,
     damageDealt,
-    blocked,
+    blocked: reportedBlocked,
     defense: defenseState,
     reflectedDamage: reflectDealt,
   });

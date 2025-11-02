@@ -65,6 +65,7 @@ export function CombatLogPanel() {
   const { log } = state;
   const [highlightIndex, setHighlightIndex] = useState<number | null>(null);
   const highlightTimerRef = useRef<number | null>(null);
+  const logScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!log.length) return;
@@ -89,9 +90,18 @@ export function CombatLogPanel() {
     };
   }, []);
 
+  useEffect(() => {
+    const element = logScrollRef.current;
+    if (!element) return;
+    const frame = window.requestAnimationFrame(() => {
+      element.scrollTop = element.scrollHeight;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [log.length]);
+
   return (
     <Section title='Combat Log'>
-      <div className={styles.logScroll}>
+      <div ref={logScrollRef} className={styles.logScroll}>
         {log.map((entry, idx) => {
           const text = entry.t ?? "";
           const trimmed = text.trim();

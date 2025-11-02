@@ -468,4 +468,42 @@ describe("resolveAttack with modifiers", () => {
       resolution.logs.some((line) => line.includes("+2 block"))
     ).toBe(true);
   });
+
+  it("does not report block from overkill when defender had low HP", () => {
+    const baseState = createInitialState(
+      HEROES.Pyromancer,
+      HEROES["Shadow Monk"]
+    );
+    const attacker = clonePlayer(baseState.players.you);
+    const defender = clonePlayer(baseState.players.ai);
+    defender.hp = 1;
+
+    const offense: OffensiveAbility = {
+      combo: "PAIR_PAIR",
+      damage: 4,
+      label: "Two pairs",
+    };
+
+    const defenseResolution = makeDefenseState({
+      baseBlock: 0,
+      statusSpends: [],
+    });
+
+    const resolution = resolveAttack({
+      source: "player",
+      attackerSide: "you",
+      defenderSide: "ai",
+      attacker,
+      defender,
+      ability: offense,
+      baseDamage: offense.damage,
+      attackStatusSpends: [],
+      defense: { resolution: defenseResolution },
+    });
+
+    expect(resolution.updatedDefender.hp).toBe(0);
+    const combinedLogs = resolution.logs.join(" ");
+    expect(combinedLogs).not.toMatch(/blocked 3/i);
+    expect(combinedLogs).toMatch(/receives 1 dmg/i);
+  });
 });
