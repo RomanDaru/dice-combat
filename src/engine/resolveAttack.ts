@@ -2,7 +2,7 @@ import { applyAttack } from "../game/engine";
 import type { AttackContext, AttackResolution } from "../game/combat/types";
 import type { Side } from "../game/types";
 import { buildAttackResolutionLines } from "../game/logging/combatLog";
-import { aggregateStatusSpendSummaries } from "./status";
+import { aggregateStatusSpendSummaries, applyModifiers } from "./status";
 
 export function resolveAttack(context: AttackContext): AttackResolution {
   const {
@@ -16,32 +16,78 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     defense,
   } = context;
 
-  const attackTotals = aggregateStatusSpendSummaries(attackStatusSpends);
   const defenseResolution = defense.resolution ?? null;
+  const initialBaseBlock = defenseResolution
+    ? Math.max(0, defenseResolution.baseBlock)
+    : 0;
+
+  const attackModifier = applyModifiers(attacker.tokens ?? {}, {
+    phase: "attack",
+    attackerSide,
+    defenderSide,
+    baseDamage,
+    baseBlock: initialBaseBlock,
+  });
+
+  const defenseModifier = applyModifiers(defender.tokens ?? {}, {
+    phase: "defense",
+    attackerSide,
+    defenderSide,
+    baseDamage: attackModifier.ctx.baseDamage,
+    baseBlock: initialBaseBlock,
+  });
+
+  const modifiedBaseDamage = Math.max(0, defenseModifier.ctx.baseDamage);
+  const modifiedBaseBlock = Math.max(0, defenseModifier.ctx.baseBlock);
+
+  const attackTotals = aggregateStatusSpendSummaries(attackStatusSpends);
   const defenseTotals = aggregateStatusSpendSummaries(
     defenseResolution?.statusSpends ?? []
   );
-  const attackDamage = Math.max(0, baseDamage + attackTotals.bonusDamage);
-  const baseBlock = defenseResolution ? Math.max(0, defenseResolution.baseBlock) : 0;
-  const totalBlock = baseBlock + defenseTotals.bonusBlock;
 
-  const effectiveAbility = {
-    ...ability,
-    damage: attackDamage,
-  };
+  if (attackModifier.logs.length) {
+    attackTotals.logs.push(...attackModifier.logs);
+  }
+  if (defenseModifier.logs.length) {
+    defenseTotals.logs.push(...defenseModifier.logs);
+  }
 
-  const [nextAttacker, nextDefender] = applyAttack(
-    attacker,
-    defender,
-    effectiveAbility,
-    {
-      defense: defenseResolution,
-    }
-  );
+  const effectiveBonusDamage =
+    modifiedBaseDamage > 0 ? attackTotals.bonusDamage : 0;
+  const attackDamage = Math.max(0, modifiedBaseDamage + effectiveBonusDamage);
+  const baseBlock = modifiedBaseBlock;
+  const totalBlock = Math.max(0, modifiedBaseBlock + defenseTotals.bonusBlock);
+  const defenseState = defenseResolution
+    ? { ...defenseResolution, baseBlock: totalBlock }
+    : null;
 
-  const damageDealt = Math.max(0, defender.hp - nextDefender.hp);
-  const reflectDealt = Math.max(0, attacker.hp - nextAttacker.hp);
+  let nextAttacker = attacker;
+  let nextDefender = defender;
+  let damageDealt = 0;
+  let reflectDealt = 0;
   const wasNegated = defenseTotals.negateIncoming;
+
+  if (!wasNegated) {
+    const effectiveAbility = {
+      ...ability,
+      damage: attackDamage,
+    };
+
+    const [attackerAfter, defenderAfter] = applyAttack(
+      attacker,
+      defender,
+      effectiveAbility,
+      {
+        defense: defenseState,
+      }
+    );
+
+    nextAttacker = attackerAfter;
+    nextDefender = defenderAfter;
+    damageDealt = Math.max(0, defender.hp - defenderAfter.hp);
+    reflectDealt = Math.max(0, attacker.hp - attackerAfter.hp);
+  }
+
   const blocked = wasNegated
     ? attackDamage
     : Math.max(0, attackDamage - damageDealt);
@@ -56,7 +102,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     defenseTotals,
     damageDealt,
     blocked,
-    defense: defenseResolution,
+    defense: defenseState,
     reflectedDamage: reflectDealt,
   });
 
@@ -93,7 +139,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
       : []),
   ];
 
-  return {
+  const resolution: AttackResolution = {
     updatedAttacker: nextAttacker,
     updatedDefender: nextDefender,
     logs,
@@ -103,4 +149,13 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     nextSide,
     events,
   };
+
+  if (wasNegated) {
+    return {
+      ...resolution,
+      fx: [],
+    };
+  }
+
+  return resolution;
 }

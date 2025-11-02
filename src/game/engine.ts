@@ -38,7 +38,7 @@ export function applyAttack(
     defenseState?.statusSpends ?? []
   );
   const baseBlock = defenseState?.baseBlock ?? 0;
-  const effectiveBlock = Math.max(0, baseBlock + defenseTotals.bonusBlock);
+  const effectiveBlock = Math.max(0, baseBlock);
   const negateIncoming = defenseTotals.negateIncoming;
   const reflect = defenseState?.reflect ?? 0;
   const heal = defenseState?.heal ?? 0;
