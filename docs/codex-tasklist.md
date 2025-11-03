@@ -1,5 +1,12 @@
 ## Upcoming Work — Timing & Cue System
 
+> Pre-flight items
+- [ ] Zjednotiť volania: všetky `TURN_END` musia ísť výhradne cez `handleFlowEvent` (grep + fix).
+- [ ] Cleanup overlayu: zabezpečiť zhasnutie pri unmount/reset/zmene fázy, nielen pri `!dispatched`.
+- [ ] Fázové guardy: logika brániaca akciám podľa fázy musí akceptovať aj `turnTransition`, nielen `end`.
+- [ ] Typy/exports: `CombatEvent` a `TURN_TRANSITION_DELAY_MS` musia byť jednotne exportované (engine + testy).
+- [ ] Jednotná konštanta: udržiavať centralizované nastavenie (napr. `TURN_TRANSITION_DELAY_MS`) pre rýchle ladenie dĺžky pauzy.
+
 > Goals: centralize pacing, surface battle cues, and remove ad-hoc timers. Every item below must include tests and must not introduce new `setTimeout`/`setInterval` usage outside the shared timing helper.
 
 # Tasklist
