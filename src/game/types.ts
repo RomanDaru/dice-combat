@@ -54,6 +54,7 @@ export interface Hero {
 export type Side = "you" | "ai";
 export type Phase =
   | "standoff"
+  | "turnTransition"
   | "upkeep"
   | "roll"
   | "attack"

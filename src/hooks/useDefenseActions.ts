@@ -32,6 +32,7 @@ import type {
 } from "../game/types";
 import type {
   BaseDefenseResolution,
+  CombatEvent,
   DefenseRollResult,
 } from "../game/combat/types";
 import type {
@@ -89,6 +90,7 @@ type UseDefenseActionsArgs = {
   closeDiceTray: () => void;
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
   restoreDiceAfterDefense: () => void;
+  handleFlowEvent: (event: CombatEvent, afterReady?: () => void) => void;
   sendFlowEvent: (event: GameFlowEvent) => boolean;
   aiPlay: () => void;
   aiStepDelay: number;
@@ -131,6 +133,7 @@ export function useDefenseActions({
   closeDiceTray,
   popDamage,
   restoreDiceAfterDefense,
+  handleFlowEvent,
   sendFlowEvent,
   aiPlay,
   aiStepDelay,
@@ -269,13 +272,7 @@ export function useDefenseActions({
                 }
               : undefined;
 
-          sendFlowEvent({
-            type: event.type,
-            next: event.payload.next,
-            delayMs: event.payload.delayMs,
-            prePhase: event.payload.prePhase,
-            afterReady: followUp,
-          });
+          handleFlowEvent(event, followUp);
         });
       }, 600);
     },
@@ -286,7 +283,7 @@ export function useDefenseActions({
       popDamage,
       pushLog,
       restoreDiceAfterDefense,
-      sendFlowEvent,
+      handleFlowEvent,
       setPhase,
       setPlayer,
     ]

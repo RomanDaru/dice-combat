@@ -13,6 +13,7 @@ import type { GameState, InitialRollState } from "../game/state";
 import type { OffensiveAbility, Phase, Side, Combo } from "../game/types";
 import type {
   BaseDefenseResolution,
+  CombatEvent,
   DefenseRollResult,
 } from "../game/combat/types";
 import { getStacks, type StatusId } from "../engine/status";
@@ -81,6 +82,7 @@ type ComputedData = {
   attackBaseDamage: number;
   defenseBaseBlock: number;
   defenseStatusMessage: string | null;
+  turnTransitionSide: Side | null;
 };
 
 type StatusSpendPhase = "attackRoll" | "defenseRoll";
@@ -167,6 +169,9 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     label: string | null;
     outcome: "success" | "failure" | null;
   } | null>(null);
+  const [turnTransitionSide, setTurnTransitionSide] = useState<Side | null>(
+    null
+  );
   const openDiceTray = useCallback(() => {
     setDefenseStatusMessage(null);
     setDefenseStatusRoll(null);
@@ -525,6 +530,36 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     popDamage,
   });
 
+  const handleFlowEvent = useCallback(
+    (event: CombatEvent, afterReady?: () => void) => {
+      const prePhase = event.payload.prePhase ?? "end";
+      const showTransition = event.type === "TURN_END" && prePhase === "turnTransition";
+      if (showTransition) {
+        setTurnTransitionSide(event.payload.next);
+      }
+
+      const wrappedAfterReady = () => {
+        if (showTransition) {
+          setTurnTransitionSide(null);
+        }
+        afterReady?.();
+      };
+
+      const dispatched = sendFlowEvent({
+        type: event.type,
+        next: event.payload.next,
+        delayMs: event.payload.delayMs,
+        prePhase,
+        afterReady: wrappedAfterReady,
+      });
+
+      if (!dispatched && showTransition) {
+        setTurnTransitionSide(null);
+      }
+    },
+    [sendFlowEvent, setTurnTransitionSide]
+  );
+
   const applyTurnEndResolution = useCallback(
     (
       resolution: TurnEndResolution,
@@ -548,16 +583,10 @@ export const GameController = ({ children }: { children: ReactNode }) => {
               }
             : undefined;
 
-        sendFlowEvent({
-          type: event.type,
-          next: event.payload.next,
-          delayMs: event.payload.delayMs,
-          prePhase: event.payload.prePhase,
-          afterReady,
-        });
+        handleFlowEvent(event, afterReady);
       });
     },
-    [latestState, pushLog, sendFlowEvent]
+    [handleFlowEvent, latestState, pushLog]
   );
 
   const { performStatusClearRoll } = useStatusManager({
@@ -611,6 +640,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     closeDiceTray,
     popDamage,
     restoreDiceAfterDefense,
+    handleFlowEvent,
     sendFlowEvent,
     aiPlay,
     aiStepDelay: AI_STEP_MS,
@@ -815,6 +845,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       attackBaseDamage,
       defenseBaseBlock,
       defenseStatusMessage,
+      turnTransitionSide,
     }),
     [
       ability,
@@ -834,6 +865,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       attackBaseDamage,
       defenseBaseBlock,
       defenseStatusMessage,
+      turnTransitionSide,
     ]
   );
 

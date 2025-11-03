@@ -76,6 +76,69 @@
   isolation: isolate;
   transition: background-color 0.3s ease;
 }
+.turnOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.78),
+    rgba(30, 41, 59, 0.78)
+  );
+  backdrop-filter: blur(6px);
+  z-index: 20;
+  pointer-events: none;
+  animation: turnOverlayFade 120ms ease-out forwards;
+}
+.turnOverlayInner {
+  text-align: center;
+  padding: clamp(28px, 5vw, 48px);
+  border-radius: clamp(18px, 3vw, 28px);
+  background: rgba(15, 23, 42, 0.55);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  animation: turnOverlayPop 320ms ease-out forwards;
+}
+.turnOverlayLabel {
+  display: block;
+  font-size: clamp(26px, 4vw, 44px);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #e2e8f0;
+}
+.turnOverlayHero {
+  display: block;
+  margin-top: clamp(8px, 1.5vw, 14px);
+  font-size: clamp(16px, 2.5vw, 22px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.85);
+}
+@keyframes turnOverlayFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes turnOverlayPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 
 .boardContent {
   position: relative;

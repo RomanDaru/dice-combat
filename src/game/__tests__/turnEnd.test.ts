@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolvePassTurn } from '../flow/turnEnd';
+import { resolvePassTurn, TURN_TRANSITION_DELAY_MS } from '../flow/turnEnd';
 
 describe('resolvePassTurn', () => {
   it('produces TURN_END event with AI follow-up for player pass', () => {
@@ -10,12 +10,16 @@ describe('resolvePassTurn', () => {
 
     expect(resolution.logs).toEqual(['[Turn] Pyromancer ends the turn.']);
     expect(resolution.nextSide).toBe('ai');
-    expect(resolution.nextPhase).toBe('end');
+    expect(resolution.nextPhase).toBe('turnTransition');
     expect(resolution.events).toHaveLength(1);
 
     const [event] = resolution.events;
     expect(event.type).toBe('TURN_END');
-    expect(event.payload).toMatchObject({ next: 'ai', prePhase: 'end', delayMs: 0 });
+    expect(event.payload).toMatchObject({
+      next: 'ai',
+      prePhase: 'turnTransition',
+      delayMs: TURN_TRANSITION_DELAY_MS,
+    });
     expect(event.followUp).toBe('trigger_ai_turn');
   });
 

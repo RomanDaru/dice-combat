@@ -98,7 +98,7 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
   const { state } = useGame();
   const { handleReset, startInitialRoll, confirmInitialRoll, openDiceTray } =
     useGameController();
-  const { phase, initialRoll } = useGameData();
+  const { phase, initialRoll, turnTransitionSide } = useGameData();
   const { players, turn, round } = state;
   const you = players.you;
   const ai = players.ai;
@@ -117,6 +117,19 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
     winnerSide === "you"
       ? you.hero.name
       : winnerSide === "ai"
+      ? ai.hero.name
+      : null;
+  const turnOverlaySide = turnTransitionSide ?? null;
+  const turnOverlayLabel =
+    turnOverlaySide === "you"
+      ? "YOUR TURN"
+      : turnOverlaySide === "ai"
+      ? "OPPONENT TURN"
+      : null;
+  const turnOverlayHeroName =
+    turnOverlaySide === "you"
+      ? you.hero.name
+      : turnOverlaySide === "ai"
       ? ai.hero.name
       : null;
 
@@ -353,6 +366,21 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
               trayImage={playerTrayImage}
               diceImages={playerDiceFaces}
             />
+            {turnOverlaySide && turnOverlayLabel && turnOverlayHeroName && (
+              <div
+                className={styles.turnOverlay}
+                role='status'
+                aria-live='polite'>
+                <div className={styles.turnOverlayInner}>
+                  <span className={styles.turnOverlayLabel}>
+                    {turnOverlayLabel}
+                  </span>
+                  <span className={styles.turnOverlayHero}>
+                    {turnOverlayHeroName}
+                  </span>
+                </div>
+              </div>
+            )}
             <div className={boardContentClassName}>
               {winnerName ? (
                 <div className={styles.winnerBoard}>

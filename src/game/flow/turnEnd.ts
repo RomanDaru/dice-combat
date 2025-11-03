@@ -18,10 +18,12 @@ type ResolvePassTurnOptions = {
 
 const otherSide = (side: Side): Side => (side === "you" ? "ai" : "you");
 
+export const TURN_TRANSITION_DELAY_MS = 1200;
+
 export function resolvePassTurn({
   side,
-  prePhase = "end",
-  delayMs = 0,
+  prePhase = "turnTransition",
+  delayMs = TURN_TRANSITION_DELAY_MS,
   message = null,
 }: ResolvePassTurnOptions): TurnEndResolution {
   const nextSide = otherSide(side);

@@ -3,6 +3,7 @@ import type { AttackContext, AttackResolution } from "../game/combat/types";
 import type { Side } from "../game/types";
 import { buildAttackResolutionLines } from "../game/logging/combatLog";
 import { aggregateStatusSpendSummaries, applyModifiers } from "./status";
+import { TURN_TRANSITION_DELAY_MS } from "../game/flow/turnEnd";
 
 export function resolveAttack(context: AttackContext): AttackResolution {
   const {
@@ -135,8 +136,8 @@ export function resolveAttack(context: AttackContext): AttackResolution {
             type: "TURN_END" as const,
             payload: {
               next: nextSide,
-              delayMs: 700,
-              prePhase: "end" as const,
+              delayMs: TURN_TRANSITION_DELAY_MS,
+              prePhase: "turnTransition" as const,
             },
             followUp:
               nextSide === "ai" ? ("trigger_ai_turn" as const) : undefined,

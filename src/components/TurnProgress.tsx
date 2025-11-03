@@ -8,8 +8,9 @@ export default function TurnProgress({ phase }: { phase: Phase }) {
     { id: "defense", label: "Defense" },
     { id: "end", label: "End" },
   ];
+  const normalizedPhase = phase === "turnTransition" ? "end" : phase;
   const activeIdx = Math.max(
-    steps.findIndex((s) => s.id === phase),
+    steps.findIndex((s) => s.id === normalizedPhase),
     0
   );
 

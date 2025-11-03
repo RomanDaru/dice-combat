@@ -1,43 +1,32 @@
-## Sprint Focus – Dice Tray UX Overhaul
+## Upcoming Work — Timing & Cue System
 
-> Cieľ: zjednotiť flow útoku cez nové DiceTray UI, odstrániť rozbité akčné panely a pripraviť UX/haptiku na mobil.
+> Goals: centralize pacing, surface battle cues, and remove ad-hoc timers. Every item below must include tests and must not introduce new `setTimeout`/`setInterval` usage outside the shared timing helper.
 
 # Tasklist
 
-## PlayerActionPanel.tsx Cleanup
+## PR 1 — Flow Timing Hub
 
-- [ ] Vyhodiť všetky akčné tlačidlá (Roll/Confirm/Pass/Spend) a ponechať iba DiceTray „preview“ s minikockami + tooltip „Tap to roll / open“.
-- [ ] Napojiť klik na `controller.openDiceTray()` a presvedčiť sa, že komponent neobsahuje pozostatky starého flow.
+- [ ] Audit all `TURN_END` / `SET_PHASE` dispatches to ensure they route through the central helper only.
+- [ ] Extend `handleFlowEvent` (or successor) to accept `durationMs` and sanitize payloads, defaulting to existing constants.
+- [ ] Persist active transition metadata in controller context (`activeTransition` with side, phase, timestamps) and expose it via `useGameData`.
+- [ ] Refactor AI/player pass and attack resolution emitters to supply structured timing data; eliminate any lingering direct timers outside the helper.
+- [ ] Add unit tests mocking the flow dispatcher to confirm delays fire once, transitions clear on premature battle end, and zero-duration events skip holds.
+- [ ] Verify updated constants keep current behaviour; adjust existing turn delay tests accordingly.
 
-## DiceTray.tsx Rework
+## PR 2 — Transition Cue System
 
-- [ ] Rozšíriť props o `phase`, `rollsLeft`, `validAbilities`, `selectedAbility`, `onRoll`, `onConfirmAttack`, `onPassTurn`, `onSelectAbility`, `onClose`.
-- [ ] Primárna akcia: `phase==="roll"` && `rollsLeft>0` → Roll; `phase==="roll"` && `rollsLeft===0` && `selectedAbility` → Confirm; `phase==="roll"` && `rollsLeft===0` && `!hasValidAbility` → Pass.
-- [ ] Renderovať sekciu „Abilities“ (po dohádzaní) so zoznamom `validAbilities`; klik volá `onSelectAbility`.
-- [ ] Skryť „Open“ stav – DiceTray sa má zobrazovať ako otvorený panel.
+- [ ] Define a cue model (`kind`, `title`, `subtitle`, `icon`, `duration`) and store it alongside transition state in the controller.
+- [ ] Teach the timing helper to enqueue cues and process them FIFO without relying on standalone timers.
+- [ ] Update `BattleScreen` overlay to render based on cue kind (turn, status, attack, etc.) using context data; maintain accessibility and stacking order.
+- [ ] Style new cue variants in `BattleScreen.module.css`, ensuring overlays remain pointer-safe and responsive.
+- [ ] Wire hooks (`useGameFlow`, `useDefenseActions`, etc.) to publish cues for upstream events (initiative, upkeep, pending attack) exclusively through the helper.
+- [ ] Add component/state tests verifying cue sequencing, duration handling, and automatic clearance after playback.
 
-## Controller Updates (GameController / useAttackController)
+## PR 3 — Gameplay Event Integration
 
-- [ ] Pridať selektory `const combos = readyForActing;` a `const hasValidAbility = Object.values(combos).some(Boolean);`.
-- [ ] Poskytovať DiceTray-u `onRoll`, `onConfirmAttack`, `onPassTurn`, `onSelectAbility`, `selectedAbility`, `rollsLeft`, `phase`, `hasValidAbility`.
-- [ ] Upraviť `openDiceTray()` tak, aby len prepínal viditeľnosť; pri `phase !== "roll"` zamknúť akcie (iba vizuálne zobrazenie).
-
-## Action Guards & State Sync
-
-- [ ] Disable Roll ak `rolling.some(Boolean)` alebo `statusActive` alebo `phase !== "roll"` alebo `isDefenseTurn`.
-- [ ] Disable Confirm ak `!selectedAbility` alebo `rollsLeft > 0`.
-- [ ] Disable Pass ak `hasValidAbility === true`.
-- [ ] Guardovať `selectedAbility`: ak `readyForActing` prestane obsahovať vybranú schopnosť, zrušiť výber.
-- [ ] Ak sa počas otvoreného DiceTray zmení `phase` (defense, upkeep...), automaticky `onClose()`.
-
-## Focus, Shortcuts & Haptics
-
-- [ ] Po otvorení DiceTray zamerať primárne tlačidlo (Roll/Confirm/Pass).
-- [ ] Klávesové skratky: `R` → `onRoll()`, `C` → `onConfirmAttack()`, `P` → `onPassTurn()`, `1–5` → `onSelectAbility(index)`, `Esc` → `onClose()` (ak nie je lock).
-- [ ] Pridať haptiku: Roll 20 ms, Confirm 40 ms, Pass 15 ms (mobilná vetva).
-
-## Mobile UX & Locked State
-
-- [ ] Dodržať tap target ≥ 40×40 px a medzery 8–12 px v DiceTray.
-- [ ] Pri „locked“ stave (pauzy, animácie) prekryť DiceTray stmavenou vrstvou s textom „Paused“.
-
+- [ ] Feed `resolveTurnStart` results (status damage, prompts) into the cue/timing hub with appropriate durations before advancing phases.
+- [ ] Emit attack telegraph cues when `pendingAttack` is set, including ability name and projected damage snapshot.
+- [ ] Surface defense resolution summaries (blocked vs. damage taken) as cues prior to the next turn transition.
+- [ ] Audit the entire codebase to ensure no residual direct timing calls remain; everything funnels through the centralized helper.
+- [ ] Add integration-style tests covering upkeep cues, attack telegraphs, defense summaries, and confirming proper ordering with turn cues.
+- [ ] Consider visual or snapshot tests for combined cue overlays to guard future regressions.
