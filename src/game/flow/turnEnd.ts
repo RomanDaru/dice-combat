@@ -12,7 +12,7 @@ export type TurnEndResolution = {
 type ResolvePassTurnOptions = {
   side: Side;
   prePhase?: GameState["phase"];
-  delayMs?: number;
+  durationMs?: number;
   message?: string | null;
 };
 
@@ -23,7 +23,7 @@ export const TURN_TRANSITION_DELAY_MS = 1200;
 export function resolvePassTurn({
   side,
   prePhase = "turnTransition",
-  delayMs = TURN_TRANSITION_DELAY_MS,
+  durationMs = TURN_TRANSITION_DELAY_MS,
   message = null,
 }: ResolvePassTurnOptions): TurnEndResolution {
   const nextSide = otherSide(side);
@@ -35,7 +35,7 @@ export function resolvePassTurn({
         type: "TURN_END",
         payload: {
           next: nextSide,
-          delayMs,
+          durationMs,
           prePhase,
         },
         followUp: nextSide === "ai" ? "trigger_ai_turn" : undefined,

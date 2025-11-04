@@ -23,7 +23,6 @@ export function PlayerActionPanel() {
     rollsLeft,
     pendingAttack,
     pendingStatusClear,
-    aiDefense,
   } = state;
 
   const you = players.you;
@@ -82,40 +81,7 @@ export function PlayerActionPanel() {
     pushLog,
   ]);
 
-  const aiEvasiveRoll = aiDefense.evasiveRoll;
-  const aiDefenseDice = aiDefense.defenseDice;
-  const aiDefenseCombo = aiDefense.defenseCombo;
-  const aiDefenseBlock = aiDefense.defenseRoll;
-  const aiDefenseSim =
-    aiDefense.inProgress || !!aiDefenseDice || aiEvasiveRoll !== null;
-
-  const defenseIndicators = aiDefenseSim && (
-    <div className={styles.defenseIndicators}>
-      {aiEvasiveRoll !== null && (
-        <div className='badge indigo'>
-          AI Evasive Roll: <b>{aiEvasiveRoll}</b>
-        </div>
-      )}
-      {aiDefenseDice && (
-        <div className='badge indigo'>
-          AI Defense Roll: <b>{aiDefenseDice.join(" ")}</b>
-        </div>
-      )}
-      {aiDefenseCombo && (
-        <div className='badge indigo'>
-          AI Defense Combo: <b>{aiDefenseCombo}</b>
-        </div>
-      )}
-      {aiDefenseBlock !== null && (
-        <div className='badge indigo'>
-          AI Blocks: <b>{aiDefenseBlock}</b>
-        </div>
-      )}
-      {!aiDefenseDice && aiEvasiveRoll === null && (
-        <div>AI defense in progress...</div>
-      )}
-    </div>
-  );
+  const defenseIndicators = null;
 
   const handleOpenTray = (
     event?: React.SyntheticEvent<HTMLDivElement | HTMLButtonElement>
