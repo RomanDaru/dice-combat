@@ -55,14 +55,6 @@
   color: #e4e4e7;
 }
 
-.defenseIndicators {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  font-size: 14px;
-  color: #d4d4d8;
-}
-
 .actionRow {
   display: flex;
   gap: 10px;

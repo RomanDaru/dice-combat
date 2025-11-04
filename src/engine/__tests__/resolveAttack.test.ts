@@ -506,4 +506,87 @@ describe("resolveAttack with modifiers", () => {
     expect(combinedLogs).not.toMatch(/blocked 3/i);
     expect(combinedLogs).toMatch(/receives 1 dmg/i);
   });
+
+  it("exposes summary values for damage, block, and reflect", () => {
+    const baseState = createInitialState(
+      HEROES.Pyromancer,
+      HEROES["Shadow Monk"]
+    );
+    const attacker = clonePlayer(baseState.players.you);
+    const defender = clonePlayer(baseState.players.ai);
+
+    const offense: OffensiveAbility = {
+      combo: "3OAK",
+      damage: 6,
+      label: "Test Slash",
+    };
+
+    const defenseResolution = makeDefenseState({
+      baseBlock: 3,
+      reflect: 2,
+      statusSpends: [],
+    });
+
+    const resolution = resolveAttack({
+      source: "player",
+      attackerSide: "you",
+      defenderSide: "ai",
+      attacker,
+      defender,
+      ability: offense,
+      baseDamage: offense.damage,
+      attackStatusSpends: [],
+      defense: { resolution: defenseResolution },
+    });
+
+    expect(resolution.summary.damageDealt).toBe(3);
+    expect(resolution.summary.blocked).toBe(3);
+    expect(resolution.summary.reflected).toBe(2);
+    expect(resolution.summary.negated).toBe(false);
+    expect(resolution.summary.attackerDefeated).toBe(false);
+    expect(resolution.summary.defenderDefeated).toBe(false);
+  });
+
+  it("marks summary as negated when defense cancels incoming damage", () => {
+    const baseState = createInitialState(
+      HEROES.Pyromancer,
+      HEROES["Shadow Monk"]
+    );
+    const attacker = clonePlayer(baseState.players.you);
+    const defender = clonePlayer(baseState.players.ai);
+
+    const offense: OffensiveAbility = {
+      combo: "3OAK",
+      damage: 5,
+      label: "Test Strike",
+    };
+
+    const defenseResolution = makeDefenseState({
+      baseBlock: 0,
+      statusSpends: [
+        createStatusSpendSummary("evasive", 1, [
+          { negateIncoming: true, log: "Evaded" },
+        ]),
+      ],
+    });
+
+    const resolution = resolveAttack({
+      source: "player",
+      attackerSide: "you",
+      defenderSide: "ai",
+      attacker,
+      defender,
+      ability: offense,
+      baseDamage: offense.damage,
+      attackStatusSpends: [],
+      defense: { resolution: defenseResolution },
+    });
+
+    expect(resolution.summary.damageDealt).toBe(0);
+    expect(resolution.summary.blocked).toBe(5);
+    expect(resolution.summary.reflected).toBe(0);
+    expect(resolution.summary.negated).toBe(true);
+    expect(resolution.summary.attackerDefeated).toBe(false);
+    expect(resolution.summary.defenderDefeated).toBe(false);
+  });
 });

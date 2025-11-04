@@ -84,6 +84,14 @@ export type AttackResolution = {
   nextPhase: GameState["phase"];
   nextSide: Side;
   events: CombatEvent[];
+  summary: {
+    damageDealt: number;
+    blocked: number;
+    reflected: number;
+    negated: boolean;
+    attackerDefeated: boolean;
+    defenderDefeated: boolean;
+  };
 };
 
 export type EvasiveAttemptPlan = {

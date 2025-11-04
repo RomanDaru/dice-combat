@@ -355,7 +355,7 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
               diceImages={playerDiceFaces}
             />
 
-            {activeCue && <CueOverlay cue={activeCue} />}
+            {activeCue && <CueOverlay key={activeCue.id} cue={activeCue} />}
 
             <div className={boardContentClassName}>
               {winnerName ? (

@@ -77,7 +77,7 @@ describe("createCueQueue", () => {
       schedule: scheduler.schedule,
     });
 
-    queue.enqueue(buildCue({ durationMs: 0 }));
+    queue.enqueue(buildCue({}));
 
     expect(onChange).toHaveBeenCalledTimes(1);
     const active = onChange.mock.calls[0][0];
@@ -104,4 +104,3 @@ describe("createCueQueue", () => {
     expect(queue.snapshot().pending).toHaveLength(0);
   });
 });
-

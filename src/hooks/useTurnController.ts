@@ -9,6 +9,7 @@ import {
   type ActiveCue,
   type Cue,
 } from "../game/flow/cues";
+import { getCueDuration } from "../config/cueDurations";
 
 export type { Cue, ActiveCue } from "../game/flow/cues";
 
@@ -75,6 +76,24 @@ export type ActiveTransition = TransitionDescriptor & {
 };
 
 const ROLL_PHASE_DELAY_MS = 600;
+const ROLL_DELAY_BUFFER_MS = 200;
+
+export const computeRollPhaseDelay = (
+  baseDelayMs: number,
+  cueDurations: number[],
+  bufferMs: number = ROLL_DELAY_BUFFER_MS
+): number => {
+  if (!Number.isFinite(baseDelayMs) || baseDelayMs < 0) {
+    baseDelayMs = 0;
+  }
+  const contributions = cueDurations
+    .filter((value) => Number.isFinite(value) && value >= 0)
+    .map((duration) => duration + bufferMs);
+  if (!contributions.length) {
+    return baseDelayMs;
+  }
+  return Math.max(baseDelayMs, ...contributions);
+};
 
 const clampDuration = (value: number | undefined): number =>
   Number.isFinite(value) && typeof value === "number" && value > 0 ? value : 0;
@@ -143,6 +162,7 @@ export function useGameFlow({
   const transitionSchedulerRef = useRef<TransitionScheduler | null>(null);
   const callbackTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
   const cueQueueRef = useRef<ReturnType<typeof createCueQueue> | null>(null);
+  const transitionStateRef = useRef<ActiveTransition | null>(null);
 
   if (transitionSchedulerRef.current === null) {
     transitionSchedulerRef.current = createTransitionScheduler({
@@ -152,16 +172,27 @@ export function useGameFlow({
     });
   }
 
+  const handleTransitionChange = useCallback(
+    (transition: ActiveTransition | null) => {
+      transitionStateRef.current = transition;
+      if (!transition) {
+        cueQueueRef.current?.poke();
+      }
+      onTransitionChange(transition);
+    },
+    [onTransitionChange]
+  );
+
   useEffect(() => {
     return () => {
-      transitionSchedulerRef.current?.cancel(onTransitionChange);
+      transitionSchedulerRef.current?.cancel(handleTransitionChange);
       callbackTimersRef.current.forEach((timer) => {
         clearTimeout(timer);
       });
       callbackTimersRef.current.clear();
       cueQueueRef.current?.clear();
     };
-  }, [onTransitionChange]);
+  }, [handleTransitionChange]);
 
   const scheduleCallback = useCallback(
     (durationMs: number, callback: () => void): (() => void) => {
@@ -188,6 +219,8 @@ export function useGameFlow({
       now: () => Date.now(),
       onChange: onCueChange,
       schedule: (duration, cb) => scheduleCallback(duration, cb),
+      shouldDefer: (cue) =>
+        transitionStateRef.current !== null && cue.allowDuringTransition !== true,
     });
   }
 
@@ -210,10 +243,10 @@ export function useGameFlow({
           durationMs,
           execute,
         },
-        onTransitionChange
+        handleTransitionChange
       );
     },
-    [dispatch, onTransitionChange]
+    [dispatch, handleTransitionChange]
   );
 
   const patchAiPreview = useCallback(
@@ -237,6 +270,7 @@ export function useGameFlow({
       const turnResult = resolveTurnStart(snapshot, next);
       const prevRound = snapshot.round;
       const prevLogLength = snapshot.log?.length ?? 0;
+      const upkeepCueDurations: number[] = [];
 
       dispatch({ type: "SET_TURN", turn: next });
       dispatch({ type: "SET_PHASE", phase: "upkeep" });
@@ -252,6 +286,25 @@ export function useGameFlow({
       resetRoll();
 
       dispatch({ type: "SET_PLAYER", side: next, player: turnResult.updatedPlayer });
+
+      if (turnResult.statusDamage > 0) {
+        const heroName = turnResult.updatedPlayer.hero.name;
+        const statusDamageDuration = getCueDuration("statusDamage");
+        cueQueueRef.current?.enqueue({
+          kind: "status",
+          title: "Status Damage",
+          subtitle: `${heroName} loses ${turnResult.statusDamage} HP`,
+          durationMs: statusDamageDuration,
+          side: next,
+          priority: "normal",
+          mergeKey: `status-damage:${next}`,
+        });
+        upkeepCueDurations.push(statusDamageDuration);
+      }
+
+      if (turnResult.pendingStatus) {
+        upkeepCueDurations.push(getCueDuration("statusTick"));
+      }
 
       if (turnResult.statusDamage > 0) {
         popDamage(next, turnResult.statusDamage, "hit");
@@ -311,7 +364,11 @@ export function useGameFlow({
       } else {
         dispatch({ type: "SET_PENDING_STATUS", status: null });
         statusResumeRef.current = null;
-        schedulePhaseChange("roll", ROLL_PHASE_DELAY_MS);
+        const rollDelayMs = computeRollPhaseDelay(
+          ROLL_PHASE_DELAY_MS,
+          upkeepCueDurations
+        );
+        schedulePhaseChange("roll", rollDelayMs);
         afterReady?.();
       }
 
@@ -335,7 +392,7 @@ export function useGameFlow({
 
       switch (event.type) {
         case "TURN_START":
-          scheduler?.cancel(onTransitionChange);
+          scheduler?.cancel(handleTransitionChange);
           return startTurn(event.side, event.afterReady);
         case "SET_PHASE":
           if (event.durationMs && event.durationMs > 0) {
@@ -357,14 +414,14 @@ export function useGameFlow({
               durationMs,
               execute: () => startTurn(event.next, event.afterReady),
             },
-            onTransitionChange
+            handleTransitionChange
           );
         }
         default:
           return false;
       }
     },
-    [dispatch, onTransitionChange, schedulePhaseChange, startTurn, transitionSchedulerRef]
+    [dispatch, handleTransitionChange, schedulePhaseChange, startTurn, transitionSchedulerRef]
   );
 
   const resumePendingStatus = useCallback(() => {
@@ -384,5 +441,16 @@ export function useGameFlow({
     cueQueueRef.current?.clear();
   }, []);
 
-  return { send, resumePendingStatus, scheduleCallback, enqueueCue, clearCues };
+  const interruptCue = useCallback(() => {
+    cueQueueRef.current?.interrupt();
+  }, []);
+
+  return {
+    send,
+    resumePendingStatus,
+    scheduleCallback,
+    enqueueCue,
+    clearCues,
+    interruptCue,
+  };
 }

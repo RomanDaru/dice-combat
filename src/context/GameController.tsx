@@ -51,6 +51,7 @@ import {
   type TurnEndResolution,
 } from "../game/flow/turnEnd";
 import { getAbilityIcon } from "../assets/abilityIconMap";
+import { getCueDuration } from "../config/cueDurations";
 
 const DEF_DIE_INDEX = 2;
 const ROLL_ANIM_MS = 1300;
@@ -499,6 +500,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     scheduleCallback,
     enqueueCue,
     clearCues,
+    interruptCue,
   } = useGameFlow({
     resetRoll,
     pushLog,
@@ -512,15 +514,23 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       const snapshot = latestState.current;
       const player = snapshot.players[side];
       if (!player) return;
+      const fallbackDuration = getCueDuration("turn");
+      const effectiveDuration =
+        typeof durationMs === "number" && Number.isFinite(durationMs) && durationMs > 0
+          ? durationMs
+          : fallbackDuration;
+      interruptCue();
       enqueueCue({
         kind: "turn",
         title: side === "you" ? "Your Turn" : "Opponent Turn",
         subtitle: player.hero.name,
-        durationMs,
+        durationMs: effectiveDuration,
         side,
+        priority: "urgent",
+        allowDuringTransition: true,
       });
     },
-    [enqueueCue, latestState]
+    [enqueueCue, interruptCue, latestState]
   );
 
   const handleFlowEvent = useCallback(
@@ -539,9 +549,10 @@ export const GameController = ({ children }: { children: ReactNode }) => {
           : 0;
 
       if (prePhase === "turnTransition") {
+        const fallbackTurnDuration = getCueDuration("turn", TURN_TRANSITION_DELAY_MS);
         queueTurnCue(
           event.payload.next,
-          durationMs > 0 ? durationMs : TURN_TRANSITION_DELAY_MS
+          durationMs > 0 ? durationMs : fallbackTurnDuration
         );
       }
 
@@ -699,6 +710,9 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     applyTurnEndResolution,
     setDefenseStatusMessage,
     setDefenseStatusRollDisplay: setDefenseStatusRoll,
+    enqueueCue,
+    interruptCue,
+    scheduleCallback,
   });
 
   const handleAbilityControllerAction = useCallback(
@@ -872,8 +886,10 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       title: abilityTitle,
       subtitle: `${attackerName} prepares an attack (${projectedDamage} dmg)`,
       icon: abilityIcon?.webp ?? abilityIcon?.png ?? null,
-      durationMs: 2000,
+      cta: "Prepare for defense!",
+      durationMs: getCueDuration("attackTelegraph"),
       side: pendingAttack.attacker,
+      priority: "urgent",
     });
   }, [enqueueCue, pendingAttack, players]);
 
@@ -901,8 +917,11 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       subtitle: `${ownerName} - ${pendingStatusClear.stacks} stack${
         pendingStatusClear.stacks === 1 ? "" : "s"
       }`,
-      durationMs: 1800,
+      durationMs: getCueDuration("statusTick"),
       side: pendingStatusClear.side,
+      priority: "low",
+      mergeKey: key,
+      mergeWindowMs: 2200,
     });
   }, [enqueueCue, pendingStatusClear, players.ai.hero.name, players.you.hero.name]);
 
