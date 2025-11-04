@@ -1,6 +1,7 @@
 ## Upcoming Work — Timing & Cue System
 
 > Pre-flight items
+
 - [ ] Zjednotiť volania: všetky `TURN_END` musia ísť výhradne cez `handleFlowEvent` (grep + fix).
 - [ ] Cleanup overlayu: zabezpečiť zhasnutie pri unmount/reset/zmene fázy, nielen pri `!dispatched`.
 - [ ] Fázové guardy: logika brániaca akciám podľa fázy musí akceptovať aj `turnTransition`, nielen `end`.
