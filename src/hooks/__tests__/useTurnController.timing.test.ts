@@ -29,15 +29,14 @@ describe("createTransitionScheduler", () => {
   it("schedules a transition once and fires the callback after the duration", () => {
     const { scheduler, timers, setTimer } = makeScheduler();
     const onChange = vi.fn<(transition: ActiveTransition | null) => void>();
-    const startTurn = vi.fn(() => true);
+    const execute = vi.fn(() => true);
 
     const scheduled = scheduler.schedule(
       {
-        next: "ai",
-        prePhase: "turnTransition",
+        descriptor: { side: "ai", phase: "turnTransition" },
         durationMs: 500,
+        execute,
       },
-      startTurn,
       onChange
     );
 
@@ -51,54 +50,51 @@ describe("createTransitionScheduler", () => {
       startedAt: 1_000,
       endsAt: 1_500,
     });
-    expect(startTurn).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
 
     timers[0]?.();
 
-    expect(startTurn).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenLastCalledWith(null);
   });
 
   it("clears the active transition when the battle ends early", () => {
     const { scheduler, timers } = makeScheduler();
     const onChange = vi.fn<(transition: ActiveTransition | null) => void>();
-    const startTurn = vi.fn(() => false);
+    const execute = vi.fn(() => false);
 
     scheduler.schedule(
       {
-        next: "you",
-        prePhase: "turnTransition",
+        descriptor: { side: "you", phase: "turnTransition" },
         durationMs: 300,
+        execute,
       },
-      startTurn,
       onChange
     );
 
     timers[0]?.();
 
-    expect(startTurn).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenLastCalledWith(null);
   });
 
   it("skips holds for zero-duration transitions", () => {
     const { scheduler, setTimer } = makeScheduler();
     const onChange = vi.fn<(transition: ActiveTransition | null) => void>();
-    const startTurn = vi.fn(() => true);
+    const execute = vi.fn(() => true);
 
     scheduler.schedule(
       {
-        next: "ai",
-        prePhase: "end",
+        descriptor: { side: "ai", phase: "end" },
         durationMs: 0,
+        execute,
       },
-      startTurn,
       onChange
     );
 
     expect(setTimer).not.toHaveBeenCalled();
-    expect(startTurn).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith(null);
     expect(onChange).toHaveBeenCalledTimes(1);
   });
 });
-

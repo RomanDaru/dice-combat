@@ -21,17 +21,20 @@ type TransitionSchedulerDeps = {
   clearTimer: (id: ReturnType<typeof setTimeout>) => void;
 };
 
+type TransitionDescriptor = {
+  side: Side | null;
+  phase: Phase;
+};
+
 type TransitionRequest = {
-  next: Side;
-  prePhase: Phase;
+  descriptor: TransitionDescriptor;
   durationMs: number;
-  afterReady?: () => void;
+  execute: () => boolean;
 };
 
 type TransitionScheduler = {
   schedule: (
     request: TransitionRequest,
-    startTurn: (afterReady?: () => void) => boolean,
     onChange: (state: ActiveTransition | null) => void
   ) => boolean;
   cancel: (onChange?: (state: ActiveTransition | null) => void) => void;
@@ -46,6 +49,8 @@ export type GameFlowEvent =
   | {
       type: "SET_PHASE";
       phase: Phase;
+      durationMs?: number;
+      afterReady?: () => void;
     }
   | {
       type: "TURN_END";
@@ -55,13 +60,13 @@ export type GameFlowEvent =
       prePhase?: Phase;
     };
 
-export type ActiveTransition = {
-  side: Side;
-  phase: Phase;
+export type ActiveTransition = TransitionDescriptor & {
   durationMs: number;
   startedAt: number;
   endsAt: number;
 };
+
+const ROLL_PHASE_DELAY_MS = 600;
 
 const clampDuration = (value: number | undefined): number =>
   Number.isFinite(value) && typeof value === "number" && value > 0 ? value : 0;
@@ -77,35 +82,25 @@ export const createTransitionScheduler = (
       deps.clearTimer(timer);
       timer = null;
     }
-    if (lastState) {
-      if (onChange) {
-        onChange(null);
-      }
+    if (lastState && onChange) {
+      onChange(null);
     }
     lastState = null;
   };
 
-  const schedule: TransitionScheduler["schedule"] = (
-    request,
-    startTurn,
-    onChange
-  ) => {
-    if (lastState) {
-      onChange(null);
-    }
+  const schedule: TransitionScheduler["schedule"] = (request, onChange) => {
     clear(onChange);
 
     const durationMs = clampDuration(request.durationMs);
     if (durationMs <= 0) {
-      const started = startTurn(request.afterReady);
+      const executed = request.execute();
       onChange(null);
-      return started;
+      return executed;
     }
 
     const startedAt = deps.now();
     lastState = {
-      side: request.next,
-      phase: request.prePhase,
+      ...request.descriptor,
       durationMs,
       startedAt,
       endsAt: startedAt + durationMs,
@@ -114,9 +109,8 @@ export const createTransitionScheduler = (
 
     timer = deps.setTimer(() => {
       timer = null;
-      const started = startTurn(request.afterReady);
+      request.execute();
       onChange(null);
-      return started;
     }, durationMs);
 
     return true;
@@ -152,6 +146,31 @@ export function useGameFlow({
       transitionSchedulerRef.current?.cancel(onTransitionChange);
     };
   }, [onTransitionChange]);
+
+  const schedulePhaseChange = useCallback(
+    (phase: Phase, durationMs: number, afterReady?: () => void) => {
+      const scheduler = transitionSchedulerRef.current;
+      const execute = () => {
+        dispatch({ type: "SET_PHASE", phase });
+        afterReady?.();
+        return true;
+      };
+
+      if (!scheduler) {
+        return execute();
+      }
+
+      return scheduler.schedule(
+        {
+          descriptor: { side: null, phase },
+          durationMs,
+          execute,
+        },
+        onTransitionChange
+      );
+    },
+    [dispatch, onTransitionChange]
+  );
 
   const patchAiPreview = useCallback(
     (partial: Partial<GameState["aiPreview"]>) => {
@@ -248,9 +267,7 @@ export function useGameFlow({
       } else {
         dispatch({ type: "SET_PENDING_STATUS", status: null });
         statusResumeRef.current = null;
-        window.setTimeout(() => {
-          dispatch({ type: "SET_PHASE", phase: "roll" });
-        }, 600);
+        schedulePhaseChange("roll", ROLL_PHASE_DELAY_MS);
         afterReady?.();
       }
 
@@ -264,34 +281,38 @@ export function useGameFlow({
       pushLog,
       resetRoll,
       latestState,
+      schedulePhaseChange,
     ]
   );
 
   const send = useCallback(
     (event: GameFlowEvent): boolean => {
       const scheduler = transitionSchedulerRef.current;
-      if (!scheduler) {
-        return false;
-      }
 
       switch (event.type) {
         case "TURN_START":
-          scheduler.cancel(onTransitionChange);
+          scheduler?.cancel(onTransitionChange);
           return startTurn(event.side, event.afterReady);
         case "SET_PHASE":
+          if (event.durationMs && event.durationMs > 0) {
+            return schedulePhaseChange(event.phase, event.durationMs, event.afterReady);
+          }
           dispatch({ type: "SET_PHASE", phase: event.phase });
+          event.afterReady?.();
           return true;
         case "TURN_END": {
           const prePhase = event.prePhase ?? "end";
           dispatch({ type: "SET_PHASE", phase: prePhase });
+          const durationMs = event.durationMs ?? 0;
+          if (!scheduler) {
+            return startTurn(event.next, event.afterReady);
+          }
           return scheduler.schedule(
             {
-              next: event.next,
-              prePhase,
-              durationMs: event.durationMs ?? 0,
-              afterReady: event.afterReady,
+              descriptor: { side: event.next, phase: prePhase },
+              durationMs,
+              execute: () => startTurn(event.next, event.afterReady),
             },
-            (afterReady) => startTurn(event.next, afterReady),
             onTransitionChange
           );
         }
@@ -299,7 +320,7 @@ export function useGameFlow({
           return false;
       }
     },
-    [dispatch, onTransitionChange, startTurn, transitionSchedulerRef]
+    [dispatch, onTransitionChange, schedulePhaseChange, startTurn, transitionSchedulerRef]
   );
 
   const resumePendingStatus = useCallback(() => {
