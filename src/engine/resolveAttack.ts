@@ -136,7 +136,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
             type: "TURN_END" as const,
             payload: {
               next: nextSide,
-              delayMs: TURN_TRANSITION_DELAY_MS,
+              durationMs: TURN_TRANSITION_DELAY_MS,
               prePhase: "turnTransition" as const,
             },
             followUp:

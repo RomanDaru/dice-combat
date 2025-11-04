@@ -67,7 +67,11 @@ export type AttackContext = {
 
 export type CombatEvent = {
   type: "TURN_END";
-  payload: { next: Side; delayMs?: number; prePhase?: GameState["phase"] };
+  payload: {
+    next: Side;
+    durationMs?: number;
+    prePhase?: GameState["phase"];
+  };
   followUp?: "trigger_ai_turn";
 };
 

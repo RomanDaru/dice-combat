@@ -18,17 +18,17 @@ describe('resolvePassTurn', () => {
     expect(event.payload).toMatchObject({
       next: 'ai',
       prePhase: 'turnTransition',
-      delayMs: TURN_TRANSITION_DELAY_MS,
+      durationMs: TURN_TRANSITION_DELAY_MS,
     });
     expect(event.followUp).toBe('trigger_ai_turn');
   });
 
   it('omits follow-up when AI passes to the player', () => {
-    const resolution = resolvePassTurn({ side: 'ai', delayMs: 600 });
+    const resolution = resolvePassTurn({ side: 'ai', durationMs: 600 });
 
     expect(resolution.logs).toEqual([]);
     expect(resolution.nextSide).toBe('you');
-    expect(resolution.events[0].payload.delayMs).toBe(600);
+    expect(resolution.events[0].payload.durationMs).toBe(600);
     expect(resolution.events[0].followUp).toBeUndefined();
   });
 });

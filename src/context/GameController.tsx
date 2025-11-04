@@ -24,7 +24,7 @@ import { useAiDiceAnimator } from "../hooks/useAiDiceAnimator";
 import { useAiController } from "../hooks/useAiController";
 import { useStatusManager } from "../hooks/useStatusManager";
 import { useDefenseActions } from "../hooks/useDefenseActions";
-import { useGameFlow } from "../hooks/useTurnController";
+import { useGameFlow, type ActiveTransition } from "../hooks/useTurnController";
 import { useActiveAbilities } from "../hooks/useActiveAbilities";
 import { useRollAnimator } from "../hooks/useRollAnimator";
 import { useLatest } from "../hooks/useLatest";
@@ -41,14 +41,18 @@ import type {
   ActiveAbilityContext,
   ActiveAbilityOutcome,
 } from "../game/types";
-import { resolvePassTurn, type TurnEndResolution } from "../game/flow/turnEnd";
+import {
+  resolvePassTurn,
+  TURN_TRANSITION_DELAY_MS,
+  type TurnEndResolution,
+} from "../game/flow/turnEnd";
 
 const DEF_DIE_INDEX = 2;
 const ROLL_ANIM_MS = 1300;
 const AI_ROLL_ANIM_MS = 900;
 const AI_STEP_MS = 2000;
 const AI_PASS_FOLLOW_UP_MS = 450;
-const AI_PASS_EVENT_DELAY_MS = 600;
+const AI_PASS_EVENT_DURATION_MS = 600;
 
 type PlayerDefenseState = {
   roll: DefenseRollResult;
@@ -83,6 +87,7 @@ type ComputedData = {
   defenseBaseBlock: number;
   defenseStatusMessage: string | null;
   turnTransitionSide: Side | null;
+  activeTransition: ActiveTransition | null;
 };
 
 type StatusSpendPhase = "attackRoll" | "defenseRoll";
@@ -123,6 +128,11 @@ type ControllerContext = {
       outcome: "success" | "failure" | null;
     } | null
   ) => void;
+};
+
+type FlowEventOptions = {
+  afterReady?: () => void;
+  durationMs?: number;
 };
 
 const GameDataContext = createContext<ComputedData | null>(null);
@@ -169,9 +179,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     label: string | null;
     outcome: "success" | "failure" | null;
   } | null>(null);
-  const [turnTransitionSide, setTurnTransitionSide] = useState<Side | null>(
-    null
-  );
+  const [activeTransition, setActiveTransition] =
+    useState<ActiveTransition | null>(null);
   const openDiceTray = useCallback(() => {
     setDefenseStatusMessage(null);
     setDefenseStatusRoll(null);
@@ -528,36 +537,33 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     resetRoll,
     pushLog,
     popDamage,
+    onTransitionChange: setActiveTransition,
   });
 
   const handleFlowEvent = useCallback(
-    (event: CombatEvent, afterReady?: () => void) => {
-      const prePhase = event.payload.prePhase ?? "end";
-      const showTransition = event.type === "TURN_END" && prePhase === "turnTransition";
-      if (showTransition) {
-        setTurnTransitionSide(event.payload.next);
+    (event: CombatEvent, options: FlowEventOptions = {}) => {
+      if (event.type !== "TURN_END") {
+        return;
       }
 
-      const wrappedAfterReady = () => {
-        if (showTransition) {
-          setTurnTransitionSide(null);
-        }
-        afterReady?.();
-      };
+      const prePhase = event.payload.prePhase ?? "turnTransition";
+      const defaultDuration = prePhase === "turnTransition" ? TURN_TRANSITION_DELAY_MS : 0;
+      const rawDuration =
+        options.durationMs ?? event.payload.durationMs ?? defaultDuration;
+      const durationMs =
+        typeof rawDuration === "number" && Number.isFinite(rawDuration) && rawDuration > 0
+          ? rawDuration
+          : 0;
 
-      const dispatched = sendFlowEvent({
-        type: event.type,
+      sendFlowEvent({
+        type: "TURN_END",
         next: event.payload.next,
-        delayMs: event.payload.delayMs,
         prePhase,
-        afterReady: wrappedAfterReady,
+        durationMs,
+        afterReady: options.afterReady,
       });
-
-      if (!dispatched && showTransition) {
-        setTurnTransitionSide(null);
-      }
     },
-    [sendFlowEvent, setTurnTransitionSide]
+    [sendFlowEvent]
   );
 
   const applyTurnEndResolution = useCallback(
@@ -583,7 +589,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
               }
             : undefined;
 
-        handleFlowEvent(event, afterReady);
+        handleFlowEvent(event, { afterReady });
       });
     },
     [handleFlowEvent, latestState, pushLog]
@@ -608,7 +614,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       applyTurnEndResolution(
         resolvePassTurn({
           side: "ai",
-          delayMs: AI_PASS_EVENT_DELAY_MS,
+          durationMs: AI_PASS_EVENT_DURATION_MS,
         })
       );
     },
@@ -673,11 +679,15 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     [onUserEvasiveRoll]
   );
 
+  const turnTransitionSide =
+    activeTransition?.phase === "turnTransition" ? activeTransition.side : null;
+
   const { abilities: activeAbilities, performAbility: onPerformActiveAbility } =
     useActiveAbilities({
       side: "you",
       pushLog,
       popDamage,
+      sendFlowEvent,
       handleControllerAction: handleAbilityControllerAction,
     });
 
@@ -846,6 +856,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       defenseBaseBlock,
       defenseStatusMessage,
       turnTransitionSide,
+      activeTransition,
     }),
     [
       ability,
@@ -866,6 +877,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       defenseBaseBlock,
       defenseStatusMessage,
       turnTransitionSide,
+      activeTransition,
     ]
   );
 

@@ -90,7 +90,10 @@ type UseDefenseActionsArgs = {
   closeDiceTray: () => void;
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
   restoreDiceAfterDefense: () => void;
-  handleFlowEvent: (event: CombatEvent, afterReady?: () => void) => void;
+  handleFlowEvent: (
+    event: CombatEvent,
+    options?: { afterReady?: () => void; durationMs?: number }
+  ) => void;
   sendFlowEvent: (event: GameFlowEvent) => boolean;
   aiPlay: () => void;
   aiStepDelay: number;
@@ -272,7 +275,7 @@ export function useDefenseActions({
                 }
               : undefined;
 
-          handleFlowEvent(event, followUp);
+          handleFlowEvent(event, followUp ? { afterReady: followUp } : undefined);
         });
       }, 600);
     },
