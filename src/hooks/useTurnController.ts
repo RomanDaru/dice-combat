@@ -132,6 +132,7 @@ export function useGameFlow({
   const latestState = useLatest(state);
   const statusResumeRef = useRef<(() => void) | null>(null);
   const transitionSchedulerRef = useRef<TransitionScheduler | null>(null);
+  const callbackTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
 
   if (transitionSchedulerRef.current === null) {
     transitionSchedulerRef.current = createTransitionScheduler({
@@ -144,6 +145,10 @@ export function useGameFlow({
   useEffect(() => {
     return () => {
       transitionSchedulerRef.current?.cancel(onTransitionChange);
+      callbackTimersRef.current.forEach((timer) => {
+        clearTimeout(timer);
+      });
+      callbackTimersRef.current.clear();
     };
   }, [onTransitionChange]);
 
@@ -301,7 +306,7 @@ export function useGameFlow({
           event.afterReady?.();
           return true;
         case "TURN_END": {
-          const prePhase = event.prePhase ?? "end";
+          const prePhase = event.prePhase ?? "turnTransition";
           dispatch({ type: "SET_PHASE", phase: prePhase });
           const durationMs = event.durationMs ?? 0;
           if (!scheduler) {
@@ -329,5 +334,25 @@ export function useGameFlow({
     resume?.();
   }, []);
 
-  return { send, resumePendingStatus };
+  const scheduleCallback = useCallback(
+    (durationMs: number, callback: () => void): (() => void) => {
+      if (!Number.isFinite(durationMs) || durationMs <= 0) {
+        callback();
+        return () => {};
+      }
+      const timer = setTimeout(() => {
+        callback();
+        callbackTimersRef.current.delete(timer);
+      }, durationMs);
+      callbackTimersRef.current.add(timer);
+      return () => {
+        if (callbackTimersRef.current.delete(timer)) {
+          clearTimeout(timer);
+        }
+      };
+    },
+    []
+  );
+
+  return { send, resumePendingStatus, scheduleCallback };
 }

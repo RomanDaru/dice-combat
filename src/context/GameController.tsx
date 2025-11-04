@@ -490,7 +490,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     const winner =
       youRoll === aiRoll ? null : youRoll > aiRoll ? ("you" as Side) : "ai";
 
-    window.setTimeout(() => {
+    scheduleCallback(350, () => {
       dispatch({
         type: "RESOLVE_INITIAL_ROLL",
         payload: { you: youRoll, ai: aiRoll, winner },
@@ -502,7 +502,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
               winner === "you" ? "You begin." : "AI begins."
             }`;
       pushLog(logEntry, { blankLineBefore: true });
-    }, 350);
+    });
   }, [
     dispatch,
     initialRoll.awaitingConfirmation,
@@ -510,6 +510,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     phase,
     pushLog,
     rng,
+    scheduleCallback,
   ]);
 
   const confirmInitialRoll = useCallback(() => {
@@ -533,7 +534,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const { animatePreviewRoll } = useAiDiceAnimator({
     rollDurationMs: AI_ROLL_ANIM_MS,
   });
-  const { send: sendFlowEvent, resumePendingStatus } = useGameFlow({
+  const { send: sendFlowEvent, resumePendingStatus, scheduleCallback } = useGameFlow({
     resetRoll,
     pushLog,
     popDamage,
@@ -578,21 +579,21 @@ export const GameController = ({ children }: { children: ReactNode }) => {
         const afterReady =
           event.followUp === "trigger_ai_turn"
             ? () => {
-                window.setTimeout(() => {
+                scheduleCallback(AI_PASS_FOLLOW_UP_MS, () => {
                   const snapshot = latestState.current;
                   const aiState = snapshot.players.ai;
                   const youState = snapshot.players.you;
                   if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
                     return;
                   aiPlayRef.current();
-                }, AI_PASS_FOLLOW_UP_MS);
+                });
               }
             : undefined;
 
         handleFlowEvent(event, { afterReady });
       });
     },
-    [handleFlowEvent, latestState, pushLog]
+    [handleFlowEvent, latestState, pushLog, scheduleCallback]
   );
 
   const { performStatusClearRoll } = useStatusManager({
@@ -734,11 +735,10 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       !pendingStatusClear.roll &&
       !pendingStatusClear.rolling
     ) {
-      const timer = window.setTimeout(() => performStatusClearRoll("ai"), 700);
-      return () => window.clearTimeout(timer);
+      return scheduleCallback(700, () => performStatusClearRoll("ai"));
     }
     return undefined;
-  }, [pendingStatusClear, performStatusClearRoll]);
+  }, [pendingStatusClear, performStatusClearRoll, scheduleCallback]);
 
   const onEndTurnNoAttack = useCallback(() => {
     if (turn !== "you" || rolling.some(Boolean)) return;
@@ -802,29 +802,38 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     ) {
       initialStartRef.current = true;
       const startingSide = state.turn;
-      window.setTimeout(() => {
+      let cancelFollow: (() => void) | null = null;
+      const cancelStart = scheduleCallback(0, () => {
         if (startingSide === "ai") {
           const cont = sendFlowEvent({
             type: "TURN_START",
             side: "ai",
             afterReady: () => {
-              window.setTimeout(() => {
+              cancelFollow = scheduleCallback(450, () => {
                 const aiState = latestState.current.players.ai;
                 const youState = latestState.current.players.you;
                 if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
                   return;
                 aiPlay();
-              }, 450);
+              });
             },
           });
-          if (!cont) return;
+          if (!cont) {
+            cancelFollow?.();
+            cancelFollow = null;
+          }
         } else {
           sendFlowEvent({ type: "TURN_START", side: "you" });
         }
-      }, 0);
+      });
+      return () => {
+        cancelFollow?.();
+        cancelStart();
+      };
     }
   }, [
     aiPlay,
+    scheduleCallback,
     sendFlowEvent,
     state.initialRoll.inProgress,
     state.initialRoll.winner,
