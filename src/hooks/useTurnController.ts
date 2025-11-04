@@ -4,6 +4,13 @@ import { resolveTurnStart } from "../game/flow";
 import type { GameState } from "../game/state";
 import type { Phase, Side } from "../game/types";
 import { useLatest } from "./useLatest";
+import {
+  createCueQueue,
+  type ActiveCue,
+  type Cue,
+} from "../game/flow/cues";
+
+export type { Cue, ActiveCue } from "../game/flow/cues";
 
 type UseGameFlowArgs = {
   resetRoll: () => void;
@@ -13,6 +20,7 @@ type UseGameFlowArgs = {
   ) => void;
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
   onTransitionChange: (transition: ActiveTransition | null) => void;
+  onCueChange: (cue: ActiveCue | null) => void;
 };
 
 type TransitionSchedulerDeps = {
@@ -127,12 +135,14 @@ export function useGameFlow({
   pushLog,
   popDamage,
   onTransitionChange,
+  onCueChange,
 }: UseGameFlowArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
   const statusResumeRef = useRef<(() => void) | null>(null);
   const transitionSchedulerRef = useRef<TransitionScheduler | null>(null);
   const callbackTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
+  const cueQueueRef = useRef<ReturnType<typeof createCueQueue> | null>(null);
 
   if (transitionSchedulerRef.current === null) {
     transitionSchedulerRef.current = createTransitionScheduler({
@@ -149,8 +159,37 @@ export function useGameFlow({
         clearTimeout(timer);
       });
       callbackTimersRef.current.clear();
+      cueQueueRef.current?.clear();
     };
   }, [onTransitionChange]);
+
+  const scheduleCallback = useCallback(
+    (durationMs: number, callback: () => void): (() => void) => {
+      if (!Number.isFinite(durationMs) || durationMs <= 0) {
+        callback();
+        return () => {};
+      }
+      const timer = setTimeout(() => {
+        callback();
+        callbackTimersRef.current.delete(timer);
+      }, durationMs);
+      callbackTimersRef.current.add(timer);
+      return () => {
+        if (callbackTimersRef.current.delete(timer)) {
+          clearTimeout(timer);
+        }
+      };
+    },
+    []
+  );
+
+  if (cueQueueRef.current === null) {
+    cueQueueRef.current = createCueQueue({
+      now: () => Date.now(),
+      onChange: onCueChange,
+      schedule: (duration, cb) => scheduleCallback(duration, cb),
+    });
+  }
 
   const schedulePhaseChange = useCallback(
     (phase: Phase, durationMs: number, afterReady?: () => void) => {
@@ -334,25 +373,16 @@ export function useGameFlow({
     resume?.();
   }, []);
 
-  const scheduleCallback = useCallback(
-    (durationMs: number, callback: () => void): (() => void) => {
-      if (!Number.isFinite(durationMs) || durationMs <= 0) {
-        callback();
-        return () => {};
-      }
-      const timer = setTimeout(() => {
-        callback();
-        callbackTimersRef.current.delete(timer);
-      }, durationMs);
-      callbackTimersRef.current.add(timer);
-      return () => {
-        if (callbackTimersRef.current.delete(timer)) {
-          clearTimeout(timer);
-        }
-      };
+  const enqueueCue = useCallback(
+    (cue: Cue) => {
+      cueQueueRef.current?.enqueue(cue);
     },
     []
   );
 
-  return { send, resumePendingStatus, scheduleCallback };
+  const clearCues = useCallback(() => {
+    cueQueueRef.current?.clear();
+  }, []);
+
+  return { send, resumePendingStatus, scheduleCallback, enqueueCue, clearCues };
 }

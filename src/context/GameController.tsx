@@ -1,4 +1,4 @@
-﻿import React, {
+import React, {
   createContext,
   useCallback,
   useContext,
@@ -16,7 +16,7 @@ import type {
   CombatEvent,
   DefenseRollResult,
 } from "../game/combat/types";
-import { getStacks, type StatusId } from "../engine/status";
+import { getStatus, getStacks, type StatusId } from "../engine/status";
 
 import { useCombatLog } from "../hooks/useCombatLog";
 import { useDiceAnimator } from "../hooks/useDiceAnimator";
@@ -24,7 +24,11 @@ import { useAiDiceAnimator } from "../hooks/useAiDiceAnimator";
 import { useAiController } from "../hooks/useAiController";
 import { useStatusManager } from "../hooks/useStatusManager";
 import { useDefenseActions } from "../hooks/useDefenseActions";
-import { useGameFlow, type ActiveTransition } from "../hooks/useTurnController";
+import {
+  useGameFlow,
+  type ActiveTransition,
+  type ActiveCue,
+} from "../hooks/useTurnController";
 import { useActiveAbilities } from "../hooks/useActiveAbilities";
 import { useRollAnimator } from "../hooks/useRollAnimator";
 import { useLatest } from "../hooks/useLatest";
@@ -46,6 +50,7 @@ import {
   TURN_TRANSITION_DELAY_MS,
   type TurnEndResolution,
 } from "../game/flow/turnEnd";
+import { getAbilityIcon } from "../assets/abilityIconMap";
 
 const DEF_DIE_INDEX = 2;
 const ROLL_ANIM_MS = 1300;
@@ -88,6 +93,7 @@ type ComputedData = {
   defenseStatusMessage: string | null;
   turnTransitionSide: Side | null;
   activeTransition: ActiveTransition | null;
+  activeCue: ActiveCue | null;
 };
 
 type StatusSpendPhase = "attackRoll" | "defenseRoll";
@@ -181,6 +187,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   } | null>(null);
   const [activeTransition, setActiveTransition] =
     useState<ActiveTransition | null>(null);
+  const [activeCue, setActiveCue] = useState<ActiveCue | null>(null);
   const openDiceTray = useCallback(() => {
     setDefenseStatusMessage(null);
     setDefenseStatusRoll(null);
@@ -477,6 +484,107 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const showDcLogo =
     turn === "you" && rollsLeft === 3 && !pendingAttack && !statusActive;
 
+  const {
+    resetRoll,
+    animateDefenseDie,
+    animateDefenseRoll,
+    restoreDiceAfterDefense,
+  } = useDiceAnimator({ defenseDieIndex: DEF_DIE_INDEX, rng });
+  const { animatePreviewRoll } = useAiDiceAnimator({
+    rollDurationMs: AI_ROLL_ANIM_MS,
+  });
+  const {
+    send: sendFlowEvent,
+    resumePendingStatus,
+    scheduleCallback,
+    enqueueCue,
+    clearCues,
+  } = useGameFlow({
+    resetRoll,
+    pushLog,
+    popDamage,
+    onTransitionChange: setActiveTransition,
+    onCueChange: setActiveCue,
+  });
+
+  const queueTurnCue = useCallback(
+    (side: Side, durationMs?: number) => {
+      const snapshot = latestState.current;
+      const player = snapshot.players[side];
+      if (!player) return;
+      enqueueCue({
+        kind: "turn",
+        title: side === "you" ? "Your Turn" : "Opponent Turn",
+        subtitle: player.hero.name,
+        durationMs,
+        side,
+      });
+    },
+    [enqueueCue, latestState]
+  );
+
+  const handleFlowEvent = useCallback(
+    (event: CombatEvent, options: FlowEventOptions = {}) => {
+      if (event.type !== "TURN_END") {
+        return;
+      }
+
+      const prePhase = event.payload.prePhase ?? "turnTransition";
+      const defaultDuration = prePhase === "turnTransition" ? TURN_TRANSITION_DELAY_MS : 0;
+      const rawDuration =
+        options.durationMs ?? event.payload.durationMs ?? defaultDuration;
+      const durationMs =
+        typeof rawDuration === "number" && Number.isFinite(rawDuration) && rawDuration > 0
+          ? rawDuration
+          : 0;
+
+      if (prePhase === "turnTransition") {
+        queueTurnCue(
+          event.payload.next,
+          durationMs > 0 ? durationMs : TURN_TRANSITION_DELAY_MS
+        );
+      }
+
+      sendFlowEvent({
+        type: "TURN_END",
+        next: event.payload.next,
+        prePhase,
+        durationMs,
+        afterReady: options.afterReady,
+      });
+    },
+    [queueTurnCue, sendFlowEvent]
+  );
+
+  const applyTurnEndResolution = useCallback(
+    (
+      resolution: TurnEndResolution,
+      logOptions?: { blankLineBefore?: boolean; blankLineAfter?: boolean }
+    ) => {
+      if (resolution.logs.length) {
+        pushLog(resolution.logs, logOptions);
+      }
+      resolution.events.forEach((event) => {
+        const afterReady =
+          event.followUp === "trigger_ai_turn"
+            ? () => {
+                scheduleCallback(AI_PASS_FOLLOW_UP_MS, () => {
+                  const snapshot = latestState.current;
+                  const aiState = snapshot.players.ai;
+                  const youState = snapshot.players.you;
+                  if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
+                    return;
+                  aiPlayRef.current();
+                });
+              }
+            : undefined;
+
+        handleFlowEvent(event, { afterReady });
+      });
+    },
+    [handleFlowEvent, latestState, pushLog, scheduleCallback]
+  );
+
   const startInitialRoll = useCallback(() => {
     if (
       phase !== "standoff" ||
@@ -524,77 +632,6 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     }
     dispatch({ type: "CONFIRM_INITIAL_ROLL" });
   }, [dispatch, initialRoll, phase]);
-
-  const {
-    resetRoll,
-    animateDefenseDie,
-    animateDefenseRoll,
-    restoreDiceAfterDefense,
-  } = useDiceAnimator({ defenseDieIndex: DEF_DIE_INDEX, rng });
-  const { animatePreviewRoll } = useAiDiceAnimator({
-    rollDurationMs: AI_ROLL_ANIM_MS,
-  });
-  const { send: sendFlowEvent, resumePendingStatus, scheduleCallback } = useGameFlow({
-    resetRoll,
-    pushLog,
-    popDamage,
-    onTransitionChange: setActiveTransition,
-  });
-
-  const handleFlowEvent = useCallback(
-    (event: CombatEvent, options: FlowEventOptions = {}) => {
-      if (event.type !== "TURN_END") {
-        return;
-      }
-
-      const prePhase = event.payload.prePhase ?? "turnTransition";
-      const defaultDuration = prePhase === "turnTransition" ? TURN_TRANSITION_DELAY_MS : 0;
-      const rawDuration =
-        options.durationMs ?? event.payload.durationMs ?? defaultDuration;
-      const durationMs =
-        typeof rawDuration === "number" && Number.isFinite(rawDuration) && rawDuration > 0
-          ? rawDuration
-          : 0;
-
-      sendFlowEvent({
-        type: "TURN_END",
-        next: event.payload.next,
-        prePhase,
-        durationMs,
-        afterReady: options.afterReady,
-      });
-    },
-    [sendFlowEvent]
-  );
-
-  const applyTurnEndResolution = useCallback(
-    (
-      resolution: TurnEndResolution,
-      logOptions?: { blankLineBefore?: boolean; blankLineAfter?: boolean }
-    ) => {
-      if (resolution.logs.length) {
-        pushLog(resolution.logs, logOptions);
-      }
-      resolution.events.forEach((event) => {
-        const afterReady =
-          event.followUp === "trigger_ai_turn"
-            ? () => {
-                scheduleCallback(AI_PASS_FOLLOW_UP_MS, () => {
-                  const snapshot = latestState.current;
-                  const aiState = snapshot.players.ai;
-                  const youState = snapshot.players.you;
-                  if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
-                    return;
-                  aiPlayRef.current();
-                });
-              }
-            : undefined;
-
-        handleFlowEvent(event, { afterReady });
-      });
-    },
-    [handleFlowEvent, latestState, pushLog, scheduleCallback]
-  );
 
   const { performStatusClearRoll } = useStatusManager({
     pushLog,
@@ -752,6 +789,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
 
   const handleReset = useCallback(() => {
     const current = latestState.current;
+    clearCues();
     dispatch({
       type: "RESET",
       payload: {
@@ -761,9 +799,17 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       },
     });
     resetRoll();
-  }, [dispatch, resetRoll]);
+  }, [clearCues, dispatch, resetRoll]);
+
+  useEffect(() => {
+    if (players.you.hp <= 0 || players.ai.hp <= 0) {
+      clearCues();
+    }
+  }, [clearCues, players.ai.hp, players.you.hp]);
 
   const initialStartRef = useRef(false);
+  const lastAttackCueKeyRef = useRef<string | null>(null);
+  const lastStatusCueKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (state.phase === "standoff") {
       initialStartRef.current = false;
@@ -793,6 +839,74 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   ]);
 
   useEffect(() => {
+    if (!pendingAttack) {
+      lastAttackCueKeyRef.current = null;
+      return;
+    }
+    const bonusDamage =
+      pendingAttack.modifiers?.statusSpends?.reduce(
+        (sum, spend) => sum + (spend.bonusDamage ?? 0),
+        0
+      ) ?? 0;
+    const projectedDamage = Math.max(0, pendingAttack.baseDamage + bonusDamage);
+    const key = `${pendingAttack.attacker}:${pendingAttack.ability.combo}:${pendingAttack.dice.join(
+      ""
+    )}:${projectedDamage}`;
+    if (key === lastAttackCueKeyRef.current) {
+      return;
+    }
+    lastAttackCueKeyRef.current = key;
+    const attacker = players[pendingAttack.attacker];
+    const attackerName = attacker?.hero.name ?? "Opponent";
+    const abilityCombo = pendingAttack.ability.combo;
+    const abilityIcon =
+      attacker && abilityCombo
+        ? getAbilityIcon(attacker.hero.id, abilityCombo, { variant: "offense" })
+        : undefined;
+    const abilityTitle =
+      pendingAttack.ability.displayName ??
+      pendingAttack.ability.label ??
+      pendingAttack.ability.combo;
+    enqueueCue({
+      kind: "attack",
+      title: abilityTitle,
+      subtitle: `${attackerName} prepares an attack (${projectedDamage} dmg)`,
+      icon: abilityIcon?.webp ?? abilityIcon?.png ?? null,
+      durationMs: 2000,
+      side: pendingAttack.attacker,
+    });
+  }, [enqueueCue, pendingAttack, players]);
+
+  useEffect(() => {
+    if (!pendingStatusClear) {
+      lastStatusCueKeyRef.current = null;
+      return;
+    }
+    if (pendingStatusClear.rolling) {
+      return;
+    }
+    const key = `${pendingStatusClear.side}:${pendingStatusClear.status}:${pendingStatusClear.stacks}`;
+    if (key === lastStatusCueKeyRef.current) {
+      return;
+    }
+    lastStatusCueKeyRef.current = key;
+    const status = getStatus(pendingStatusClear.status);
+    const ownerName =
+      pendingStatusClear.side === "you"
+        ? players.you.hero.name
+        : players.ai.hero.name;
+    enqueueCue({
+      kind: "status",
+      title: status?.name ?? pendingStatusClear.status,
+      subtitle: `${ownerName} - ${pendingStatusClear.stacks} stack${
+        pendingStatusClear.stacks === 1 ? "" : "s"
+      }`,
+      durationMs: 1800,
+      side: pendingStatusClear.side,
+    });
+  }, [enqueueCue, pendingStatusClear, players.ai.hero.name, players.you.hero.name]);
+
+  useEffect(() => {
     if (
       !initialStartRef.current &&
       state.phase === "upkeep" &&
@@ -805,6 +919,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       let cancelFollow: (() => void) | null = null;
       const cancelStart = scheduleCallback(0, () => {
         if (startingSide === "ai") {
+          queueTurnCue("ai", TURN_TRANSITION_DELAY_MS);
           const cont = sendFlowEvent({
             type: "TURN_START",
             side: "ai",
@@ -823,6 +938,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
             cancelFollow = null;
           }
         } else {
+          queueTurnCue("you", TURN_TRANSITION_DELAY_MS);
           sendFlowEvent({ type: "TURN_START", side: "you" });
         }
       });
@@ -833,6 +949,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     }
   }, [
     aiPlay,
+    queueTurnCue,
     scheduleCallback,
     sendFlowEvent,
     state.initialRoll.inProgress,
@@ -866,6 +983,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       defenseStatusMessage,
       turnTransitionSide,
       activeTransition,
+      activeCue,
     }),
     [
       ability,
@@ -887,6 +1005,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       defenseStatusMessage,
       turnTransitionSide,
       activeTransition,
+      activeCue,
     ]
   );
 
@@ -979,5 +1098,3 @@ export const useGameController = () => {
 };
 
 export { DEF_DIE_INDEX };
-
-
