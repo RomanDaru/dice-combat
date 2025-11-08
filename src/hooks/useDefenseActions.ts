@@ -16,9 +16,9 @@ import {
   aggregateStatusSpendSummaries,
 } from "../engine/status";
 import type { StatusId, StatusSpend } from "../engine/status";
-import { ActiveAbilityIds } from "../game/activeAbilities";
 import { useGame } from "../context/GameContext";
 import { useActiveAbilities } from "./useActiveAbilities";
+import { useAttackExecution } from "./useAttackExecution";
 import { useDefenseResolution } from "./useDefenseResolution";
 import { useLatest } from "./useLatest";
 import type { GameFlowEvent } from "./useTurnController";
@@ -37,11 +37,8 @@ import type {
   CombatEvent,
   DefenseRollResult,
 } from "../game/combat/types";
-import type {
-  StatusSpendApplyResult,
-  StatusSpendSummary,
-} from "../engine/status";
-import { resolvePassTurn, type TurnEndResolution } from "../game/flow/turnEnd";
+import type { StatusSpendSummary } from "../engine/status";
+import type { TurnEndResolution } from "../game/flow/turnEnd";
 import type { Cue } from "../game/flow/cues";
 import {
   combineDefenseSpends,
@@ -271,365 +268,37 @@ export function useDefenseActions({
     setPlayer,
   });
 
-  const onConfirmAttack = useCallback(() => {
-    if (turn !== "you" || rolling.some(Boolean)) return;
-    const selectedAbility = ability;
-    if (!selectedAbility) {
-      clearAttackStatusRequests();
-      logPlayerNoCombo(dice, you.hero.name);
-      setDefenseStatusMessage(null);
-      setDefenseStatusRollDisplay(null);
-      applyTurnEndResolution(resolvePassTurn({ side: "you" }));
-      return;
-    }
-
-    setPhase("attack");
-    patchAiDefense({
-      inProgress: true,
-      defenseRoll: null,
-      defenseDice: null,
-      defenseCombo: null,
-      evasiveRoll: null,
-    });
-    const attackDice = [...dice];
-
-    scheduleCallback(60, () => {
-      const snapshot = latestState.current;
-      let attacker = snapshot.players.you;
-      let defender = snapshot.players.ai;
-      if (!attacker || !defender || attacker.hp <= 0 || defender.hp <= 0) {
-        patchAiDefense({
-          inProgress: false,
-          defenseRoll: null,
-          defenseDice: null,
-          defenseCombo: null,
-          evasiveRoll: null,
-        });
-        clearAttackStatusRequests();
-        return;
-      }
-
-      const baseDamage = selectedAbility.damage;
-      const attackStatusSpends: StatusSpendSummary[] = [];
-      let workingTokens = attacker.tokens;
-      let tokensChanged = false;
-
-      Object.entries(attackStatusRequests).forEach(
-        ([rawStatusId, requested]) => {
-          const statusId = rawStatusId as StatusId;
-          if (requested <= 0) return;
-          const statusDef = getStatus(statusId);
-          const spendDef = statusDef?.spend;
-          if (!spendDef || !spendDef.allowedPhases.includes("attackRoll")) {
-            return;
-          }
-          if (baseDamage <= 0) return;
-          const costStacks = spendDef.costStacks || 1;
-          const availableStacks =
-            statusId === "chi"
-              ? Math.max(
-                  0,
-                  Math.min(
-                    requested,
-                    getStacks(workingTokens, "chi", 0),
-                    turnChiAvailable.you ?? 0
-                  )
-                )
-              : Math.max(
-                  0,
-                  Math.min(requested, getStacks(workingTokens, statusId, 0))
-                );
-          const attempts =
-            costStacks > 0 ? Math.floor(availableStacks / costStacks) : 0;
-          if (attempts <= 0) return;
-          let localTokens = workingTokens;
-          const spendResults: StatusSpendApplyResult[] = [];
-          let damageContext = baseDamage;
-          for (let i = 0; i < attempts; i += 1) {
-            const spendResult = spendStatus(
-              localTokens,
-              statusId,
-              "attackRoll",
-              {
-                phase: "attackRoll",
-                baseDamage: damageContext,
-              }
-            );
-            if (!spendResult) break;
-            localTokens = spendResult.next;
-            spendResults.push(spendResult.spend);
-            if (typeof spendResult.spend.bonusDamage === "number") {
-              damageContext += spendResult.spend.bonusDamage;
-            }
-          }
-          if (spendResults.length > 0) {
-            const stacksSpent = spendResults.length * costStacks;
-            workingTokens = localTokens;
-            tokensChanged = true;
-            attackStatusSpends.push(
-              createStatusSpendSummary(statusId, stacksSpent, spendResults)
-            );
-          }
-        }
-      );
-
-      clearAttackStatusRequests();
-
-      if (tokensChanged) {
-        attacker = {
-          ...attacker,
-          tokens: workingTokens,
-        };
-        setPlayer("you", attacker);
-      }
-
-      const attackBonusDamage = attackStatusSpends.reduce(
-        (sum, spend) => sum + spend.bonusDamage,
-        0
-      );
-      attackStatusSpends.forEach((spend) => {
-        if (spend.id === "chi" && spend.stacksSpent > 0) {
-          consumeTurnChi("you", spend.stacksSpent);
-        }
-      });
-      const effectiveAbility: OffensiveAbility = {
-        ...selectedAbility,
-        damage: baseDamage + attackBonusDamage,
-      };
-
-      logPlayerAttackStart(attackDice, effectiveAbility, attacker.hero.name);
-
-      const aiEvasiveAbility = aiActiveAbilities.find(
-        (abilityItem) =>
-          abilityItem.id === ActiveAbilityIds.SHADOW_MONK_EVASIVE_ID
-      );
-      let aiShouldAttemptEvasive = false;
-      if (aiEvasiveAbility) {
-        aiEvasiveRequestedRef.current = false;
-        const executed = performAiActiveAbility(aiEvasiveAbility.id);
-        if (executed && aiEvasiveRequestedRef.current) {
-          aiShouldAttemptEvasive = true;
-        }
-      } else if (getStacks(defender.tokens, "evasive", 0) > 0) {
-        aiShouldAttemptEvasive = true;
-      }
-
-      aiEvasiveRequestedRef.current = false;
-
-      const resolveAfterDefense = (
-        defenderState: PlayerState,
-        defenseResolution:
-          | ReturnType<typeof buildDefensePlan>["defense"]
-          | null,
-        additionalSpends: StatusSpendSummary[] = []
-      ) => {
-        scheduleCallback(600, () => {
-          closeDiceTray();
-          const pendingSpends = pendingDefenseSpendsRef.current;
-          pendingDefenseSpendsRef.current = [];
-          const mergedResolution = combineDefenseSpends(defenseResolution, [
-            ...pendingSpends,
-            ...additionalSpends,
-          ]);
-          const resolution = resolveAttack({
-            source: "player",
-            attackerSide: "you",
-            defenderSide: "ai",
-            attacker,
-            defender: defenderState,
-            ability: effectiveAbility,
-            baseDamage,
-            attackStatusSpends,
-            defense: {
-              resolution: mergedResolution,
-            },
-          });
-          const defenseAbilityName = extractDefenseAbilityName(
-            mergedResolution as DefenseSelectionCarrier | null
-          );
-
-          resolveDefenseWithEvents(resolution, {
-            attackerSide: "you",
-            defenderSide: "ai",
-            attackerName: attacker.hero.name,
-            defenderName: defenderState.hero.name,
-            abilityName: formatAbilityName(effectiveAbility),
-            defenseAbilityName,
-          });
-        });
-      };
-
-      const runDefenseRoll = (
-        defenderState: PlayerState,
-        { showTray = false }: { showTray?: boolean } = {}
-      ) => {
-        setDefenseStatusMessage(null);
-        setDefenseStatusRollDisplay(null);
-        setPhase("defense");
-        if (showTray) {
-          openDiceTray();
-        }
-        animateDefenseRoll(
-          (rolledDice) => {
-            const defenseRollResult = evaluateDefenseRoll(
-              defenderState.hero,
-              rolledDice
-            );
-            if (defenseRollResult.options.length === 0) {
-              pushLog(
-                `[Defense] ${defenderState.hero.name} found no defensive combos and will block 0 damage.`,
-                { blankLineBefore: true }
-              );
-            }
-            const selection = defenseRollResult.options.length
-              ? selectHighestBlockOption(defenseRollResult)
-              : selectDefenseOptionByCombo(defenseRollResult, null);
-            const baseResolution = resolveDefenseSelection(selection);
-
-            const requestedChi = Math.min(
-              getStacks(defenderState.tokens, "chi", 0),
-              turnChiAvailable.ai ?? 0
-            );
-            const defensePlan = buildDefensePlan({
-              defender: defenderState,
-              incomingDamage: effectiveAbility.damage,
-              baseResolution,
-              requestedChi,
-            });
-            const defenseTotals = aggregateStatusSpendSummaries(
-              defensePlan.defense.statusSpends
-            );
-            const totalBlock =
-              defensePlan.defense.baseBlock + defenseTotals.bonusBlock;
-
-            patchAiDefense({
-              inProgress: false,
-              defenseDice: rolledDice,
-              defenseCombo:
-                defensePlan.defense.selection.selected?.combo ?? null,
-              defenseRoll: totalBlock,
-            });
-
-            let updatedDefender = defensePlan.defenderAfter;
-            defensePlan.defense.statusSpends.forEach((spend) => {
-              if (spend.id === "chi" && spend.stacksSpent > 0) {
-                consumeTurnChi("ai", spend.stacksSpent);
-              }
-            });
-            if (updatedDefender !== defenderState) {
-              setPlayer("ai", updatedDefender);
-            }
-
-            resolveAfterDefense(updatedDefender, defensePlan.defense);
-          },
-          undefined,
-          {
-            animateSharedDice: false,
-            onTick: (frame) => {
-              patchAiDefense({ defenseDice: frame });
-            },
-          }
-        );
-      };
-
-      if (
-        aiShouldAttemptEvasive &&
-        getStacks(defender.tokens, "evasive", 0) > 0
-      ) {
-        setPhase("defense");
-        animateDefenseDie(
-          (roll) => {
-            const spendResult = spendStatus(
-              defender.tokens,
-              "evasive",
-              "defenseRoll",
-              { phase: "defenseRoll", roll }
-            );
-            if (!spendResult) {
-              patchAiDefense({ evasiveRoll: roll });
-              scheduleCallback(360, () => {
-                runDefenseRoll(defender);
-              });
-              return;
-            }
-            const consumedDefender: PlayerState = {
-              ...defender,
-              tokens: spendResult.next,
-            };
-            setPlayer("ai", consumedDefender);
-
-            const evadeSuccess =
-              typeof spendResult.spend.success === "boolean"
-                ? spendResult.spend.success
-                : !!spendResult.spend.negateIncoming;
-
-            const evasiveCost = getStatus("evasive")?.spend?.costStacks ?? 1;
-            const evasiveSummary = createStatusSpendSummary(
-              "evasive",
-              evasiveCost,
-              [spendResult.spend]
-            );
-
-            patchAiDefense({ evasiveRoll: roll });
-
-            if (evadeSuccess) {
-              patchAiDefense({
-                inProgress: false,
-                defenseRoll: null,
-                defenseDice: null,
-                defenseCombo: null,
-              });
-              resolveAfterDefense(consumedDefender, null, [evasiveSummary]);
-              return;
-            }
-
-            pendingDefenseSpendsRef.current = [
-              ...pendingDefenseSpendsRef.current,
-              evasiveSummary,
-            ];
-
-            scheduleCallback(360, () => {
-              runDefenseRoll(consumedDefender);
-            });
-          },
-          650,
-          { animateSharedDice: false }
-        );
-        return;
-      }
-
-      runDefenseRoll(defender);
-    });
-  }, [
+  const { onConfirmAttack } = useAttackExecution({
+    turn,
+    rolling,
     ability,
-    aiActiveAbilities,
-    aiStepDelay,
-    animateDefenseDie,
-    animateDefenseRoll,
+    dice,
+    you,
     attackStatusRequests,
     clearAttackStatusRequests,
-    closeDiceTray,
-    consumeTurnChi,
-    dice,
-    latestState,
-    logPlayerAttackStart,
     logPlayerNoCombo,
-    openDiceTray,
-    pushLog,
-    patchAiDefense,
-    performAiActiveAbility,
-    popDamage,
-    resolveDefenseWithEvents,
-    scheduleCallback,
-    rolling,
-    sendFlowEvent,
+    logPlayerAttackStart,
+    setDefenseStatusMessage,
+    setDefenseStatusRollDisplay,
+    applyTurnEndResolution,
     setPhase,
+    patchAiDefense,
+    scheduleCallback,
+    latestState,
     setPlayer,
-    turn,
-    turnChiAvailable.ai,
-    turnChiAvailable.you,
-    you.hero.name,
-  ]);
+    consumeTurnChi,
+    turnChiAvailable,
+    openDiceTray,
+    closeDiceTray,
+    animateDefenseRoll,
+    animateDefenseDie,
+    pushLog,
+    pendingDefenseSpendsRef,
+    resolveDefenseWithEvents,
+    aiActiveAbilities,
+    performAiActiveAbility,
+    aiEvasiveRequestedRef,
+  });
 
   const onUserDefenseRoll = useCallback(() => {
     if (!pendingAttack || pendingAttack.defender !== "you") return;

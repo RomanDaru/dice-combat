@@ -6,7 +6,9 @@ import type { GameState } from "../game/state";
 import type { PlayerState, Side } from "../game/types";
 import { resolveAttack } from "../engine/resolveAttack";
 
-type ResolveContext = {
+type ResolveAttackResult = ReturnType<typeof resolveAttack>;
+
+export type DefenseResolutionContext = {
   attackerSide: Side;
   defenderSide: Side;
   attackerName: string;
@@ -14,6 +16,11 @@ type ResolveContext = {
   abilityName: string;
   defenseAbilityName?: string | null;
 };
+
+export type DefenseResolutionHandler = (
+  resolution: ResolveAttackResult,
+  context: DefenseResolutionContext
+) => void;
 
 type UseDefenseResolutionArgs = {
   enqueueCue: (cue: Cue) => void;
@@ -50,8 +57,8 @@ export function useDefenseResolution({
   pushLog,
   setPlayer,
 }: UseDefenseResolutionArgs) {
-  const resolveDefenseWithEvents = useCallback(
-    (resolution: ResolveAttackResult, context: ResolveContext) => {
+  const resolveDefenseWithEvents = useCallback<DefenseResolutionHandler>(
+    (resolution, context) => {
       const { attackerSide, defenderSide } = context;
       setPlayer(attackerSide, resolution.updatedAttacker);
       setPlayer(defenderSide, resolution.updatedDefender);
