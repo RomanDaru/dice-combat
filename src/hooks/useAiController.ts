@@ -252,7 +252,6 @@ export function useAiController({
   }, [
     aiStepDelay,
     animatePreviewRoll,
-    chooseAiAttackChiSpend,
     consumeStatusBudget,
     logAiAttackRoll,
     logAiNoCombo,

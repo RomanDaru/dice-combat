@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { getStatus, setStacks, getStacks } from "../engine/status";
 import type { PendingStatusClear } from "../game/state";
 import type { Side, PlayerState, Phase } from "../game/types";
@@ -23,6 +24,7 @@ type UseStatusManagerArgs = {
   restoreDiceAfterDefense: () => void;
   sendFlowEvent: (event: GameFlowEvent) => boolean;
   resumePendingStatus: () => void;
+  scheduleCallback: (duration: number, callback: () => void) => () => void;
 };
 
 export function useStatusManager({
@@ -31,9 +33,19 @@ export function useStatusManager({
   restoreDiceAfterDefense,
   sendFlowEvent,
   resumePendingStatus,
+  scheduleCallback,
 }: UseStatusManagerArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
+  const timersRef = useRef(new Set<() => void>());
+
+  useEffect(
+    () => () => {
+      timersRef.current.forEach((cancel) => cancel());
+      timersRef.current.clear();
+    },
+    []
+  );
 
   const setPlayer = useCallback(
     (side: Side, player: PlayerState) => {
@@ -121,20 +133,25 @@ export function useStatusManager({
           success: result.success,
         });
 
-        window.setTimeout(() => {
+        const cancelRestore = scheduleCallback(600, () => {
+          timersRef.current.delete(cancelRestore);
           restoreDiceAfterDefense();
-          window.setTimeout(() => {
+          const cancelFinalize = scheduleCallback(400, () => {
+            timersRef.current.delete(cancelFinalize);
             setPendingStatus(null);
             setPhase("roll");
             resumePendingStatus();
-          }, 400);
-        }, 600);
+          });
+          timersRef.current.add(cancelFinalize);
+        });
+        timersRef.current.add(cancelRestore);
       }, animationDuration);
     },
     [
       animateDefenseDie,
       pushLog,
       restoreDiceAfterDefense,
+      scheduleCallback,
       setPendingStatus,
       setPhase,
       setPlayer,

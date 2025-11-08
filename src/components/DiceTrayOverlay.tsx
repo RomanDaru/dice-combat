@@ -33,6 +33,15 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
     onPerformActiveAbility,
   } = useGameController();
   const { dice, held, rolling, turn, rollsLeft } = state;
+  const statusRoll = defenseStatusRoll;
+  const statusDice = statusRoll?.dice ?? [];
+  const statusHeld = useMemo(() => statusDice.map(() => false), [statusDice]);
+  const statusRolling = statusRoll?.inProgress
+    ? statusDice.map(() => true)
+    : statusDice.map(() => false);
+  const showStatusToast = Boolean(
+    !statusRoll?.inProgress && statusRoll?.outcome && defenseStatusMessage
+  );
 
   if (!diceTrayVisible) return null;
 
@@ -44,7 +53,6 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
   const showRollAction = !isDefenseTurn && rollsLeft > 0;
   const hasDefenseRoll = Boolean(defenseRoll);
   const showDefenseRollAction = isDefenseTurn && !hasDefenseRoll;
-  const statusRoll = defenseStatusRoll;
   const defenseRollDisabled =
     !isDefenseTurn ||
     statusActive ||
@@ -61,15 +69,6 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
     impactLocked ||
     Boolean(statusRoll?.inProgress) ||
     statusRoll?.outcome === "success";
-  const statusDice = statusRoll?.dice ?? [];
-  const statusHeld = useMemo(
-    () => statusDice.map(() => false),
-    [statusDice]
-  );
-  const statusRolling = statusRoll?.inProgress
-    ? statusDice.map(() => true)
-    : statusDice.map(() => false);
-  const showStatusToast = Boolean(!statusRoll?.inProgress && statusRoll?.outcome && defenseStatusMessage);
 
   const helperText = (() => {
     if (statusRoll) {
