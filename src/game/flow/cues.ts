@@ -1,7 +1,13 @@
 import { DEFAULT_CUE_DURATION_MS as CONFIG_DEFAULT_CUE_DURATION_MS } from "../../config/cueDurations";
 import type { Side } from "../types";
 
-export type CueKind = "turn" | "status" | "attack";
+export type CueKind =
+  | "turn"
+  | "status"
+  | "attack"
+  | "statusDamage"
+  | "defenseSummary"
+  | "statusPrompt";
 export type CuePriority = "low" | "normal" | "urgent";
 
 export type Cue = {

@@ -116,6 +116,21 @@
   background: rgba(22, 163, 74, 0.4);
 }
 
+.kind-statusDamage {
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(185, 28, 28, 0.45);
+}
+
+.kind-defenseSummary {
+  border-color: rgba(59, 130, 246, 0.45);
+  background: rgba(37, 99, 235, 0.35);
+}
+
+.kind-statusPrompt {
+  border-color: rgba(251, 191, 36, 0.6);
+  background: rgba(202, 138, 4, 0.35);
+}
+
 .progress {
   display: flex;
   flex-direction: column;

@@ -5,7 +5,8 @@ export type CueDurationKey =
   | "statusTick"
   | "statusDamage"
   | "defenseSummary"
-  | "defenseSummaryLethal";
+  | "defenseSummaryLethal"
+  | "statusPrompt";
 
 const CUE_DURATION_MS: Record<CueDurationKey, number> = {
   default: 1600,
@@ -15,6 +16,7 @@ const CUE_DURATION_MS: Record<CueDurationKey, number> = {
   statusDamage: 2800,
   defenseSummary: 4400,
   defenseSummaryLethal: 2600,
+  statusPrompt: 2200,
 };
 
 export const DEFAULT_CUE_DURATION_MS = CUE_DURATION_MS.default;

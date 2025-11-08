@@ -10,6 +10,7 @@ import {
   type Cue,
 } from "../game/flow/cues";
 import { getCueDuration } from "../config/cueDurations";
+import { getStatus } from "../engine/status";
 
 export type { Cue, ActiveCue } from "../game/flow/cues";
 
@@ -73,6 +74,32 @@ export type ActiveTransition = TransitionDescriptor & {
   durationMs: number;
   startedAt: number;
   endsAt: number;
+};
+
+type StatusPromptCueArgs = {
+  statusName: string;
+  ownerName: string;
+  stacks: number;
+  action?: "cleanse" | "transfer";
+};
+
+export const buildStatusPromptCue = ({
+  statusName,
+  ownerName,
+  stacks,
+  action = "cleanse",
+}: StatusPromptCueArgs) => {
+  const stackLabel = `${stacks} stack${stacks === 1 ? "" : "s"}`;
+  const subtitle = `${ownerName} - ${stackLabel}`;
+  const cta =
+    action === "transfer" ? "Attempt transfer" : "Roll to resolve";
+  const priority: Cue["priority"] = action === "transfer" ? "urgent" : "normal";
+  return {
+    title: statusName,
+    subtitle,
+    cta,
+    priority,
+  };
 };
 
 const ROLL_PHASE_DELAY_MS = 600;
@@ -308,6 +335,32 @@ export function useGameFlow({
 
       if (turnResult.statusDamage > 0) {
         popDamage(next, turnResult.statusDamage, "hit");
+      }
+
+      if (turnResult.pendingStatus) {
+        const promptDuration = getCueDuration("statusPrompt");
+        const pending = turnResult.pendingStatus;
+        const ownerPlayer = snapshot.players[pending.side];
+        const ownerName =
+          ownerPlayer?.hero.name ?? (pending.side === "you" ? "You" : "Opponent");
+        const statusDef = getStatus(pending.status);
+        const cueData = buildStatusPromptCue({
+          statusName: statusDef?.name ?? pending.status,
+          ownerName,
+          stacks: pending.stacks,
+          action: pending.action,
+        });
+        cueQueueRef.current?.enqueue({
+          kind: "statusPrompt",
+          title: cueData.title,
+          subtitle: cueData.subtitle,
+          cta: cueData.cta,
+          durationMs: promptDuration,
+          side: pending.side,
+          priority: cueData.priority,
+          mergeKey: `statusPrompt:${pending.side}:${pending.status}`,
+        });
+        upkeepCueDurations.push(promptDuration);
       }
 
       if (!turnResult.continueBattle) {
