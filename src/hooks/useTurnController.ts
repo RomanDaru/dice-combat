@@ -421,8 +421,7 @@ export function useGameFlow({
           ROLL_PHASE_DELAY_MS,
           upkeepCueDurations
         );
-        schedulePhaseChange("roll", rollDelayMs);
-        afterReady?.();
+        schedulePhaseChange("roll", rollDelayMs, afterReady);
       }
 
       return true;
