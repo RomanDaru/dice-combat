@@ -17,6 +17,12 @@ export type OffensiveAbility = AbilityPresentation & {
   combo: Combo;
   damage: number;
   ultimate?: boolean;
+  applyPreDamage?: AbilityApplyMap;
+  applyPostDamage?: AbilityApplyMap;
+  /**
+   * @deprecated Use applyPreDamage/applyPostDamage to express timing.
+   * Retained temporarily for legacy hero data.
+   */
   apply?: AbilityApplyMap;
 };
 

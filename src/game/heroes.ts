@@ -19,14 +19,14 @@ export const HEROES: Record<HeroId, Hero> = {
       "4OAK": {
         combo: "4OAK",
         damage: 7,
-        apply: { burn: 1 },
+        applyPostDamage: { burn: 1 },
         label: "Four of a kind + Burn",
         tooltip: "Channel four flames into a lingering burn.",
       },
       SMALL_STRAIGHT: {
         combo: "SMALL_STRAIGHT",
         damage: 6,
-        apply: { burn: 1 },
+        applyPostDamage: { burn: 1 },
         label: "Small straight + Burn",
       },
       "3OAK": { combo: "3OAK", damage: 5, label: "Three of a kind" },
@@ -34,7 +34,7 @@ export const HEROES: Record<HeroId, Hero> = {
       LARGE_STRAIGHT: {
         combo: "LARGE_STRAIGHT",
         damage: 12,
-        apply: { burn: 2 },
+        applyPostDamage: { burn: 2 },
         label: "Inferno",
       },
       "5OAK": {
@@ -96,21 +96,21 @@ export const HEROES: Record<HeroId, Hero> = {
       FULL_HOUSE: {
         combo: "FULL_HOUSE",
         damage: 7,
-        apply: { chi: 1 },
+        applyPostDamage: { chi: 1 },
         label: "Foot Step",
         tooltip: "Full House: deal 7 damage and gain 1 Chi.",
       },
       "4OAK": {
         combo: "4OAK",
         damage: 6,
-        apply: { chi: 1 },
+        applyPostDamage: { chi: 1 },
         label: "Moon Splitting Cut",
         tooltip: "Four of a Kind: deal 6 damage and gain 1 Chi.",
       },
       SMALL_STRAIGHT: {
         combo: "SMALL_STRAIGHT",
         damage: 5,
-        apply: { evasive: 1 },
+        applyPostDamage: { evasive: 1 },
         label: "Balance the Scales",
         tooltip: "Small Straight: deal 5 damage and gain 1 Evasive.",
       },
@@ -123,14 +123,14 @@ export const HEROES: Record<HeroId, Hero> = {
       PAIR_PAIR: {
         combo: "PAIR_PAIR",
         damage: 3,
-        apply: { chi: 1 },
+        applyPostDamage: { chi: 1 },
         label: "Vow at Dusk",
         tooltip: "Two Pairs: deal 3 damage and gain 1 Chi.",
       },
       LARGE_STRAIGHT: {
         combo: "LARGE_STRAIGHT",
         damage: 10,
-        apply: { evasive: 1 },
+        applyPostDamage: { evasive: 1 },
         label: "Weight of Regret",
         tooltip: "Large Straight: deal 10 damage and gain 1 Evasive.",
       },
@@ -237,21 +237,22 @@ export const HEROES: Record<HeroId, Hero> = {
 export const getHeroEffectIds = (hero: Hero): EffectId[] => {
   const effectIds = new Set<EffectId>();
 
-  const collectApply = (ability?: OffensiveAbility | DefensiveAbility) => {
-    if (!ability?.apply) return;
-    const applyData = ability.apply;
-
-    if (applyData.burn && applyData.burn > 0) effectIds.add("burn");
-    if (applyData.chi && applyData.chi > 0) effectIds.add("chi");
-    if (applyData.evasive && applyData.evasive > 0) effectIds.add("evasive");
-    if (applyData.purify && applyData.purify > 0) effectIds.add("purify");
+  const collectApplyMap = (
+    apply?: OffensiveAbility["apply"] | OffensiveAbility["applyPreDamage"]
+  ) => {
+    if (!apply) return;
+    if (apply.burn && apply.burn > 0) effectIds.add("burn");
+    if (apply.chi && apply.chi > 0) effectIds.add("chi");
+    if (apply.evasive && apply.evasive > 0) effectIds.add("evasive");
+    if (apply.purify && apply.purify > 0) effectIds.add("purify");
   };
 
-  Object.values(hero.offensiveBoard).forEach((ability) =>
-    collectApply(ability)
-  );
+  Object.values(hero.offensiveBoard).forEach((ability) => {
+    collectApplyMap(ability?.applyPreDamage);
+    collectApplyMap(ability?.applyPostDamage ?? ability?.apply);
+  });
   Object.values(hero.defensiveBoard).forEach((ability) =>
-    collectApply(ability)
+    collectApplyMap(ability?.apply)
   );
 
   return Array.from(effectIds);

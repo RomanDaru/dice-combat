@@ -32,6 +32,9 @@ export function detectCombos(dice: number[]) {
   } as Record<Combo, boolean>;
 }
 
+const countApplyEntries = (apply?: OffensiveAbility["apply"]) =>
+  apply ? Object.keys(apply).length : 0;
+
 export function bestAbility(hero: Hero, dice: number[]): OffensiveAbility | null {
   const found = detectCombos(dice);
   const abilities = getOffensiveAbilities(hero);
@@ -40,8 +43,12 @@ export function bestAbility(hero: Hero, dice: number[]): OffensiveAbility | null
   return legal.sort((a, b) => {
     if (!!b.ultimate !== !!a.ultimate) return (b.ultimate ? 1 : 0) - (a.ultimate ? 1 : 0);
     if (b.damage !== a.damage) return b.damage - a.damage;
-    const aw = a.apply ? Object.keys(a.apply).length : 0;
-    const bw = b.apply ? Object.keys(b.apply).length : 0;
+    const aw =
+      countApplyEntries(a.applyPreDamage) +
+      countApplyEntries(a.applyPostDamage ?? a.apply);
+    const bw =
+      countApplyEntries(b.applyPreDamage) +
+      countApplyEntries(b.applyPostDamage ?? b.apply);
     return bw - aw;
   })[0];
 }

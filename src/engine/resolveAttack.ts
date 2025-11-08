@@ -1,4 +1,4 @@
-import { applyAttack } from "../game/engine";
+import { applyAttack, applyAbilityEffects } from "../game/engine";
 import type { AttackContext, AttackResolution } from "../game/combat/types";
 import type { Side } from "../game/types";
 import { buildAttackResolutionLines } from "../game/logging/combatLog";
@@ -7,8 +7,8 @@ import { TURN_TRANSITION_DELAY_MS } from "../game/flow/turnEnd";
 
 export function resolveAttack(context: AttackContext): AttackResolution {
   const {
-    attacker,
-    defender,
+    attacker: initialAttacker,
+    defender: initialDefender,
     ability,
     attackerSide,
     defenderSide,
@@ -17,13 +17,26 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     defense,
   } = context;
 
+  let attackerState = initialAttacker;
+  let defenderState = initialDefender;
+
+  if (ability.applyPreDamage) {
+    const preResult = applyAbilityEffects(
+      attackerState,
+      defenderState,
+      ability.applyPreDamage
+    );
+    attackerState = preResult.attacker;
+    defenderState = preResult.defender;
+  }
+
   const defenseResolution = defense.resolution ?? null;
   const defenseStatusSpendsRaw = defenseResolution?.statusSpends ?? [];
   const initialBaseBlock = defenseResolution
     ? Math.max(0, defenseResolution.baseBlock)
     : 0;
 
-  const attackModifier = applyModifiers(attacker.tokens ?? {}, {
+  const attackModifier = applyModifiers(attackerState.tokens ?? {}, {
     phase: "attack",
     attackerSide,
     defenderSide,
@@ -31,7 +44,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     baseBlock: initialBaseBlock,
   });
 
-  const defenseModifier = applyModifiers(defender.tokens ?? {}, {
+  const defenseModifier = applyModifiers(defenderState.tokens ?? {}, {
     phase: "defense",
     attackerSide,
     defenderSide,
@@ -75,8 +88,8 @@ export function resolveAttack(context: AttackContext): AttackResolution {
       }
     : null;
 
-  let nextAttacker = attacker;
-  let nextDefender = defender;
+  let nextAttacker = attackerState;
+  let nextDefender = defenderState;
   let damageDealt = 0;
   let reflectDealt = 0;
   const wasNegated = defenseTotals.negateIncoming;
@@ -88,8 +101,8 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     };
 
     const [attackerAfter, defenderAfter] = applyAttack(
-      attacker,
-      defender,
+      attackerState,
+      defenderState,
       effectiveAbility,
       {
         defense: defenseState,
@@ -98,19 +111,19 @@ export function resolveAttack(context: AttackContext): AttackResolution {
 
     nextAttacker = attackerAfter;
     nextDefender = defenderAfter;
-    damageDealt = Math.max(0, defender.hp - defenderAfter.hp);
-    reflectDealt = Math.max(0, attacker.hp - attackerAfter.hp);
+    damageDealt = Math.max(0, defenderState.hp - defenderAfter.hp);
+    reflectDealt = Math.max(0, attackerState.hp - attackerAfter.hp);
   }
 
-  const damageWithoutBlock = Math.min(attackDamage, defender.hp);
+  const damageWithoutBlock = Math.min(attackDamage, defenderState.hp);
   const reportedBlocked = wasNegated
     ? attackDamage
     : Math.max(0, damageWithoutBlock - damageDealt);
 
   const logs = buildAttackResolutionLines({
-    attackerBefore: attacker,
+    attackerBefore: attackerState,
     attackerAfter: nextAttacker,
-    defenderBefore: defender,
+    defenderBefore: defenderState,
     defenderAfter: nextDefender,
     baseBlock,
     attackTotals,

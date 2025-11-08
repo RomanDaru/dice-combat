@@ -33,6 +33,67 @@ const applyDefenseTokens = (tokens: Tokens, gains: Partial<Tokens>): Tokens => {
   return updated;
 };
 
+type AbilityEffectDelta = {
+  burnDelta: number;
+  chiDelta: number;
+  evasiveDelta: number;
+};
+
+const EMPTY_EFFECT_DELTA: AbilityEffectDelta = {
+  burnDelta: 0,
+  chiDelta: 0,
+  evasiveDelta: 0,
+};
+
+export function applyAbilityEffects(
+  attacker: PlayerState,
+  defender: PlayerState,
+  effects?: OffensiveAbility["applyPreDamage"]
+): {
+  attacker: PlayerState;
+  defender: PlayerState;
+  delta: AbilityEffectDelta;
+} {
+  if (!effects) {
+    return { attacker, defender, delta: EMPTY_EFFECT_DELTA };
+  }
+
+  let attackerTokens = attacker.tokens;
+  let defenderTokens = defender.tokens;
+  let burnDelta = 0;
+  let chiDelta = 0;
+  let evasiveDelta = 0;
+
+  if (typeof effects.burn === "number" && effects.burn !== 0) {
+    const before = getStacks(defenderTokens, "burn", 0);
+    defenderTokens = addStacks(defenderTokens, "burn", effects.burn);
+    burnDelta = getStacks(defenderTokens, "burn", 0) - before;
+  }
+
+  if (typeof effects.chi === "number" && effects.chi !== 0) {
+    const before = getStacks(attackerTokens, "chi", 0);
+    const nextChi = clampChi(before + effects.chi);
+    attackerTokens = setStacks(attackerTokens, "chi", nextChi);
+    chiDelta = nextChi - before;
+  }
+
+  if (typeof effects.evasive === "number" && effects.evasive !== 0) {
+    const before = getStacks(attackerTokens, "evasive", 0);
+    const nextEvasive = Math.max(0, before + effects.evasive);
+    attackerTokens = setStacks(attackerTokens, "evasive", nextEvasive);
+    evasiveDelta = nextEvasive - before;
+  }
+
+  const attackerChanged = attackerTokens !== attacker.tokens;
+  const defenderChanged = defenderTokens !== defender.tokens;
+
+  return {
+    attacker: attackerChanged ? { ...attacker, tokens: attackerTokens } : attacker,
+    defender: defenderChanged ? { ...defender, tokens: defenderTokens } : defender,
+    delta: { burnDelta, chiDelta, evasiveDelta },
+  };
+}
+
 export function applyAttack(
   attacker: PlayerState,
   defender: PlayerState,
@@ -40,10 +101,8 @@ export function applyAttack(
   opts: ApplyAttackOptions = {}
 ): [PlayerState, PlayerState, string[]] {
   const notes: string[] = [];
-  const applyEffects = ability.apply ?? {};
+  const postDamageEffects = ability.applyPostDamage ?? ability.apply;
   const incomingDamage = ability.damage;
-  const attackerStart = attacker;
-  const defenderStart = defender;
 
   const defenseState = opts.defense ?? null;
   const defenseTotals = aggregateStatusSpendSummaries(
@@ -72,46 +131,35 @@ export function applyAttack(
       : 0;
 
   let defenderTokens = applyDefenseTokens(defender.tokens, defenseTokens);
-  if (applyEffects.burn && applyEffects.burn > 0) {
-    defenderTokens = addStacks(defenderTokens, "burn", applyEffects.burn);
-  }
-  const burnAfter = getStacks(defenderTokens, "burn", 0);
+  const defenderAfterDefense =
+    defenderTokens === defender.tokens
+      ? defender
+      : { ...defender, tokens: defenderTokens };
+
+  const {
+    attacker: attackerAfterEffects,
+    defender: defenderAfterEffects,
+    delta: postEffectDelta,
+  } = applyAbilityEffects(attacker, defenderAfterDefense, postDamageEffects);
 
   const defenderHpAfter = Math.min(
-    defender.hero.maxHp,
-    Math.max(0, defender.hp - damageDealt) + heal
+    defenderAfterEffects.hero.maxHp,
+    Math.max(0, defenderAfterEffects.hp - damageDealt) + heal
   );
 
   const nextDefender: PlayerState = {
-    ...defender,
+    ...defenderAfterEffects,
     hp: defenderHpAfter,
-    tokens: defenderTokens,
   };
 
   const attackerHpAfter = Math.max(
     0,
-    attacker.hp - reflect - retaliateDamage
+    attackerAfterEffects.hp - reflect - retaliateDamage
   );
 
-  let attackerTokensNext = attacker.tokens;
-
-  if (typeof applyEffects.chi === "number" && applyEffects.chi !== 0) {
-    const nextChi = clampChi(getStacks(attackerTokensNext, "chi", 0) + applyEffects.chi);
-    attackerTokensNext = setStacks(attackerTokensNext, "chi", nextChi);
-  }
-
-  if (typeof applyEffects.evasive === "number" && applyEffects.evasive !== 0) {
-    const nextEvasive = Math.max(
-      0,
-      getStacks(attackerTokensNext, "evasive", 0) + applyEffects.evasive
-    );
-    attackerTokensNext = setStacks(attackerTokensNext, "evasive", nextEvasive);
-  }
-
   const nextAttacker: PlayerState = {
-    ...attacker,
+    ...attackerAfterEffects,
     hp: attackerHpAfter,
-    tokens: attackerTokensNext,
   };
 
   const reflectTotal = reflect + retaliateDamage;
@@ -124,26 +172,18 @@ export function applyAttack(
   }
   notes.push(summaryParts.join(" "));
 
-  const chiGain = Math.max(
-    0,
-    getStacks(nextAttacker.tokens, "chi", 0) -
-      getStacks(attackerStart.tokens, "chi", 0)
-  );
+  const chiGain = Math.max(0, postEffectDelta.chiDelta);
   if (chiGain > 0) {
     notes.push(`${attacker.hero.id} gains Chi (+${chiGain}).`);
   }
 
-  const evasiveGain = Math.max(
-    0,
-    getStacks(nextAttacker.tokens, "evasive", 0) -
-      getStacks(attackerStart.tokens, "evasive", 0)
-  );
+  const evasiveGain = Math.max(0, postEffectDelta.evasiveDelta);
   if (evasiveGain > 0) {
     notes.push(`${attacker.hero.id} gains Evasive (+${evasiveGain}).`);
   }
 
-  const burnDelta = burnAfter - getStacks(defenderStart.tokens, "burn", 0);
-  if (burnDelta > 0) {
+  const burnAfter = getStacks(nextDefender.tokens, "burn", 0);
+  if (postEffectDelta.burnDelta > 0) {
     notes.push(
       `${defender.hero.id} gains Burn (${burnAfter} stack${
         burnAfter > 1 ? "s" : ""

@@ -3,6 +3,7 @@ import { resolveAttack } from "../resolveAttack";
 import {
   createStatusSpendSummary,
   defineStatus,
+  getStacks,
   type StatusSpendApplyResult,
 } from "../status";
 import { createInitialState } from "../../game/state";
@@ -604,5 +605,45 @@ describe("resolveAttack with modifiers", () => {
     expect(resolution.summary.negated).toBe(true);
     expect(resolution.summary.attackerDefeated).toBe(false);
     expect(resolution.summary.defenderDefeated).toBe(false);
+  });
+
+  it("applies pre-damage effects even when the attack is negated", () => {
+    const baseState = createInitialState(
+      HEROES.Pyromancer,
+      HEROES["Shadow Monk"]
+    );
+    const attacker = clonePlayer(baseState.players.you);
+    const defender = clonePlayer(baseState.players.ai);
+
+    const offense: OffensiveAbility = {
+      combo: "3OAK",
+      damage: 5,
+      label: "Scorching Feint",
+      applyPreDamage: { burn: 1 },
+    };
+
+    const defenseResolution = makeDefenseState({
+      baseBlock: 0,
+      statusSpends: [
+        createStatusSpendSummary("evasive", 1, [
+          { negateIncoming: true, log: "Evaded" },
+        ]),
+      ],
+    });
+
+    const resolution = resolveAttack({
+      source: "player",
+      attackerSide: "you",
+      defenderSide: "ai",
+      attacker,
+      defender,
+      ability: offense,
+      baseDamage: offense.damage,
+      attackStatusSpends: [],
+      defense: { resolution: defenseResolution },
+    });
+
+    expect(resolution.summary.negated).toBe(true);
+    expect(getStacks(resolution.updatedDefender.tokens, "burn", 0)).toBe(1);
   });
 });
