@@ -22,6 +22,121 @@ export type DefenseResolutionHandler = (
   context: DefenseResolutionContext
 ) => void;
 
+type DefenseSummaryParams = {
+  summary: NonNullable<ResolveAttackResult["summary"]>;
+  context: DefenseResolutionContext;
+  attackerSide: Side;
+  defenderSide: Side;
+};
+
+type DefenseSummaryCueData = {
+  title: string;
+  subtitle: string;
+  cta?: string;
+  priority: Cue["priority"];
+  side: Side;
+  allowDuringTransition: boolean;
+  lethal: boolean;
+  mergeKey: string;
+};
+
+const formatStatsLine = (
+  blocked: number,
+  damageDealt: number,
+  reflected: number,
+  negated: boolean
+) => {
+  const entries = [`Blocked ${blocked}`, `Damage ${damageDealt}`];
+  if (reflected > 0) {
+    entries.push(`Reflect ${reflected}`);
+  }
+  if (negated) {
+    entries.push("Negated");
+  }
+  return entries.join(" • ");
+};
+
+const buildDefenseSummaryCue = ({
+  summary,
+  context,
+  attackerSide,
+  defenderSide,
+}: DefenseSummaryParams): DefenseSummaryCueData => {
+  const {
+    damageDealt,
+    blocked,
+    reflected,
+    negated,
+    attackerDefeated,
+    defenderDefeated,
+  } = summary;
+  const attackerLabel = context.attackerName;
+  const defenderLabel = context.defenderName;
+  const playerIsDefender = defenderSide === "you";
+  const playerIsAttacker = attackerSide === "you";
+  const abilityLabel = context.abilityName || "attack";
+  const defenseAbilityName = context.defenseAbilityName ?? null;
+  const statsLine = formatStatsLine(blocked, damageDealt, reflected, negated);
+
+  const abilityPair = defenseAbilityName
+    ? `${abilityLabel} vs ${defenseAbilityName}`
+    : abilityLabel;
+
+  const lethal = attackerDefeated || defenderDefeated;
+  let title: string;
+  let lead: string;
+  if (attackerDefeated && defenderDefeated) {
+    title = "Double Knockout";
+    lead = `${attackerLabel} and ${defenderLabel} fall together.`;
+  } else if (defenderDefeated) {
+    title = playerIsDefender ? "You Fall" : `${defenderLabel} Falls`;
+    lead = playerIsDefender
+      ? `${attackerLabel}'s ${abilityLabel} finishes you.`
+      : `You defeat ${defenderLabel} with ${abilityLabel}.`;
+  } else if (attackerDefeated) {
+    title = playerIsAttacker ? "You Fall" : `${attackerLabel} Falls`;
+    lead = playerIsAttacker
+      ? `${defenderLabel}'s ${defenseAbilityName ?? "counter"} ends you.`
+      : `${defenderLabel} defeats ${attackerLabel} with a counterattack.`;
+  } else if (negated) {
+    title = "Attack Negated";
+    lead = playerIsDefender
+      ? `You nullify ${attackerLabel}'s ${abilityLabel}.`
+      : `${defenderLabel} nullifies your ${abilityLabel}.`;
+  } else if (damageDealt > 0) {
+    title = playerIsDefender ? "Damage Taken" : "Attack Lands";
+    lead = playerIsDefender
+      ? `You take ${damageDealt} damage from ${attackerLabel}.`
+      : `${defenderLabel} takes ${damageDealt} damage.`;
+  } else if (blocked > 0) {
+    title = playerIsDefender ? "Defense Holds" : "Attack Blocked";
+    lead = playerIsDefender
+      ? `You block ${blocked} damage.`
+      : `${defenderLabel} blocks ${blocked} damage.`;
+  } else {
+    title = playerIsDefender ? "Attack Evaded" : "Enemy Evades";
+    lead = playerIsDefender
+      ? `You evade ${attackerLabel}'s ${abilityLabel}.`
+      : `${defenderLabel} evades your ${abilityLabel}.`;
+  }
+
+  const subtitle = `${lead} ${statsLine}`.trim();
+  const cta = abilityPair ? `${attackerLabel}'s ${abilityPair}` : undefined;
+  const priority: Cue["priority"] =
+    lethal || damageDealt > 0 || negated ? "urgent" : "normal";
+
+  return {
+    title,
+    subtitle,
+    cta,
+    priority,
+    side: defenderSide,
+    allowDuringTransition: lethal,
+    lethal,
+    mergeKey: `defenseSummary:${defenderSide}`,
+  };
+};
+
 type UseDefenseResolutionArgs = {
   enqueueCue: (cue: Cue) => void;
   interruptCue: () => void;
@@ -70,175 +185,27 @@ export function useDefenseResolution({
       let summaryDelay = 600;
 
       if (resolution.summary) {
-        const {
-          damageDealt,
-          blocked,
-          reflected,
-          negated,
-          attackerDefeated,
-          defenderDefeated,
-        } = resolution.summary;
-        const attackerLabel = context.attackerName;
-        const defenderLabel = context.defenderName;
-        const abilityLabel = context.abilityName || "attack";
-        const defenseAbilityName = context.defenseAbilityName ?? null;
-
-        const playerIsAttacker = attackerSide === "you";
-        const playerIsDefender = defenderSide === "you";
-        const opponentLabel = playerIsAttacker ? defenderLabel : attackerLabel;
-        const incomingDamage = damageDealt + blocked;
-
-        let title: string;
-        let subtitle: string;
-        let priority: Cue["priority"] = "normal";
-        let cta: string | undefined;
-        let kind: Cue["kind"] = "status";
-        let allowDuringTransition = false;
-        let cueSide: Side | undefined = attackerSide;
-
-        const lethal = attackerDefeated || defenderDefeated;
-
-        if (lethal) {
-          priority = "urgent";
-          kind = "attack";
-          allowDuringTransition = true;
-          if (attackerDefeated && defenderDefeated) {
-            title = "Double Knockout";
-            subtitle = defenseAbilityName
-              ? `You and ${opponentLabel} fall together (${defenseAbilityName}).`
-              : `You and ${opponentLabel} fall together.`;
-            cueSide = "you";
-            cta = "Both fighters collapse.";
-          } else if (defenderDefeated) {
-            cueSide = attackerSide;
-            if (playerIsAttacker) {
-              title = "Lethal Hit";
-              subtitle = `You defeat ${defenderLabel} with ${abilityLabel}.`;
-              cta = "Victory secured!";
-            } else {
-              title = "Crushing Blow";
-              subtitle = `${attackerLabel} defeats you with ${abilityLabel}.`;
-              cta = "You are defeated.";
-            }
-          } else {
-            cueSide = defenderSide;
-            if (playerIsAttacker) {
-              title = "Fatal Reprisal";
-              subtitle = defenseAbilityName
-                ? `You fall to ${defenderLabel}'s ${defenseAbilityName}.`
-                : `You fall to ${defenderLabel}'s retaliation.`;
-              cta = "Retaliation succeeds!";
-            } else {
-              title = "Lethal Counter";
-              subtitle = defenseAbilityName
-                ? `You defeat ${attackerLabel} with ${defenseAbilityName}.`
-                : `You defeat ${attackerLabel} on the counterattack.`;
-              cta = "Enemy defeated!";
-            }
-          }
-        } else if (negated) {
-          priority = "urgent";
-          cueSide = attackerSide;
-          if (playerIsDefender) {
-            title = defenseAbilityName ? `You: ${defenseAbilityName}` : "Attack Deflected";
-            subtitle = defenseAbilityName
-              ? `You negate ${attackerLabel}'s ${abilityLabel} with ${defenseAbilityName}.`
-              : `You negate ${attackerLabel}'s ${abilityLabel}.`;
-            cta = "Attack nullified.";
-          } else {
-            title = defenseAbilityName ? `${defenderLabel}: ${defenseAbilityName}` : "Attack Deflected";
-            subtitle = defenseAbilityName
-              ? `${defenderLabel} negates your ${abilityLabel} with ${defenseAbilityName}.`
-              : `${defenderLabel} negates your ${abilityLabel}.`;
-            cta = "Your attack was nullified.";
-          }
-        } else if (damageDealt <= 0) {
-          if (playerIsDefender) {
-            title = defenseAbilityName ? `You: ${defenseAbilityName}` : "Defense Holds";
-            if (blocked > 0) {
-              subtitle = defenseAbilityName
-                ? `You block ${blocked} damage with ${defenseAbilityName}.`
-                : `You block ${blocked} damage from ${attackerLabel}'s ${abilityLabel}.`;
-              cta = "Damage prevented.";
-            } else {
-              subtitle = defenseAbilityName
-                ? `You use ${defenseAbilityName} to avoid the attack.`
-                : `You avoid ${attackerLabel}'s ${abilityLabel}.`;
-              cta = "Evaded successfully.";
-            }
-            cueSide = "you";
-          } else {
-            title = defenseAbilityName ? `${defenderLabel}: ${defenseAbilityName}` : "Attack Blocked";
-            if (blocked > 0) {
-              subtitle = defenseAbilityName
-                ? `${defenderLabel} blocks ${blocked} damage with ${defenseAbilityName}.`
-                : `${defenderLabel} blocks ${blocked} damage from your ${abilityLabel}.`;
-              cta = "No damage dealt.";
-            } else {
-              subtitle = defenseAbilityName
-                ? `${defenderLabel} uses ${defenseAbilityName} to avoid your ${abilityLabel}.`
-                : `${defenderLabel} avoids your ${abilityLabel}.`;
-              cta = "Attack evaded.";
-            }
-          }
-        } else {
-          kind = "attack";
-          priority = "urgent";
-          if (playerIsAttacker) {
-            title = abilityLabel ? `Your ${abilityLabel}` : "Your attack";
-            const fragments = [`You attacked for ${incomingDamage} damage.`];
-            if (blocked > 0) {
-              fragments.push(
-                defenseAbilityName
-                  ? `${defenderLabel} used ${defenseAbilityName} and blocked ${blocked} damage.`
-                  : `${defenderLabel} blocked ${blocked} damage.`
-              );
-            } else {
-              fragments.push(`${defenderLabel} failed to block the attack.`);
-            }
-            if (reflected > 0) {
-              fragments.push(`You take ${reflected} reflected damage.`);
-            }
-            subtitle = fragments.join(" ");
-            cta = `Overall you dealt ${damageDealt} damage.`;
-            cueSide = "you";
-          } else {
-            title = abilityLabel ? `${attackerLabel}'s ${abilityLabel}` : `${attackerLabel} attacks`;
-            const fragments = [`You are being attacked for ${incomingDamage} damage.`];
-            if (blocked > 0) {
-              fragments.push(
-                defenseAbilityName
-                  ? `You used ${defenseAbilityName} and blocked ${blocked} damage.`
-                  : `You blocked ${blocked} damage.`
-              );
-            } else if (defenseAbilityName) {
-              fragments.push(`You used ${defenseAbilityName}, but it couldn't block the attack.`);
-            } else {
-              fragments.push(`You couldn't block the attack.`);
-            }
-            if (reflected > 0) {
-              fragments.push(`${attackerLabel} takes ${reflected} reflected damage.`);
-            }
-            subtitle = fragments.join(" ");
-            cta = `Overall you take ${damageDealt} damage.`;
-          }
-        }
-
+        const summaryCue = buildDefenseSummaryCue({
+          summary: resolution.summary,
+          context,
+          attackerSide,
+          defenderSide,
+        });
         interruptCue();
-        const summaryDuration = lethal
+        const summaryDuration = summaryCue.lethal
           ? getCueDuration("defenseSummaryLethal")
           : getCueDuration("defenseSummary");
         summaryDelay = Math.max(summaryDuration, 600);
         enqueueCue({
-          kind,
-          title,
-          subtitle,
-          cta,
+          kind: "defenseSummary",
+          title: summaryCue.title,
+          subtitle: summaryCue.subtitle,
+          cta: summaryCue.cta,
           durationMs: summaryDuration,
-          priority,
-          side: cueSide,
-          allowDuringTransition,
-          mergeKey: lethal ? `battle:${cueSide ?? "any"}` : `defense:${defenderSide}`,
+          priority: summaryCue.priority,
+          side: summaryCue.side,
+          allowDuringTransition: summaryCue.allowDuringTransition,
+          mergeKey: summaryCue.mergeKey,
         });
       }
 
