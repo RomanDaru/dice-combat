@@ -891,10 +891,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const initialStartTimersRef = useRef<{
     start: (() => void) | null;
     follow: (() => void) | null;
-  }>({
-    start: null,
-    follow: null,
-  });
+  }>({ start: null, follow: null });
   const clearInitialStartTimers = useCallback(() => {
     initialStartTimersRef.current.start?.();
     initialStartTimersRef.current.start = null;
