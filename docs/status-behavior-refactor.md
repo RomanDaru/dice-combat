@@ -41,7 +41,7 @@
 - `windows`: array of the micro-hook ids defined in `docs/holy-grail-combat-flow.md` (`upkeep:tick`, `attack:declare`, `preDefense:start`, `defense:afterRoll`, etc.).
 - `behaviorId`: string enum pointing at handler module (initial set: `bonus_pool`, `pre_defense_reaction`, `damage_over_time`, `custom_script`).
 - `behaviorConfig`: arbitrary JSON-ish blob consumed by that handler (e.g. Chi describes attack/defense payouts, Evasive stores DC).
-- `attachment`: { transferable?: boolean; ownerFlag?: boolean } so we can track whether the status may hop targets and whether we care about original applier.
+- `attachment`: { transferable?: boolean } so we can tell whether the status may hop targets (token-level metadata like `originalOwnerId` will live on instances).
 
 ## Behavior Contract Draft
 
@@ -62,7 +62,7 @@
 ## Proposed Architecture
 
 1. **Status Definition Schema Update**
-   - Add fields: `polarity` (`positive`, `negative`), `activation` (`active`, `passive`), `windows` (array of micro-hooks per holy grail doc), `behaviorId`, optional `behaviorConfig`, plus attachment metadata (`transferable?: boolean`, `ownerFlag?: boolean`) so we can tag whether the current holder is the original applier.
+   - Add fields: `polarity` (`positive`, `negative`), `activation` (`active`, `passive`), `windows` (array of micro-hooks per holy grail doc), `behaviorId`, optional `behaviorConfig`, plus attachment metadata (`transferable?: boolean`) so we can tag whether the status is allowed to switch owners (original owner tracking stays on the token instance).
    - Ensure behaviors can override baseline rules (e.g., extra rerolls, custom damage formulas) via `behaviorConfig` so new statuses can bend core rules without touching engine code.
 
 2. **Behavior Registry**

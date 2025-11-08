@@ -53,7 +53,7 @@ defineStatus({
     tiers: [2, 3, 4],
     decayPerTick: 1,
   },
-  attachment: { transferable: true, ownerFlag: true },
+  attachment: { transferable: true },
   maxStacks: 3,
   priority: 10,
   cleanse: {

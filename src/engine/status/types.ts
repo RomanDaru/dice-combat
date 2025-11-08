@@ -29,7 +29,6 @@ export type StatusBehaviorConfig = Record<string, unknown>;
 
 export interface StatusAttachmentMetadata {
   transferable?: boolean;
-  ownerFlag?: boolean;
 }
 
 export type StatusPhase =
