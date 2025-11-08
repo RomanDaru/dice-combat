@@ -129,7 +129,7 @@ type ControllerContext = {
   performStatusClearRoll: (side: Side) => void;
   onConfirmAttack: () => void;
   onUserDefenseRoll: () => void;
-  onUserEvasiveRoll: () => void;
+  onTriggerStatusReaction: (statusId: StatusId) => void;
   onChooseDefenseOption: (combo: Combo | null) => void;
   onConfirmDefense: () => void;
   activeAbilities: ActiveAbility[];
@@ -738,7 +738,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     onUserDefenseRoll,
     onChooseDefenseOption,
     onConfirmDefense,
-    onUserEvasiveRoll,
+    onUserStatusReaction,
   } = useDefenseActions({
     turn,
     rolling,
@@ -781,14 +781,20 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       _context: ActiveAbilityContext
     ) => {
       switch (action.type) {
-        case "USE_EVASIVE":
-          onUserEvasiveRoll();
+        case "USE_STATUS_REACTION":
+          if (action.payload && typeof action.payload === "object") {
+            const statusId = (action.payload as { statusId?: StatusId })
+              .statusId;
+            if (statusId) {
+              onUserStatusReaction(statusId);
+            }
+          }
           break;
         default:
           break;
       }
     },
-    [onUserEvasiveRoll]
+    [onUserStatusReaction]
   );
 
   const turnTransitionSide =
@@ -1117,7 +1123,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       onUserDefenseRoll,
       onChooseDefenseOption,
       onConfirmDefense,
-      onUserEvasiveRoll,
+      onTriggerStatusReaction: onUserStatusReaction,
       activeAbilities,
       onPerformActiveAbility,
       setDefenseStatusMessage,
@@ -1145,7 +1151,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       onUserDefenseRoll,
       onChooseDefenseOption,
       onConfirmDefense,
-      onUserEvasiveRoll,
+      onUserStatusReaction,
       performStatusClearRoll,
       popDamage,
       startInitialRoll,

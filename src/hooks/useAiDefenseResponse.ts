@@ -6,6 +6,7 @@ import {
   selectHighestBlockOption,
 } from "../game/combat/defenseBoard";
 import { buildDefensePlan } from "../game/combat/defensePipeline";
+import { getPreDefenseReactionStatuses } from "./preDefenseReactions";
 import { resolveAttack } from "../engine/resolveAttack";
 import {
   aggregateStatusSpendSummaries,
@@ -76,7 +77,51 @@ type AiDefenseRequest = {
   effectiveAbility: OffensiveAbility;
   baseDamage: number;
   attackStatusSpends: StatusSpendSummary[];
-  aiShouldAttemptEvasive: boolean;
+  reactionStatusId: StatusId | null;
+};
+
+const getDefenseBonusPerStack = (statusId: StatusId) => {
+  const def = getStatus(statusId);
+  if (!def || def.behaviorId !== "bonus_pool") return null;
+  const config = def.behaviorConfig as
+    | {
+        defense?: {
+          bonusBlockPerStack?: number;
+        };
+      }
+    | undefined;
+  const value = config?.defense?.bonusBlockPerStack;
+  return typeof value === "number" && value > 0 ? value : null;
+};
+
+const buildDefenseSpendRequests = (
+  defender: PlayerState,
+  incomingDamage: number,
+  baseBlock: number,
+  side: Side,
+  getBudget: (side: Side, statusId: StatusId) => number
+): Record<StatusId, number> => {
+  const desiredBlock = Math.max(0, incomingDamage - baseBlock);
+  if (desiredBlock <= 0) {
+    return {};
+  }
+  const requests: Record<StatusId, number> = {};
+  Object.entries(defender.tokens).forEach(([rawId, stacks]) => {
+    if (stacks <= 0) return;
+    const statusId = rawId as StatusId;
+    const bonusPerStack = getDefenseBonusPerStack(statusId);
+    if (!bonusPerStack) return;
+    const def = getStatus(statusId);
+    const spendDef = def?.spend;
+    if (!spendDef?.allowedPhases.includes("defenseRoll")) return;
+    const budget = spendDef.turnLimited
+      ? Math.min(stacks, getBudget(side, statusId))
+      : stacks;
+    if (budget <= 0) return;
+    const stacksNeeded = Math.ceil(desiredBlock / bonusPerStack);
+    requests[statusId] = Math.min(stacksNeeded, budget);
+  });
+  return requests;
 };
 
 export function useAiDefenseResponse({
@@ -105,7 +150,7 @@ export function useAiDefenseResponse({
       effectiveAbility,
       baseDamage,
       attackStatusSpends,
-      aiShouldAttemptEvasive,
+      reactionStatusId,
     }: AiDefenseRequest) => {
       const resolveAfterDefense = (
         defenderState: PlayerState,
@@ -175,15 +220,18 @@ export function useAiDefenseResponse({
               : selectDefenseOptionByCombo(defenseRollResult, null);
             const baseResolution = resolveDefenseSelection(selection);
 
-            const requestedChi = Math.min(
-              getStacks(defenderState.tokens, "chi", 0),
-              getStatusBudget(defenderSide, "chi")
+            const defenseSpendRequests = buildDefenseSpendRequests(
+              defenderState,
+              effectiveAbility.damage,
+              baseResolution.baseBlock,
+              defenderSide,
+              getStatusBudget
             );
             const defensePlan = buildDefensePlan({
               defender: defenderState,
               incomingDamage: effectiveAbility.damage,
               baseResolution,
-              requestedChi,
+              spendRequests: defenseSpendRequests,
             });
             const defenseTotals = aggregateStatusSpendSummaries(
               defensePlan.defense.statusSpends
@@ -221,11 +269,21 @@ export function useAiDefenseResponse({
         );
       };
 
-      if (aiShouldAttemptEvasive && getStacks(defender.tokens, "evasive", 0) > 0) {
+      const availableReactions = getPreDefenseReactionStatuses(defender.tokens);
+      let reactionToUse: StatusId | null = null;
+      if (
+        reactionStatusId &&
+        getStacks(defender.tokens, reactionStatusId, 0) > 0
+      ) {
+        reactionToUse = reactionStatusId;
+      } else if (availableReactions.length > 0) {
+        reactionToUse = availableReactions[0];
+      }
+      if (reactionToUse) {
         setPhase("defense");
         animateDefenseDie(
           (roll) => {
-            const spendResult = spendStatus(defender.tokens, "evasive", "defenseRoll", {
+            const spendResult = spendStatus(defender.tokens, reactionToUse, "defenseRoll", {
               phase: "defenseRoll",
               roll,
             });
@@ -242,32 +300,36 @@ export function useAiDefenseResponse({
             };
             setPlayer(defenderSide, consumedDefender);
 
-            const evadeSuccess =
+            const reactionDef = getStatus(reactionToUse);
+            const reactionName = reactionDef?.name ?? reactionToUse;
+            const reactionSuccess =
               typeof spendResult.spend.success === "boolean"
                 ? spendResult.spend.success
                 : !!spendResult.spend.negateIncoming;
 
-            const evasiveCost = getStatus("evasive")?.spend?.costStacks ?? 1;
-            const evasiveSummary = createStatusSpendSummary("evasive", evasiveCost, [
-              spendResult.spend,
-            ]);
+            const reactionCost = reactionDef?.spend?.costStacks ?? 1;
+            const reactionSummary = createStatusSpendSummary(
+              reactionToUse,
+              reactionCost,
+              [spendResult.spend]
+            );
 
             patchAiDefense({ evasiveRoll: roll });
 
-            if (evadeSuccess) {
+            if (reactionSuccess) {
               patchAiDefense({
                 inProgress: false,
                 defenseRoll: null,
                 defenseDice: null,
                 defenseCombo: null,
               });
-              resolveAfterDefense(consumedDefender, null, [evasiveSummary]);
+              resolveAfterDefense(consumedDefender, null, [reactionSummary]);
               return;
             }
 
             pendingDefenseSpendsRef.current = [
               ...pendingDefenseSpendsRef.current,
-              evasiveSummary,
+              reactionSummary,
             ];
 
             scheduleCallback(360, () => {

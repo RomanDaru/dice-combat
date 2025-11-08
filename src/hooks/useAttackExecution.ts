@@ -1,15 +1,6 @@
 import { useCallback, type MutableRefObject } from "react";
-import {
-  createStatusSpendSummary,
-  getStatus,
-  getStacks,
-  spendStatus,
-} from "../engine/status";
-import type {
-  StatusId,
-  StatusSpendApplyResult,
-  StatusSpendSummary,
-} from "../engine/status";
+import { getStatus, getStacks } from "../engine/status";
+import type { StatusId, StatusSpendSummary } from "../engine/status";
 import type { GameState } from "../game/state";
 import type {
   ActiveAbility,
@@ -22,6 +13,8 @@ import { resolvePassTurn } from "../game/flow/turnEnd";
 import type { TurnEndResolution } from "../game/flow/turnEnd";
 import type { DefenseResolutionHandler } from "./useDefenseResolution";
 import { useAiDefenseResponse } from "./useAiDefenseResponse";
+import { getPreDefenseReactionStatuses } from "./preDefenseReactions";
+import { applyAttackStatusSpends } from "./statusSpends";
 
 type UseAttackExecutionArgs = {
   turn: Side;
@@ -83,7 +76,7 @@ type UseAttackExecutionArgs = {
   resolveDefenseWithEvents: DefenseResolutionHandler;
   aiActiveAbilities: ActiveAbility[];
   performAiActiveAbility: (abilityId: string) => boolean;
-  aiEvasiveRequestedRef: MutableRefObject<boolean>;
+  aiReactionRequestRef: MutableRefObject<StatusId | null>;
 };
 
 export function useAttackExecution({
@@ -115,7 +108,7 @@ export function useAttackExecution({
   resolveDefenseWithEvents,
   aiActiveAbilities,
   performAiActiveAbility,
-  aiEvasiveRequestedRef,
+  aiReactionRequestRef,
 }: UseAttackExecutionArgs) {
   const { handleAiDefenseResponse } = useAiDefenseResponse({
     setDefenseStatusMessage,
@@ -174,56 +167,19 @@ export function useAttackExecution({
       }
 
       const baseDamage = selectedAbility.damage;
-      const attackStatusSpends: StatusSpendSummary[] = [];
-      let workingTokens = attacker.tokens;
-      let tokensChanged = false;
-
-      Object.entries(attackStatusRequests).forEach(([rawStatusId, requested]) => {
-        const statusId = rawStatusId as StatusId;
-        if (requested <= 0) return;
-        const statusDef = getStatus(statusId);
-        const spendDef = statusDef?.spend;
-        if (!spendDef || !spendDef.allowedPhases.includes("attackRoll")) {
-          return;
-        }
-        if (baseDamage <= 0) return;
-        const costStacks = spendDef.costStacks || 1;
-        const ownedStacks = getStacks(workingTokens, statusId, 0);
-        let availableStacks = Math.max(0, Math.min(requested, ownedStacks));
-        if (spendDef.turnLimited) {
-          const budget = getStatusBudget("you", statusId);
-          availableStacks = Math.min(availableStacks, budget);
-        }
-        const attempts = costStacks > 0 ? Math.floor(availableStacks / costStacks) : 0;
-        if (attempts <= 0) return;
-        let localTokens = workingTokens;
-        const spendResults: StatusSpendApplyResult[] = [];
-        let damageContext = baseDamage;
-        for (let i = 0; i < attempts; i += 1) {
-          const spendResult = spendStatus(localTokens, statusId, "attackRoll", {
-            phase: "attackRoll",
-            baseDamage: damageContext,
-          });
-          if (!spendResult) break;
-          localTokens = spendResult.next;
-          spendResults.push(spendResult.spend);
-          if (typeof spendResult.spend.bonusDamage === "number") {
-            damageContext += spendResult.spend.bonusDamage;
-          }
-        }
-        if (spendResults.length > 0) {
-          const stacksSpent = spendResults.length * costStacks;
-          workingTokens = localTokens;
-          tokensChanged = true;
-          attackStatusSpends.push(
-            createStatusSpendSummary(statusId, stacksSpent, spendResults)
-          );
-        }
+      const attackSpendResult = applyAttackStatusSpends({
+        requests: attackStatusRequests,
+        tokens: attacker.tokens,
+        baseDamage,
+        getBudget: (statusId) => getStatusBudget("you", statusId),
+        consumeBudget: (statusId, amount) =>
+          consumeStatusBudget("you", statusId, amount),
       });
-
+      const { statusSpends: attackStatusSpends, tokens: workingTokens } =
+        attackSpendResult;
       clearAttackStatusRequests();
 
-      if (tokensChanged) {
+      if (attackStatusSpends.length > 0 && workingTokens !== attacker.tokens) {
         attacker = {
           ...attacker,
           tokens: workingTokens,
@@ -231,17 +187,7 @@ export function useAttackExecution({
         setPlayer("you", attacker);
       }
 
-      const attackBonusDamage = attackStatusSpends.reduce(
-        (sum, spend) => sum + spend.bonusDamage,
-        0
-      );
-      attackStatusSpends.forEach((spend) => {
-        if (spend.stacksSpent <= 0) return;
-        const def = getStatus(spend.id);
-        if (def?.spend?.turnLimited) {
-          consumeStatusBudget("you", spend.id, spend.stacksSpent);
-        }
-      });
+      const attackBonusDamage = attackSpendResult.bonusDamage;
       const effectiveAbility: OffensiveAbility = {
         ...selectedAbility,
         damage: baseDamage + attackBonusDamage,
@@ -249,21 +195,28 @@ export function useAttackExecution({
 
       logPlayerAttackStart(attackDice, effectiveAbility, attacker.hero.name);
 
-      const aiEvasiveAbility = aiActiveAbilities.find(
+      const aiReactionAbility = aiActiveAbilities.find(
         (abilityItem) => abilityItem.id === ActiveAbilityIds.SHADOW_MONK_EVASIVE_ID
       );
-      let aiShouldAttemptEvasive = false;
-      if (aiEvasiveAbility) {
-        aiEvasiveRequestedRef.current = false;
-        const executed = performAiActiveAbility(aiEvasiveAbility.id);
-        if (executed && aiEvasiveRequestedRef.current) {
-          aiShouldAttemptEvasive = true;
+      const availableReactions = getPreDefenseReactionStatuses(defender.tokens);
+      let aiReactionStatusId: StatusId | null = null;
+      if (aiReactionAbility) {
+        aiReactionRequestRef.current = null;
+        const executed = performAiActiveAbility(aiReactionAbility.id);
+        if (executed) {
+          aiReactionStatusId = aiReactionRequestRef.current;
         }
-      } else if (getStacks(defender.tokens, "evasive", 0) > 0) {
-        aiShouldAttemptEvasive = true;
       }
-
-      aiEvasiveRequestedRef.current = false;
+      if (
+        aiReactionStatusId &&
+        getStacks(defender.tokens, aiReactionStatusId, 0) <= 0
+      ) {
+        aiReactionStatusId = null;
+      }
+      if (!aiReactionStatusId && availableReactions.length > 0) {
+        aiReactionStatusId = availableReactions[0] ?? null;
+      }
+      aiReactionRequestRef.current = null;
 
       handleAiDefenseResponse({
         attacker,
@@ -273,13 +226,12 @@ export function useAttackExecution({
         effectiveAbility,
         baseDamage,
         attackStatusSpends,
-        aiShouldAttemptEvasive,
+        reactionStatusId: aiReactionStatusId,
       });
     });
   }, [
     ability,
     aiActiveAbilities,
-    aiEvasiveRequestedRef,
     applyTurnEndResolution,
     attackStatusRequests,
     clearAttackStatusRequests,

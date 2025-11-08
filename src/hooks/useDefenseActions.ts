@@ -136,7 +136,7 @@ export function useDefenseActions({
     pendingDefenseSpendsRef.current = [];
     clearDefenseStatusRequests();
   }, [clearDefenseStatusRequests]);
-  const aiEvasiveRequestedRef = useRef(false);
+  const aiStatusReactionRef = useRef<StatusId | null>(null);
 
   const setPhase = useCallback(
     (phase: GameState["phase"]) => {
@@ -150,8 +150,9 @@ export function useDefenseActions({
       action: NonNullable<ActiveAbilityOutcome["controllerAction"]>,
       _context: ActiveAbilityContext
     ) => {
-      if (action.type === "USE_EVASIVE") {
-        aiEvasiveRequestedRef.current = true;
+      if (action.type === "USE_STATUS_REACTION") {
+        aiStatusReactionRef.current =
+          (action.payload as { statusId?: StatusId })?.statusId ?? null;
       }
     },
     []
@@ -237,14 +238,14 @@ export function useDefenseActions({
     resolveDefenseWithEvents,
     aiActiveAbilities,
     performAiActiveAbility,
-    aiEvasiveRequestedRef,
+    aiReactionRequestRef: aiStatusReactionRef,
   });
 
   const {
     onUserDefenseRoll,
     onChooseDefenseOption,
     onConfirmDefense,
-    onUserEvasiveRoll,
+    onUserStatusReaction,
   } = usePlayerDefenseController({
     pendingAttack,
     playerDefenseState,
@@ -274,6 +275,6 @@ export function useDefenseActions({
     onUserDefenseRoll,
     onChooseDefenseOption,
     onConfirmDefense,
-    onUserEvasiveRoll,
+    onUserStatusReaction,
   };
 }

@@ -99,12 +99,12 @@
    - [x] Introduce a generic `turnStatusBudgets` structure (replacing `turnChiAvailable`) plus helper utilities to debit/credit budgets based on status metadata.
 
 4. **Hook & Controller Cleanup**
-   - [ ] `useAttackExecution`, `useAiDefenseResponse`, `usePlayerDefenseController`, `useAiController`, `GameController`, `PlayerActionPanel` consume the new budget helpers and behavior outputs; remove every explicit reference to `chi`/`evasive`.
-   - [ ] Ensure logging/UI text pulls friendly names from status definitions.
+   - [x] `useAttackExecution`, `useAiDefenseResponse`, `usePlayerDefenseController`, `useAiController`, `GameController`, `PlayerActionPanel` consume the new budget helpers and behavior outputs; remove every explicit reference to `chi`/`evasive`.
+   - [x] Ensure logging/UI text pulls friendly names from status definitions.
 
 5. **Validation**
-   - [ ] Update/extend unit tests in `engine/status/__tests__` plus add integration coverage for the new behaviors.
-   - [ ] Manual sanity run: verify both heroes can attack/defend/evasive under the new system.
+   - [x] Update/extend unit tests in `engine/status/__tests__` plus add integration coverage for the new behaviors.
+   - [x] Manual sanity run: verify both heroes can attack/defend/evasive under the new system.
 
 ## Deliverables
 

@@ -7,17 +7,8 @@ import { useGame } from "../context/GameContext";
 import { useLatest } from "./useLatest";
 import type { GameFlowEvent } from "./useTurnController";
 import type { Rng } from "../engine/rng";
-import {
-  createStatusSpendSummary,
-  getStatus,
-  getStacks,
-  spendStatus,
-  type StatusId,
-} from "../engine/status";
-import type {
-  StatusSpendApplyResult,
-  StatusSpendSummary,
-} from "../engine/status";
+import { getStatus, type StatusId } from "../engine/status";
+import { applyAttackStatusSpends, type StatusSpendRequests } from "./statusSpends";
 
 type UseAiControllerArgs = {
   logAiNoCombo: (diceValues: number[]) => void;
@@ -34,6 +25,47 @@ type UseAiControllerArgs = {
   consumeStatusBudget: (side: Side, statusId: StatusId, amount: number) => void;
   onAiNoCombo: () => void;
   rng: Rng;
+};
+
+const getAttackBonusPerStack = (statusId: StatusId) => {
+  const def = getStatus(statusId);
+  if (!def || def.behaviorId !== "bonus_pool") return null;
+  const config = def.behaviorConfig as
+    | {
+        attack?: {
+          bonusDamagePerStack?: number;
+        };
+      }
+    | undefined;
+  const bonus = config?.attack?.bonusDamagePerStack;
+  return typeof bonus === "number" && bonus > 0 ? bonus : null;
+};
+
+const buildAiAttackRequests = (
+  attacker: PlayerState,
+  defender: PlayerState,
+  ability: OffensiveAbility,
+  getBudget: (statusId: StatusId) => number
+): StatusSpendRequests => {
+  const requests: StatusSpendRequests = {};
+  const additionalNeeded = Math.max(0, defender.hp - ability.damage);
+  if (additionalNeeded <= 0) return requests;
+  Object.entries(attacker.tokens).forEach(([rawId, stacks]) => {
+    if (stacks <= 0) return;
+    const statusId = rawId as StatusId;
+    const bonusPerStack = getAttackBonusPerStack(statusId);
+    if (!bonusPerStack) return;
+    const def = getStatus(statusId);
+    const spendDef = def?.spend;
+    if (!spendDef?.allowedPhases.includes("attackRoll")) return;
+    const budget = spendDef.turnLimited
+      ? Math.min(stacks, getBudget(statusId))
+      : stacks;
+    if (budget <= 0) return;
+    const stacksNeeded = Math.ceil(additionalNeeded / bonusPerStack);
+    requests[statusId] = Math.min(stacksNeeded, budget);
+  });
+  return requests;
 };
 
 export function useAiController({
@@ -100,17 +132,6 @@ export function useAiController({
       sendFlowEvent({ type: "SET_PHASE", phase });
     },
     [sendFlowEvent]
-  );
-
-  const chooseAiAttackChiSpend = useCallback(
-    (attacker: PlayerState, defender: PlayerState, ability: OffensiveAbility) => {
-      const available = getStacks(attacker.tokens, "chi", 0);
-      if (available <= 0) return 0;
-      const requiredForLethal = Math.max(0, defender.hp - ability.damage);
-      if (requiredForLethal <= 0) return 0;
-      return Math.min(available, requiredForLethal);
-    },
-    []
   );
 
   const aiPlay = useCallback(() => {
@@ -182,70 +203,31 @@ export function useAiController({
         }
 
         const baseDamage = ab.damage;
-        let desiredChiSpend = 0;
-        if (latestAi.hero.id === "Shadow Monk") {
-          const desired = chooseAiAttackChiSpend(latestAi, latestYou, ab);
-          desiredChiSpend = Math.min(
-            desired,
-            getStatusBudget("ai", "chi"),
-            getStacks(latestAi.tokens, "chi", 0)
-          );
-        }
         let effectiveAbility = ab;
-        const attackStatusSpends: StatusSpendSummary[] = [];
-        let workingTokens = latestAi.tokens;
-        if (baseDamage > 0 && desiredChiSpend > 0) {
-          const chiDef = getStatus("chi");
-          const chiCost = chiDef?.spend?.costStacks ?? 1;
-          const maxAttempts =
-            chiDef?.spend && chiCost > 0
-              ? Math.floor(desiredChiSpend / chiCost)
-              : 0;
-          if (chiDef?.spend && maxAttempts > 0) {
-            const spendResults: StatusSpendApplyResult[] = [];
-            let runningBonus = 0;
-            for (let i = 0; i < maxAttempts; i += 1) {
-              const spendResult = spendStatus(
-                workingTokens,
-                "chi",
-                "attackRoll",
-                {
-                  phase: "attackRoll",
-                  baseDamage: baseDamage + runningBonus,
-                }
-              );
-              if (!spendResult) break;
-              workingTokens = spendResult.next;
-              spendResults.push(spendResult.spend);
-              runningBonus += spendResult.spend.bonusDamage ?? 0;
-            }
-            if (spendResults.length > 0) {
-              const totalStacks = spendResults.length * chiCost;
-              attackStatusSpends.push(
-                createStatusSpendSummary("chi", totalStacks, spendResults)
-              );
-            }
-          }
-        }
+        const attackRequests = buildAiAttackRequests(
+          latestAi,
+          latestYou,
+          ab,
+          (statusId) => getStatusBudget("ai", statusId)
+        );
+        const attackSpendResult = applyAttackStatusSpends({
+          requests: attackRequests,
+          tokens: latestAi.tokens,
+          baseDamage,
+          getBudget: (statusId) => getStatusBudget("ai", statusId),
+          consumeBudget: (statusId, amount) =>
+            consumeStatusBudget("ai", statusId, amount),
+        });
+        const attackStatusSpends = attackSpendResult.statusSpends;
         if (attackStatusSpends.length > 0) {
           const updatedAi = {
             ...latestAi,
-            tokens: workingTokens,
+            tokens: attackSpendResult.tokens,
           };
           dispatch({ type: "SET_PLAYER", side: "ai", player: updatedAi });
-          attackStatusSpends.forEach((spend) => {
-            if (spend.stacksSpent <= 0) return;
-            if (getStatus(spend.id)?.spend?.turnLimited) {
-              consumeStatusBudget("ai", spend.id, spend.stacksSpent);
-            }
-          });
-          const bonusDamage = attackStatusSpends.reduce(
-            (sum, spend) => sum + spend.bonusDamage,
-            0
-          );
           effectiveAbility = {
             ...ab,
-            damage: baseDamage + bonusDamage,
+            damage: baseDamage + attackSpendResult.bonusDamage,
           };
         }
         setPendingAttack({
