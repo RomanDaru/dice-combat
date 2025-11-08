@@ -91,12 +91,12 @@
    - [x] Extend the `StatusDefinition` type with the new metadata and adjust every status entry.
 
 2. **Behavior Registry Implementation**
-   - [ ] Create `engine/status/behaviors/index.ts` exporting handlers.
-   - [ ] Port chi/evasive logic into reusable behavior modules; ensure behavior output covers current needs (bonus dmg/block, negate, custom roll counts).
+   - [x] Create `engine/status/behaviors/index.ts` exporting handlers.
+   - [x] Port chi/evasive logic into reusable behavior modules; ensure behavior output covers current needs (bonus dmg/block, negate, custom roll counts).
 
 3. **Runtime Refactor**
-   - [ ] Update `spendStatus`/`createStatusSpendSummary`/`aggregateStatusSpendSummaries` to rely on behaviors rather than ID checks.
-   - [ ] Introduce a generic `turnStatusBudgets` structure (replacing `turnChiAvailable`) plus helper utilities to debit/credit budgets based on status metadata.
+   - [x] Update `spendStatus`/`createStatusSpendSummary`/`aggregateStatusSpendSummaries` to rely on behaviors rather than ID checks.
+   - [x] Introduce a generic `turnStatusBudgets` structure (replacing `turnChiAvailable`) plus helper utilities to debit/credit budgets based on status metadata.
 
 4. **Hook & Controller Cleanup**
    - [ ] `useAttackExecution`, `useAiDefenseResponse`, `usePlayerDefenseController`, `useAiController`, `GameController`, `PlayerActionPanel` consume the new budget helpers and behavior outputs; remove every explicit reference to `chi`/`evasive`.

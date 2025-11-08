@@ -160,8 +160,10 @@ export type SpendStatusManyResult = {
 export const createStatusSpendSummary = (
   id: StatusId,
   stacksSpent: number,
-  spends: StatusSpendApplyResult[]
+  spends: StatusSpendApplyResult[],
+  options?: { def?: StatusDef }
 ): StatusSpendSummary => {
+  const def = options?.def ?? getStatus(id);
   const bonusDamage = spends.reduce(
     (acc, spend) => acc + (spend.bonusDamage ?? 0),
     0
@@ -181,6 +183,9 @@ export const createStatusSpendSummary = (
 
   return {
     id,
+    name: def?.name ?? id,
+    icon: def?.icon ?? id.slice(0, 1).toUpperCase(),
+    behaviorId: def?.behaviorId,
     stacksSpent,
     bonusDamage,
     bonusBlock,
@@ -235,7 +240,9 @@ export function spendStatusMany(
     next: working,
     spends,
     totalCost,
-    summary: createStatusSpendSummary(id as StatusId, totalCost, spends),
+    summary: createStatusSpendSummary(id as StatusId, totalCost, spends, {
+      def,
+    }),
   };
 }
 

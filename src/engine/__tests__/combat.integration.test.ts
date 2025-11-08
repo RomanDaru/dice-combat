@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { resolveAttack } from "../resolveAttack";
 import type { PlayerState, OffensiveAbility, Hero } from "../../game/types";
-import type { StatusSpendSummary } from "../status";
+import {
+  createStatusSpendSummary,
+  type StatusSpendApplyResult,
+  type StatusSpendSummary,
+} from "../status";
 
 const stubHero = (name: string): Hero => ({
   id: name.toLowerCase().replace(/\s+/g, "_"),
@@ -28,15 +32,13 @@ function spendSummary(
   stacks: number,
   bonus: Partial<Pick<StatusSpendSummary, "bonusDamage" | "bonusBlock">> = {}
 ): StatusSpendSummary {
-  return {
-    id: id as any,
-    stacksSpent: stacks,
-    spends: [],
-    logs: [],
-    bonusDamage: bonus.bonusDamage ?? 0,
-    bonusBlock: bonus.bonusBlock ?? 0,
-    results: [],
-  };
+  const results: StatusSpendApplyResult[] = [
+    {
+      bonusDamage: bonus.bonusDamage,
+      bonusBlock: bonus.bonusBlock,
+    },
+  ];
+  return createStatusSpendSummary(id as any, stacks, results);
 }
 
 const stubAbility = (overrides: Partial<OffensiveAbility> = {}): OffensiveAbility => ({

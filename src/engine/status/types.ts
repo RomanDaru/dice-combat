@@ -120,6 +120,9 @@ export type StatusRegistry = Record<StatusId, StatusDef>;
 
 export type StatusSpendSummary = {
   id: StatusId;
+  name: string;
+  icon: string;
+  behaviorId?: StatusBehaviorId;
   stacksSpent: number;
   bonusDamage: number;
   bonusBlock: number;
