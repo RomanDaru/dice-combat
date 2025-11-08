@@ -63,11 +63,12 @@ Tento dokument udržiavaj aktuálny – pri každom zásadnom rozhodnutí o fáz
 - **GameController Alignment**: turn flow + cue scheduling live in `useGameFlow`/`GameController`; initiative follow-up for AI is fixed.
 - **Testing**: new engine/hooks suites (`combat.integration.test.ts`, `statusSpends.test.ts`, `StatusFlagArchitecture.test.ts`) cover the runtime changes.
 - **Timing Helper Adoption**: All battle UI + hooks call shared timer utilities; stray `setTimeout`/`setInterval` usage now lives in the centralized scheduler only.
+- **Pre-defense Channel**: Reaction metadata + UI messaging now flow through `game/combat/preDefenseReactions.ts`, so both player + AI use the same descriptors.
 
 ## Upcoming Tasklist
 
 - [x] Finish migrating every timing interaction to the central helper (no stray `setTimeout` usage) and expose transition metadata via context. _Done Nov 8 via `chore/timing-helper-updates`._
-- [ ] Complete the pre-defense status channel by moving legacy reactions into `preDefenseReactions.ts` and surfacing cues/UI copy.
+- [x] Complete the pre-defense status channel by moving legacy reactions into `preDefenseReactions.ts` and surfacing cues/UI copy. _Done Nov 8 via `chore/timing-helper-updates`._
 - [ ] Enable polarity-driven status transfer/cleanse flows so players can bounce negative stacks back to the source.
 - [ ] Unify defense resolution summaries with cue overlays (damage vs. block snapshot) and add regression tests.
 - [ ] Pipe `resolveTurnStart` outputs (status ticks, prompts) into the cue timeline with proper durations.

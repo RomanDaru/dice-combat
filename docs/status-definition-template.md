@@ -37,6 +37,7 @@ defineStatus({
     allowedPhases: ["attackRoll", "defenseRoll"],
     turnLimited: true,          // true => participates in per-turn budget tracking
     needsRoll: false,
+    diceCount: 1,               // optional: number of dice shown for reaction rolls
     // apply: optional; leave undefined when behavior handles it
   },
 

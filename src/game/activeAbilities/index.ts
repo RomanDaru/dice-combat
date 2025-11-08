@@ -1,5 +1,8 @@
-﻿import type { ActiveAbility } from "../types";
-import { getStacks } from "../../engine/status";
+import type { ActiveAbility } from "../types";
+import {
+  listPreDefenseReactions,
+  pickFirstPreDefenseReaction,
+} from "../combat/preDefenseReactions";
 
 type ActiveAbilityRegistry = Record<string, ActiveAbility[]>;
 
@@ -19,12 +22,20 @@ const ShadowMonkActiveAbilities: ActiveAbility[] = [
       const pending = state.pendingAttack;
       if (!pending || pending.defender !== side) return false;
       if (!["attack", "defense"].includes(phase)) return false;
-      if (getStacks(actingPlayer.tokens, "evasive", 0) <= 0) return false;
-      return true;
+      return listPreDefenseReactions(actingPlayer.tokens).length > 0;
     },
-    execute: () => ({
-      controllerAction: { type: "USE_EVASIVE" },
-    }),
+    execute: ({ actingPlayer }) => {
+      const reaction = pickFirstPreDefenseReaction(actingPlayer.tokens);
+      if (!reaction) {
+        return { logs: ["No pre-defense reactions available."] };
+      }
+      return {
+        controllerAction: {
+          type: "USE_STATUS_REACTION",
+          payload: { statusId: reaction.id },
+        },
+      };
+    },
   },
 ];
 
@@ -38,4 +49,3 @@ export const getActiveAbilitiesForHero = (heroId: string): ActiveAbility[] =>
 export const ActiveAbilityIds = {
   SHADOW_MONK_EVASIVE_ID,
 } as const;
-

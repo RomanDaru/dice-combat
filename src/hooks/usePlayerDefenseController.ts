@@ -18,7 +18,6 @@ import {
   getStacks,
   spendStatus,
   type StatusId,
-  type StatusSpend,
   type StatusSpendSummary,
 } from "../engine/status";
 import type { GameState } from "../game/state";
@@ -34,6 +33,7 @@ import {
   type DefenseSelectionCarrier,
 } from "./defenseActions.helpers";
 import type { DefenseResolutionHandler } from "./useDefenseResolution";
+import { getPreDefenseReactionDescriptor } from "../game/combat/preDefenseReactions";
 
 export type PlayerDefenseState = {
   roll: DefenseRollResult;
@@ -274,173 +274,166 @@ export function usePlayerDefenseController({
     setPlayerDefenseState,
   ]);
 
-  const onUserStatusReaction = useCallback((statusId: StatusId) => {
-    if (!pendingAttack || pendingAttack.defender !== "you") return;
-    const defenderSnapshot = latestState.current.players[pendingAttack.defender];
-    if (!defenderSnapshot || getStacks(defenderSnapshot.tokens, statusId, 0) <= 0) {
-      return;
-    }
-    const statusDef = getStatus(statusId);
-    if (
-      !statusDef?.spend ||
-      statusDef.behaviorId !== "pre_defense_reaction" ||
-      !statusDef.spend.allowedPhases.includes("defenseRoll")
-    ) {
-      return;
-    }
-    const reactionSpend = statusDef.spend as StatusSpend & { diceCount?: number };
-    const diceCount = Math.max(
-      1,
-      typeof reactionSpend?.diceCount === "number"
-        ? reactionSpend.diceCount
-        : 1
-    );
-    const seedFrame = Array.from(
-      { length: diceCount },
-      () => 1 + Math.floor(Math.random() * 6)
-    );
-    const statusName = statusDef.name;
-    setDefenseStatusMessage(`Rolling for ${statusName}...`);
-    setDefenseStatusRollDisplay({
-      dice: seedFrame,
-      inProgress: true,
-      label: `${statusName} Roll`,
-      outcome: null,
-    });
-    openDiceTray();
+  const onUserStatusReaction = useCallback(
+    (statusId: StatusId) => {
+      if (!pendingAttack || pendingAttack.defender !== "you") return;
+      const defenderSnapshot =
+        latestState.current.players[pendingAttack.defender];
+      if (
+        !defenderSnapshot ||
+        getStacks(defenderSnapshot.tokens, statusId, 0) <= 0
+      ) {
+        return;
+      }
+      const reaction = getPreDefenseReactionDescriptor(statusId);
+      if (!reaction) return;
 
-    animateDefenseDie(
-      (reactionRoll) => {
-        const defender = latestState.current.players[pendingAttack.defender];
-        const attacker = latestState.current.players[pendingAttack.attacker];
-        if (!defender || !attacker) return;
+      const buildFrame = (value?: number) =>
+        Array.from({ length: reaction.diceCount }, () =>
+          typeof value === "number"
+            ? value
+            : 1 + Math.floor(Math.random() * 6)
+        );
 
-        const spendResult = spendStatus(
-          defender.tokens,
-          statusId,
-          "defenseRoll",
-          { phase: "defenseRoll", roll: reactionRoll }
-        );
-        if (!spendResult) return;
-        const consumedDefender = {
-          ...defender,
-          tokens: spendResult.next,
-        };
-        const costStacks = statusDef.spend?.costStacks ?? 1;
-        const reactionSummary = createStatusSpendSummary(
-          statusId,
-          costStacks,
-          [spendResult.spend]
-        );
-        const reactionSuccess =
-          typeof spendResult.spend.success === "boolean"
-            ? spendResult.spend.success
-            : !!spendResult.spend.negateIncoming;
-        setPlayer(pendingAttack.defender, consumedDefender);
-        if (reactionSuccess) {
-          const resultDice = Array.from(
-            { length: diceCount },
-            () => reactionRoll
+      setDefenseStatusMessage(reaction.messages.rolling);
+      setDefenseStatusRollDisplay({
+        dice: buildFrame(),
+        inProgress: true,
+        label: reaction.rollLabel,
+        outcome: null,
+      });
+      openDiceTray();
+
+      animateDefenseDie(
+        (reactionRoll) => {
+          const defender =
+            latestState.current.players[pendingAttack.defender];
+          const attacker =
+            latestState.current.players[pendingAttack.attacker];
+          if (!defender || !attacker) return;
+
+          const spendResult = spendStatus(
+            defender.tokens,
+            statusId,
+            "defenseRoll",
+            { phase: "defenseRoll", roll: reactionRoll }
           );
+          if (!spendResult) return;
+          const consumedDefender = {
+            ...defender,
+            tokens: spendResult.next,
+          };
+          const reactionSummary = createStatusSpendSummary(
+            statusId,
+            reaction.costStacks,
+            [spendResult.spend]
+          );
+          const reactionSuccess =
+            typeof spendResult.spend.success === "boolean"
+              ? spendResult.spend.success
+              : !!spendResult.spend.negateIncoming;
+          setPlayer(pendingAttack.defender, consumedDefender);
+          if (reactionSuccess) {
+            setDefenseStatusRollDisplay({
+              dice: buildFrame(reactionRoll),
+              inProgress: false,
+              label: reaction.rollLabel,
+              outcome: "success",
+            });
+            setDefenseStatusMessage(
+              spendResult.spend.log ?? reaction.messages.success
+            );
+            const attackStatusSpends =
+              pendingAttack.modifiers?.statusSpends ?? [];
+            const attackBonusDamage = attackStatusSpends.reduce(
+              (sum, spend) => sum + spend.bonusDamage,
+              0
+            );
+            const baseAttackDamage =
+              pendingAttack.baseDamage ??
+              Math.max(0, pendingAttack.ability.damage - attackBonusDamage);
+            const reactionDefense = combineDefenseSpends(null, [
+              reactionSummary,
+            ]);
+            const resolution = resolveAttack({
+              source: "ai",
+              attackerSide: pendingAttack.attacker,
+              defenderSide: pendingAttack.defender,
+              attacker,
+              defender: consumedDefender,
+              ability: pendingAttack.ability,
+              baseDamage: baseAttackDamage,
+              attackStatusSpends,
+              defense: {
+                resolution: reactionDefense,
+              },
+            });
+            resetDefenseRequests();
+            setPendingAttack(null);
+            setPlayerDefenseState(null);
+            scheduleCallback(1200, () => {
+              closeDiceTray();
+            });
+            const defenseAbilityName = extractDefenseAbilityName(
+              reactionDefense as DefenseSelectionCarrier | null
+            );
+            resolveDefenseWithEvents(resolution, {
+              attackerSide: pendingAttack.attacker,
+              defenderSide: pendingAttack.defender,
+              attackerName: attacker.hero.name,
+              defenderName: consumedDefender.hero.name,
+              abilityName: formatAbilityName(pendingAttack.ability),
+              defenseAbilityName,
+            });
+            return;
+          }
+
           setDefenseStatusRollDisplay({
-            dice: resultDice,
+            dice: buildFrame(reactionRoll),
             inProgress: false,
-            label: `${statusName} Roll`,
-            outcome: "success",
+            label: reaction.rollLabel,
+            outcome: "failure",
           });
           setDefenseStatusMessage(
-            `${statusName} successful! You blocked all damage.`
+            spendResult.spend.log ?? reaction.messages.failure
           );
-          const attackStatusSpends =
-            pendingAttack.modifiers?.statusSpends ?? [];
-          const attackBonusDamage = attackStatusSpends.reduce(
-            (sum, spend) => sum + spend.bonusDamage,
-            0
-          );
-          const baseAttackDamage =
-            pendingAttack.baseDamage ??
-            Math.max(0, pendingAttack.ability.damage - attackBonusDamage);
-          const reactionDefense = combineDefenseSpends(null, [reactionSummary]);
-          const resolution = resolveAttack({
-            source: "ai",
-            attackerSide: pendingAttack.attacker,
-            defenderSide: pendingAttack.defender,
-            attacker,
-            defender: consumedDefender,
-            ability: pendingAttack.ability,
-            baseDamage: baseAttackDamage,
-            attackStatusSpends,
-            defense: {
-              resolution: reactionDefense,
-            },
-          });
-          resetDefenseRequests();
-          setPendingAttack(null);
-          setPlayerDefenseState(null);
-          scheduleCallback(1200, () => {
-            closeDiceTray();
-          });
-          const defenseAbilityName = extractDefenseAbilityName(
-            reactionDefense as DefenseSelectionCarrier | null
-          );
-          resolveDefenseWithEvents(resolution, {
-            attackerSide: pendingAttack.attacker,
-            defenderSide: pendingAttack.defender,
-            attackerName: attacker.hero.name,
-            defenderName: consumedDefender.hero.name,
-            abilityName: formatAbilityName(pendingAttack.ability),
-            defenseAbilityName,
-          });
-          return;
-        }
-
-        const resultDice = Array.from({ length: diceCount }, () => reactionRoll);
-        setDefenseStatusRollDisplay({
-          dice: resultDice,
-          inProgress: false,
-          label: `${statusName} Roll`,
-          outcome: "failure",
-        });
-        setDefenseStatusMessage(`${statusName} failed. Roll for Defense!`);
-        pendingDefenseSpendsRef.current = [
-          ...pendingDefenseSpendsRef.current,
-          reactionSummary,
-        ];
-      },
-      650,
-      {
-        animateSharedDice: false,
-        onTick: () => {
-          const frame = Array.from(
-            { length: diceCount },
-            () => 1 + Math.floor(Math.random() * 6)
-          );
-          setDefenseStatusRollDisplay({
-            dice: frame,
-            inProgress: true,
-            label: `${statusName} Roll`,
-            outcome: null,
-          });
+          pendingDefenseSpendsRef.current = [
+            ...pendingDefenseSpendsRef.current,
+            reactionSummary,
+          ];
         },
-      }
-    );
-  }, [
-    animateDefenseDie,
-    closeDiceTray,
-    latestState,
-    openDiceTray,
-    pendingAttack,
-    pendingDefenseSpendsRef,
-    resolveDefenseWithEvents,
-    resetDefenseRequests,
-    scheduleCallback,
-    setDefenseStatusMessage,
-    setDefenseStatusRollDisplay,
-    setPendingAttack,
-    setPhase,
-    setPlayer,
-    setPlayerDefenseState,
-  ]);
+        650,
+        {
+          animateSharedDice: false,
+          onTick: (value) => {
+            setDefenseStatusRollDisplay({
+              dice: buildFrame(value),
+              inProgress: true,
+              label: reaction.rollLabel,
+              outcome: null,
+            });
+          },
+        }
+      );
+    },
+    [
+      animateDefenseDie,
+      closeDiceTray,
+      latestState,
+      openDiceTray,
+      pendingAttack,
+      pendingDefenseSpendsRef,
+      resolveDefenseWithEvents,
+      resetDefenseRequests,
+      scheduleCallback,
+      setDefenseStatusMessage,
+      setDefenseStatusRollDisplay,
+      setPendingAttack,
+      setPhase,
+      setPlayer,
+      setPlayerDefenseState,
+    ]
+  );
   return {
     onUserDefenseRoll,
     onChooseDefenseOption,

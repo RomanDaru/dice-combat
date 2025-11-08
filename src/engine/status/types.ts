@@ -59,6 +59,7 @@ export interface StatusSpend {
   allowedPhases: StatusPhase[];
   needsRoll?: boolean;
   turnLimited?: boolean;
+  diceCount?: number;
   apply?: (ctx: StatusSpendApplyContext) => StatusSpendApplyResult;
 }
 
