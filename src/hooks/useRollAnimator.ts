@@ -3,6 +3,7 @@ import type { MutableRefObject } from "react";
 import { rollDie } from "../game/combos";
 import type { Rng } from "../engine/rng";
 import type { GameState } from "../game/state";
+import { scheduleInterval } from "../utils/timers";
 
 type UseRollAnimatorArgs = {
   stateRef: MutableRefObject<GameState>;
@@ -23,11 +24,11 @@ export function useRollAnimator({
   durationMs = 1300,
   intervalMs = 100,
 }: UseRollAnimatorArgs) {
-  const timerRef = useRef<number | null>(null);
+  const timerRef = useRef<(() => void) | null>(null);
 
   const stopTimer = useCallback(() => {
     if (timerRef.current !== null) {
-      window.clearInterval(timerRef.current);
+      timerRef.current();
       timerRef.current = null;
     }
   }, []);
@@ -43,7 +44,7 @@ export function useRollAnimator({
       let workingDice = [...stateRef.current.dice];
       const startedAt = Date.now();
 
-      timerRef.current = window.setInterval(() => {
+      timerRef.current = scheduleInterval(() => {
         workingDice = workingDice.map((value, index) =>
           mask[index] ? rollDie(rng) : value
         );

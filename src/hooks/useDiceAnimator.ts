@@ -3,6 +3,7 @@ import { rollDie } from "../game/combos";
 import { useGame } from "../context/GameContext";
 import { useLatest } from "./useLatest";
 import type { Rng } from "../engine/rng";
+import { scheduleInterval, scheduleTimeout } from "../utils/timers";
 
 type DiceUpdater = number[] | ((prev: number[]) => number[]);
 type HeldUpdater = boolean[] | ((prev: boolean[]) => boolean[]);
@@ -109,7 +110,7 @@ export function useDiceAnimator({
       let workingValue = animateSharedDice && workingDice
         ? workingDice[defenseDieIndex]
         : 1 + Math.floor(Math.random() * 6);
-      const timer = window.setInterval(() => {
+      const cancelInterval = scheduleInterval(() => {
         workingValue = 1 + Math.floor(Math.random() * 6);
         if (animateSharedDice && workingDice) {
           workingDice = workingDice.map((value, index) =>
@@ -121,7 +122,7 @@ export function useDiceAnimator({
           onTick(workingValue);
         }
         if (Date.now() - start > duration) {
-          window.clearInterval(timer);
+          cancelInterval();
           const result = rollDie(rng);
           if (animateSharedDice && workingDice) {
             workingDice = workingDice.map((value, index) =>
@@ -133,7 +134,7 @@ export function useDiceAnimator({
           if (onTick) {
             onTick(result);
           }
-          window.setTimeout(() => onDone(result), 50);
+          scheduleTimeout(() => onDone(result), 50);
         }
       }, 90);
     },
@@ -165,7 +166,7 @@ export function useDiceAnimator({
         ? [...latestState.current.dice]
         : Array.from({ length: 5 }, () => rollDie(rng));
       const startedAt = Date.now();
-      const timer = window.setInterval(() => {
+      const cancelInterval = scheduleInterval(() => {
         workingDice = workingDice.map(() => rollDie(rng));
         if (animateSharedDice) {
           setDice([...workingDice]);
@@ -174,7 +175,7 @@ export function useDiceAnimator({
           onTick([...workingDice]);
         }
         if (Date.now() - startedAt > duration) {
-          window.clearInterval(timer);
+          cancelInterval();
           const result = Array.from({ length: 5 }, () => rollDie(rng));
           if (animateSharedDice) {
             setDice(result);
@@ -183,7 +184,7 @@ export function useDiceAnimator({
           if (onTick) {
             onTick([...result]);
           }
-          window.setTimeout(() => onDone(result), 50);
+          scheduleTimeout(() => onDone(result), 50);
         }
       }, 90);
     },
@@ -193,7 +194,7 @@ export function useDiceAnimator({
   const restoreDiceAfterDefense = useCallback(() => {
     const savedDice = latestState.current.savedDefenseDice;
     if (savedDice) {
-      window.setTimeout(() => {
+      scheduleTimeout(() => {
         setDice(savedDice);
         setSavedDiceForDefense(null);
       }, 300);

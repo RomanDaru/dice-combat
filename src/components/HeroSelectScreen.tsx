@@ -8,6 +8,7 @@ import { getHeroEffectIds } from "../game/heroes";
 import { getOffensiveAbilities } from "../game/abilityBoards";
 import { getEffectDefinition } from "../game/effects";
 import { ArtButton } from "./ArtButton";
+import { scheduleTimeout } from "../utils/timers";
 
 const AbilityPreviewList = ({ hero }: { hero: Hero }) => {
   const abilities = getOffensiveAbilities(hero);
@@ -141,7 +142,7 @@ export default function HeroSelectScreen({
     hero: Hero;
     image: string;
   } | null>(null);
-  const confirmTimeoutRef = useRef<number | null>(null);
+  const confirmTimeoutRef = useRef<(() => void) | null>(null);
   const confirmVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const selectedHeroOption = useMemo(
@@ -181,7 +182,8 @@ export default function HeroSelectScreen({
   useEffect(() => {
     return () => {
       if (confirmTimeoutRef.current) {
-        window.clearTimeout(confirmTimeoutRef.current);
+        confirmTimeoutRef.current();
+        confirmTimeoutRef.current = null;
       }
     };
   }, []);
@@ -202,10 +204,11 @@ export default function HeroSelectScreen({
     if (media) {
       setIsConfirming(true);
       setConfirmingHero({ hero, image });
-      confirmTimeoutRef.current = window.setTimeout(() => {
+      confirmTimeoutRef.current = scheduleTimeout(() => {
         onConfirm(hero, aiHeroOption.hero);
         setConfirmingHero(null);
         setIsConfirming(false);
+        confirmTimeoutRef.current = null;
       }, 1400);
     } else {
       onConfirm(hero, aiHeroOption.hero);

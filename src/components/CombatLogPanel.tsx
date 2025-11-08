@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import Section from "./Section";
 import { useGame } from "../context/GameContext";
+import { scheduleAnimationFrame, scheduleTimeout } from "../utils/timers";
 import styles from "./CombatLogPanel.module.css";
 
 const getTokenClass = (type: string, value?: string) => {
@@ -64,7 +65,7 @@ export function CombatLogPanel() {
   const { state } = useGame();
   const { log } = state;
   const [highlightIndex, setHighlightIndex] = useState<number | null>(null);
-  const highlightTimerRef = useRef<number | null>(null);
+  const highlightTimerRef = useRef<(() => void) | null>(null);
   const logScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -73,19 +74,20 @@ export function CombatLogPanel() {
     const latestText = log[latestIdx]?.t?.trim();
     if (!latestText) return;
     setHighlightIndex(latestIdx);
-    if (highlightTimerRef.current !== null) {
-      window.clearTimeout(highlightTimerRef.current);
-    }
-    highlightTimerRef.current = window.setTimeout(() => {
-      setHighlightIndex(null);
+    if (highlightTimerRef.current) {
+      highlightTimerRef.current();
       highlightTimerRef.current = null;
+    }
+    highlightTimerRef.current = scheduleTimeout(() => {
+      setHighlightIndex(null);
     }, 1100);
   }, [log]);
 
   useEffect(() => {
     return () => {
-      if (highlightTimerRef.current !== null) {
-        window.clearTimeout(highlightTimerRef.current);
+      if (highlightTimerRef.current) {
+        highlightTimerRef.current();
+        highlightTimerRef.current = null;
       }
     };
   }, []);
@@ -93,10 +95,12 @@ export function CombatLogPanel() {
   useEffect(() => {
     const element = logScrollRef.current;
     if (!element) return;
-    const frame = window.requestAnimationFrame(() => {
+    const cancelFrame = scheduleAnimationFrame(() => {
       element.scrollTop = element.scrollHeight;
     });
-    return () => window.cancelAnimationFrame(frame);
+    return () => {
+      cancelFrame();
+    };
   }, [log.length]);
 
   return (
