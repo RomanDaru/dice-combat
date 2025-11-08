@@ -1,5 +1,5 @@
 import { useCallback, type MutableRefObject } from "react";
-import { getStatus, getStacks } from "../engine/status";
+import { getStatus } from "../engine/status";
 import type { StatusId, StatusSpendSummary } from "../engine/status";
 import type { GameState } from "../game/state";
 import type {
@@ -13,7 +13,7 @@ import { resolvePassTurn } from "../game/flow/turnEnd";
 import type { TurnEndResolution } from "../game/flow/turnEnd";
 import type { DefenseResolutionHandler } from "./useDefenseResolution";
 import { useAiDefenseResponse } from "./useAiDefenseResponse";
-import { getPreDefenseReactionStatuses } from "./preDefenseReactions";
+import { listPreDefenseReactions } from "../game/combat/preDefenseReactions";
 import { applyAttackStatusSpends } from "./statusSpends";
 
 type UseAttackExecutionArgs = {
@@ -196,9 +196,10 @@ export function useAttackExecution({
       logPlayerAttackStart(attackDice, effectiveAbility, attacker.hero.name);
 
       const aiReactionAbility = aiActiveAbilities.find(
-        (abilityItem) => abilityItem.id === ActiveAbilityIds.SHADOW_MONK_EVASIVE_ID
+        (abilityItem) =>
+          abilityItem.id === ActiveAbilityIds.SHADOW_MONK_EVASIVE_ID
       );
-      const availableReactions = getPreDefenseReactionStatuses(defender.tokens);
+      const availableReactions = listPreDefenseReactions(defender.tokens);
       let aiReactionStatusId: StatusId | null = null;
       if (aiReactionAbility) {
         aiReactionRequestRef.current = null;
@@ -207,14 +208,16 @@ export function useAttackExecution({
           aiReactionStatusId = aiReactionRequestRef.current;
         }
       }
-      if (
-        aiReactionStatusId &&
-        getStacks(defender.tokens, aiReactionStatusId, 0) <= 0
-      ) {
-        aiReactionStatusId = null;
+      if (aiReactionStatusId) {
+        const stillValid = availableReactions.some(
+          (reaction) => reaction.id === aiReactionStatusId
+        );
+        if (!stillValid) {
+          aiReactionStatusId = null;
+        }
       }
       if (!aiReactionStatusId && availableReactions.length > 0) {
-        aiReactionStatusId = availableReactions[0] ?? null;
+        aiReactionStatusId = availableReactions[0]?.id ?? null;
       }
       aiReactionRequestRef.current = null;
 

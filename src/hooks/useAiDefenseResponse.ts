@@ -6,13 +6,12 @@ import {
   selectHighestBlockOption,
 } from "../game/combat/defenseBoard";
 import { buildDefensePlan } from "../game/combat/defensePipeline";
-import { getPreDefenseReactionStatuses } from "./preDefenseReactions";
+import { listPreDefenseReactions } from "../game/combat/preDefenseReactions";
 import { resolveAttack } from "../engine/resolveAttack";
 import {
   aggregateStatusSpendSummaries,
   createStatusSpendSummary,
   getStatus,
-  getStacks,
   spendStatus,
   type StatusId,
   type StatusSpendSummary,
@@ -269,17 +268,26 @@ export function useAiDefenseResponse({
         );
       };
 
-      const availableReactions = getPreDefenseReactionStatuses(defender.tokens);
-      let reactionToUse: StatusId | null = null;
-      if (
+      const availableReactions = listPreDefenseReactions(defender.tokens);
+      const preferredReaction =
         reactionStatusId &&
-        getStacks(defender.tokens, reactionStatusId, 0) > 0
-      ) {
-        reactionToUse = reactionStatusId;
-      } else if (availableReactions.length > 0) {
-        reactionToUse = availableReactions[0];
-      }
-      if (reactionToUse) {
+        availableReactions.find((reaction) => reaction.id === reactionStatusId);
+      const reactionDescriptor = preferredReaction ?? availableReactions[0] ?? null;
+      if (reactionDescriptor) {
+        const reactionToUse = reactionDescriptor.id;
+        const buildFrame = (value?: number) =>
+          Array.from({ length: reactionDescriptor.diceCount }, () =>
+            typeof value === "number"
+              ? value
+              : 1 + Math.floor(Math.random() * 6)
+          );
+        setDefenseStatusMessage(reactionDescriptor.messages.rolling);
+        setDefenseStatusRollDisplay({
+          dice: buildFrame(),
+          inProgress: true,
+          label: reactionDescriptor.rollLabel,
+          outcome: null,
+        });
         setPhase("defense");
         animateDefenseDie(
           (roll) => {
@@ -300,23 +308,29 @@ export function useAiDefenseResponse({
             };
             setPlayer(defenderSide, consumedDefender);
 
-            const reactionDef = getStatus(reactionToUse);
-            const reactionName = reactionDef?.name ?? reactionToUse;
             const reactionSuccess =
               typeof spendResult.spend.success === "boolean"
                 ? spendResult.spend.success
                 : !!spendResult.spend.negateIncoming;
 
-            const reactionCost = reactionDef?.spend?.costStacks ?? 1;
             const reactionSummary = createStatusSpendSummary(
               reactionToUse,
-              reactionCost,
+              reactionDescriptor.costStacks,
               [spendResult.spend]
             );
 
             patchAiDefense({ evasiveRoll: roll });
 
             if (reactionSuccess) {
+              setDefenseStatusMessage(
+                spendResult.spend.log ?? reactionDescriptor.messages.success
+              );
+              setDefenseStatusRollDisplay({
+                dice: buildFrame(roll),
+                inProgress: false,
+                label: reactionDescriptor.rollLabel,
+                outcome: "success",
+              });
               patchAiDefense({
                 inProgress: false,
                 defenseRoll: null,
@@ -332,12 +346,32 @@ export function useAiDefenseResponse({
               reactionSummary,
             ];
 
+            setDefenseStatusMessage(
+              spendResult.spend.log ?? reactionDescriptor.messages.failure
+            );
+            setDefenseStatusRollDisplay({
+              dice: buildFrame(roll),
+              inProgress: false,
+              label: reactionDescriptor.rollLabel,
+              outcome: "failure",
+            });
+
             scheduleCallback(360, () => {
               runDefenseRoll(consumedDefender);
             });
           },
           650,
-          { animateSharedDice: false }
+          {
+            animateSharedDice: false,
+            onTick: (value) => {
+              setDefenseStatusRollDisplay({
+                dice: buildFrame(value),
+                inProgress: true,
+                label: reactionDescriptor.rollLabel,
+                outcome: null,
+              });
+            },
+          }
         );
         return;
       }

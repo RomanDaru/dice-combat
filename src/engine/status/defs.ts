@@ -72,3 +72,26 @@ defineStatus({
     },
   },
 });
+
+defineStatus({
+  id: "purify",
+  name: "Purifying Flame",
+  icon: "P",
+  polarity: "positive",
+  activation: "passive",
+  windows: ["turn:preEnd"],
+  attachment: { transferable: false },
+  maxStacks: 2,
+  transfer: {
+    mode: "transfer",
+    targetPolarity: "negative",
+    allowedStatuses: ["burn"],
+    transferStacks: 1,
+    consumeStacks: 1,
+    rollThreshold: 4,
+    dieSize: 6,
+    window: "upkeep",
+    successLog: "Purifying Flame reflects Burn back to the attacker.",
+    failureLog: "Purifying Flame sputters out. Burn remains.",
+  },
+});

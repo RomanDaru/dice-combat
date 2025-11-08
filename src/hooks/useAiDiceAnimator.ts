@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useGame } from "../context/GameContext";
 import { useLatest } from "./useLatest";
+import { scheduleInterval, scheduleTimeout } from "../utils/timers";
 
 type UseAiDiceAnimatorArgs = {
   rollDurationMs?: number;
@@ -27,15 +28,15 @@ export function useAiDiceAnimator({
       dispatch({ type: "SET_AI_PREVIEW_ROLLING", rolling: true });
       const rerollMask = heldMask.map((held) => !held);
       let previewDice = [...latestState.current.aiPreview.dice];
-      const interval = window.setInterval(() => {
+      const cancelInterval = scheduleInterval(() => {
         previewDice = previewDice.map((value, index) =>
           rerollMask[index] ? 1 + Math.floor(Math.random() * 6) : value
         );
         dispatch({ type: "SET_AI_PREVIEW_DICE", dice: [...previewDice] });
       }, tickIntervalMs);
 
-      window.setTimeout(() => {
-        window.clearInterval(interval);
+      scheduleTimeout(() => {
+        cancelInterval();
         dispatch({ type: "SET_AI_PREVIEW_ROLLING", rolling: false });
         dispatch({ type: "SET_AI_PREVIEW_DICE", dice: [...targetDice] });
         onDone();

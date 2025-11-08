@@ -37,7 +37,21 @@ defineStatus({
     allowedPhases: ["attackRoll", "defenseRoll"],
     turnLimited: true,          // true => participates in per-turn budget tracking
     needsRoll: false,
+    diceCount: 1,               // optional: number of dice shown for reaction rolls
     // apply: optional; leave undefined when behavior handles it
+  },
+
+  // Optional transfer hook (used by positive statuses to cleanse/bounce negatives)
+  transfer: {
+    mode: "transfer",           // "transfer" => move stacks to opponent, "cleanse" => remove only
+    targetPolarity: "negative",
+    allowedStatuses: ["burn"],  // optional whitelist
+    transferStacks: 1,          // stacks to move on success
+    consumeStacks: 1,           // stacks of this status consumed per attempt
+    rollThreshold: 4,           // required roll (1-6) for success
+    window: "upkeep",           // "upkeep" | "turnEnd"
+    successLog: "Purifying flame reflects Burn back!",
+    failureLog: "Purifying flame fizzles out.",
   },
 
   // Optional passive hooks
