@@ -8,9 +8,16 @@ const ensureStatusDefined = () => {
   if (!getStatus(STATUS_ID)) {
     defineStatus({
       id: STATUS_ID,
-      kind: "positive",
       name: "Chi (test)",
       icon: "C",
+      polarity: "positive",
+      activation: "active",
+      windows: ["defense:afterRoll"],
+      behaviorId: "bonus_pool",
+      behaviorConfig: {
+        defense: { bonusBlockPerStack: 2 },
+      },
+      attachment: { transferable: false },
       spend: {
         costStacks: 1,
         allowedPhases: ["defenseRoll"],

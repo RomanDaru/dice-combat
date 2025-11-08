@@ -2,9 +2,17 @@ import { defineStatus } from "./registry";
 
 defineStatus({
   id: "chi",
-  kind: "positive",
   name: "Chi",
   icon: "C",
+  polarity: "positive",
+  activation: "active",
+  windows: ["attack:roll", "defense:afterRoll"],
+  behaviorId: "bonus_pool",
+  behaviorConfig: {
+    attack: { bonusDamagePerStack: 1 },
+    defense: { bonusBlockPerStack: 1 },
+  },
+  attachment: { transferable: false },
   maxStacks: 6,
   spend: {
     costStacks: 1,
@@ -29,9 +37,17 @@ defineStatus({
 
 defineStatus({
   id: "evasive",
-  kind: "positive",
   name: "Evasive",
   icon: "E",
+  polarity: "positive",
+  activation: "active",
+  windows: ["preDefense:start"],
+  behaviorId: "pre_defense_reaction",
+  behaviorConfig: {
+    negateOnSuccess: true,
+    successThreshold: 5,
+  },
+  attachment: { transferable: false },
   maxStacks: 3,
   spend: {
     costStacks: 1,
@@ -56,9 +72,17 @@ defineStatus({
 
 defineStatus({
   id: "burn",
-  kind: "negative",
   name: "Burn",
   icon: "B",
+  polarity: "negative",
+  activation: "passive",
+  windows: ["upkeep:tick"],
+  behaviorId: "damage_over_time",
+  behaviorConfig: {
+    tiers: [2, 3, 4],
+    decayPerTick: 1,
+  },
+  attachment: { transferable: true, ownerFlag: true },
   maxStacks: 3,
   priority: 10,
   onTick: (stacks) => {

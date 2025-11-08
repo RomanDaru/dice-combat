@@ -1,6 +1,36 @@
 export type StatusId = string;
 
-export type StatusKind = "positive" | "negative";
+export type StatusPolarity = "positive" | "negative";
+
+export type StatusActivation = "active" | "passive";
+
+export type StatusWindowId =
+  | "upkeep:tick"
+  | "attack:declare"
+  | "attack:preResolve"
+  | "attack:roll"
+  | "attack:postResolve"
+  | "preDefense:start"
+  | "defense:beforeRoll"
+  | "defense:afterRoll"
+  | "defense:reactiveModifiers"
+  | "damage:preCalc"
+  | "damage:postApply"
+  | "turn:preEnd"
+  | "turn:postEnd";
+
+export type StatusBehaviorId =
+  | "bonus_pool"
+  | "pre_defense_reaction"
+  | "damage_over_time"
+  | "custom_script";
+
+export type StatusBehaviorConfig = Record<string, unknown>;
+
+export interface StatusAttachmentMetadata {
+  transferable?: boolean;
+  ownerFlag?: boolean;
+}
 
 export type StatusPhase =
   | "upkeep"
@@ -68,9 +98,14 @@ export interface StatusModifyResult {
 
 export interface StatusDef {
   id: StatusId;
-  kind: StatusKind;
   name: string;
   icon: string;
+  polarity: StatusPolarity;
+  activation: StatusActivation;
+  windows: StatusWindowId[];
+  behaviorId?: StatusBehaviorId;
+  behaviorConfig?: StatusBehaviorConfig;
+  attachment?: StatusAttachmentMetadata;
   maxStacks?: number;
   priority?: number;
   onTick?: (stacks: number) => StatusTickResult | undefined;
