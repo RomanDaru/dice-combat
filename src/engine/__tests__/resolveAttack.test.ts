@@ -49,9 +49,13 @@ describe("resolveAttack with modifiers", () => {
   beforeAll(() => {
     defineStatus({
       id: "test_damage_suppression",
-      kind: "positive",
       name: "Damage Suppression",
       icon: "S",
+      polarity: "positive",
+      activation: "passive",
+      windows: ["damage:preCalc"],
+      behaviorId: "custom_script",
+      attachment: { transferable: false },
       priority: 10,
       onModify: (_instance, ctx) => ({
         baseDamage: 0,
@@ -61,9 +65,13 @@ describe("resolveAttack with modifiers", () => {
 
     defineStatus({
       id: "test_block_fortify",
-      kind: "positive",
       name: "Block Fortify",
       icon: "B",
+      polarity: "positive",
+      activation: "passive",
+      windows: ["damage:preCalc"],
+      behaviorId: "custom_script",
+      attachment: { transferable: false },
       priority: 5,
       onModify: (_instance, ctx) => ({
         baseBlock: ctx.baseBlock + 2,
@@ -73,9 +81,13 @@ describe("resolveAttack with modifiers", () => {
 
     defineStatus({
       id: "test_block_nullify",
-      kind: "negative",
       name: "Block Nullify",
       icon: "N",
+      polarity: "negative",
+      activation: "passive",
+      windows: ["damage:preCalc"],
+      behaviorId: "custom_script",
+      attachment: { transferable: true },
       priority: 1,
       onModify: () => ({
         baseBlock: 0,
@@ -85,9 +97,13 @@ describe("resolveAttack with modifiers", () => {
 
     defineStatus({
       id: "test_block_seed",
-      kind: "positive",
       name: "Block Seed",
       icon: "S",
+      polarity: "positive",
+      activation: "passive",
+      windows: ["damage:preCalc"],
+      behaviorId: "custom_script",
+      attachment: { transferable: false },
       priority: 3,
       onModify: (_instance, ctx) => ({
         baseBlock: Math.max(ctx.baseBlock, 1),
@@ -505,5 +521,88 @@ describe("resolveAttack with modifiers", () => {
     const combinedLogs = resolution.logs.join(" ");
     expect(combinedLogs).not.toMatch(/blocked 3/i);
     expect(combinedLogs).toMatch(/receives 1 dmg/i);
+  });
+
+  it("exposes summary values for damage, block, and reflect", () => {
+    const baseState = createInitialState(
+      HEROES.Pyromancer,
+      HEROES["Shadow Monk"]
+    );
+    const attacker = clonePlayer(baseState.players.you);
+    const defender = clonePlayer(baseState.players.ai);
+
+    const offense: OffensiveAbility = {
+      combo: "3OAK",
+      damage: 6,
+      label: "Test Slash",
+    };
+
+    const defenseResolution = makeDefenseState({
+      baseBlock: 3,
+      reflect: 2,
+      statusSpends: [],
+    });
+
+    const resolution = resolveAttack({
+      source: "player",
+      attackerSide: "you",
+      defenderSide: "ai",
+      attacker,
+      defender,
+      ability: offense,
+      baseDamage: offense.damage,
+      attackStatusSpends: [],
+      defense: { resolution: defenseResolution },
+    });
+
+    expect(resolution.summary.damageDealt).toBe(3);
+    expect(resolution.summary.blocked).toBe(3);
+    expect(resolution.summary.reflected).toBe(2);
+    expect(resolution.summary.negated).toBe(false);
+    expect(resolution.summary.attackerDefeated).toBe(false);
+    expect(resolution.summary.defenderDefeated).toBe(false);
+  });
+
+  it("marks summary as negated when defense cancels incoming damage", () => {
+    const baseState = createInitialState(
+      HEROES.Pyromancer,
+      HEROES["Shadow Monk"]
+    );
+    const attacker = clonePlayer(baseState.players.you);
+    const defender = clonePlayer(baseState.players.ai);
+
+    const offense: OffensiveAbility = {
+      combo: "3OAK",
+      damage: 5,
+      label: "Test Strike",
+    };
+
+    const defenseResolution = makeDefenseState({
+      baseBlock: 0,
+      statusSpends: [
+        createStatusSpendSummary("evasive", 1, [
+          { negateIncoming: true, log: "Evaded" },
+        ]),
+      ],
+    });
+
+    const resolution = resolveAttack({
+      source: "player",
+      attackerSide: "you",
+      defenderSide: "ai",
+      attacker,
+      defender,
+      ability: offense,
+      baseDamage: offense.damage,
+      attackStatusSpends: [],
+      defense: { resolution: defenseResolution },
+    });
+
+    expect(resolution.summary.damageDealt).toBe(0);
+    expect(resolution.summary.blocked).toBe(5);
+    expect(resolution.summary.reflected).toBe(0);
+    expect(resolution.summary.negated).toBe(true);
+    expect(resolution.summary.attackerDefeated).toBe(false);
+    expect(resolution.summary.defenderDefeated).toBe(false);
   });
 });

@@ -22,9 +22,13 @@ describe("applyModifiers", () => {
   beforeAll(() => {
     defineStatus({
       id: "test_priority_low",
-      kind: "positive",
       name: "Priority Low",
       icon: "L",
+      polarity: "positive",
+      activation: "passive",
+      windows: ["damage:preCalc"],
+      behaviorId: "custom_script",
+      attachment: { transferable: false },
       priority: 5,
       onModify: (_instance, ctx) => ({
         baseDamage: ctx.baseDamage + 2,
@@ -35,9 +39,13 @@ describe("applyModifiers", () => {
 
     defineStatus({
       id: "test_priority_high",
-      kind: "positive",
       name: "Priority High",
       icon: "H",
+      polarity: "positive",
+      activation: "passive",
+      windows: ["damage:preCalc"],
+      behaviorId: "custom_script",
+      attachment: { transferable: false },
       priority: 50,
       onModify: (_instance, ctx) => ({
         baseDamage: ctx.baseDamage + 3,
@@ -47,17 +55,25 @@ describe("applyModifiers", () => {
 
     defineStatus({
       id: "test_passive",
-      kind: "positive",
       name: "Passive",
       icon: "P",
+      polarity: "positive",
+      activation: "passive",
+      windows: ["damage:preCalc"],
+      behaviorId: "custom_script",
+      attachment: { transferable: false },
       onModify: () => undefined,
     });
 
     defineStatus({
       id: "test_dual_phase",
-      kind: "positive",
       name: "Dual Phase",
       icon: "D",
+      polarity: "positive",
+      activation: "passive",
+      windows: ["damage:preCalc"],
+      behaviorId: "custom_script",
+      attachment: { transferable: false },
       onModify: (_instance, ctx) => {
         if (ctx.phase === "attack") {
           return {
@@ -122,4 +138,3 @@ describe("applyModifiers", () => {
     expect(defenseResult.logs).toEqual(["dual defense boost"]);
   });
 });
-

@@ -136,7 +136,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
             type: "TURN_END" as const,
             payload: {
               next: nextSide,
-              delayMs: TURN_TRANSITION_DELAY_MS,
+              durationMs: TURN_TRANSITION_DELAY_MS,
               prePhase: "turnTransition" as const,
             },
             followUp:
@@ -154,6 +154,15 @@ export function resolveAttack(context: AttackContext): AttackResolution {
       : []),
   ];
 
+  const summary = {
+    damageDealt,
+    blocked: reportedBlocked,
+    reflected: reflectDealt,
+    negated: wasNegated,
+    attackerDefeated: outcome === "attacker_defeated",
+    defenderDefeated: outcome === "defender_defeated",
+  };
+
   const resolution: AttackResolution = {
     updatedAttacker: nextAttacker,
     updatedDefender: nextDefender,
@@ -163,6 +172,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     nextPhase: "end",
     nextSide,
     events,
+    summary,
   };
 
   if (wasNegated) {

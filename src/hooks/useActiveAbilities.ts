@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useGame } from "../context/GameContext";
 import type { GameState } from "../game/state";
+import type { GameFlowEvent } from "./useTurnController";
 import { getActiveAbilitiesForHero } from "../game/activeAbilities";
 import type {
   ActiveAbility,
@@ -17,6 +18,7 @@ type UseActiveAbilitiesArgs = {
   side: Side;
   pushLog: ActiveAbilityContext["pushLog"];
   popDamage: ActiveAbilityContext["popDamage"];
+  sendFlowEvent: (event: GameFlowEvent) => boolean;
   handleControllerAction: (
     action: NonNullable<ActiveAbilityOutcome["controllerAction"]>,
     context: ActiveAbilityContext
@@ -71,6 +73,7 @@ export const useActiveAbilities = ({
   side,
   pushLog,
   popDamage,
+  sendFlowEvent,
   handleControllerAction,
 }: UseActiveAbilitiesArgs) => {
   const { state, dispatch } = useGame();
@@ -172,7 +175,7 @@ export const useActiveAbilities = ({
         const { phase, turn, round, pendingAttack, pendingStatusClear, ...rest } =
           outcome.statePatch;
         if (phase) {
-          dispatch({ type: "SET_PHASE", phase });
+          sendFlowEvent({ type: "SET_PHASE", phase });
         }
         if (turn) {
           dispatch({ type: "SET_TURN", turn });
@@ -195,7 +198,7 @@ export const useActiveAbilities = ({
         }
       }
       if (outcome?.nextPhase) {
-        dispatch({ type: "SET_PHASE", phase: outcome.nextPhase });
+        sendFlowEvent({ type: "SET_PHASE", phase: outcome.nextPhase });
       }
       return true;
     },
@@ -207,6 +210,7 @@ export const useActiveAbilities = ({
       handleControllerAction,
       popDamage,
       pushLog,
+      sendFlowEvent,
       side,
     ]
   );
