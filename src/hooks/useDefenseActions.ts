@@ -34,8 +34,8 @@ type UseDefenseActionsArgs = {
   defenseStatusRequests: Record<StatusId, number>;
   clearAttackStatusRequests: () => void;
   clearDefenseStatusRequests: () => void;
-  turnChiAvailable: Record<Side, number>;
-  consumeTurnChi: (side: Side, amount: number) => void;
+  getStatusBudget: (side: Side, statusId: StatusId) => number;
+  consumeStatusBudget: (side: Side, statusId: StatusId, amount: number) => void;
   logPlayerNoCombo: (diceValues: number[], attackerName: string) => void;
   logPlayerAttackStart: (
     diceValues: number[],
@@ -104,8 +104,8 @@ export function useDefenseActions({
   defenseStatusRequests,
   clearAttackStatusRequests,
   clearDefenseStatusRequests,
-  turnChiAvailable,
-  consumeTurnChi,
+  getStatusBudget,
+  consumeStatusBudget,
   logPlayerNoCombo,
   logPlayerAttackStart,
   pushLog,
@@ -226,8 +226,8 @@ export function useDefenseActions({
     scheduleCallback,
     latestState,
     setPlayer,
-    consumeTurnChi,
-    turnChiAvailable,
+    consumeStatusBudget,
+    getStatusBudget,
     openDiceTray,
     closeDiceTray,
     animateDefenseRoll,
@@ -259,8 +259,8 @@ export function useDefenseActions({
     setDefenseStatusRollDisplay,
     setDefenseStatusMessage,
     defenseStatusRequests,
-    turnChiAvailableYou: turnChiAvailable.you,
-    consumeTurnChi,
+    getStatusBudget,
+    consumeStatusBudget,
     pendingDefenseSpendsRef,
     setPlayer,
     resetDefenseRequests,

@@ -1,4 +1,5 @@
 ﻿import { useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { bestAbility, rollDie } from "../game/combos";
 import type { GameState } from "../game/state";
 import type { OffensiveAbility, PlayerState, Side } from "../game/types";
@@ -7,10 +8,11 @@ import { useLatest } from "./useLatest";
 import type { GameFlowEvent } from "./useTurnController";
 import type { Rng } from "../engine/rng";
 import {
+  createStatusSpendSummary,
   getStatus,
   getStacks,
   spendStatus,
-  createStatusSpendSummary,
+  type StatusId,
 } from "../engine/status";
 import type {
   StatusSpendApplyResult,
@@ -27,8 +29,9 @@ type UseAiControllerArgs = {
   ) => void;
   sendFlowEvent: (event: GameFlowEvent) => boolean;
   aiStepDelay: number;
-  turnChiAvailable: Record<Side, number>;
-  consumeTurnChi: (side: Side, amount: number) => void;
+  scheduleDelay: (duration: number, callback: () => void) => () => void;
+  getStatusBudget: (side: Side, statusId: StatusId) => number;
+  consumeStatusBudget: (side: Side, statusId: StatusId, amount: number) => void;
   onAiNoCombo: () => void;
   rng: Rng;
 };
@@ -39,13 +42,23 @@ export function useAiController({
   animatePreviewRoll,
   sendFlowEvent,
   aiStepDelay,
-  turnChiAvailable,
-  consumeTurnChi,
+  scheduleDelay,
+  getStatusBudget,
+  consumeStatusBudget,
   onAiNoCombo,
   rng,
 }: UseAiControllerArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
+  const stepTimerRef = useRef<(() => void) | null>(null);
+
+  useEffect(
+    () => () => {
+      stepTimerRef.current?.();
+      stepTimerRef.current = null;
+    },
+    []
+  );
 
   const patchAiPreview = useCallback(
     (partial: Partial<GameState["aiPreview"]>) => {
@@ -105,11 +118,15 @@ export function useAiController({
     const curAi = snapshot.players.ai;
     const curYou = snapshot.players.you;
     if (!curAi || !curYou || curAi.hp <= 0 || curYou.hp <= 0) {
+      stepTimerRef.current?.();
+      stepTimerRef.current = null;
       setAiSimActive(false);
       setAiSimRolling(false);
       setPendingAttack(null);
       return;
     }
+    stepTimerRef.current?.();
+    stepTimerRef.current = null;
     setAiSimActive(true);
     setAiSimRolling(false);
 
@@ -121,6 +138,8 @@ export function useAiController({
       const latestAi = stateNow.players.ai;
       const latestYou = stateNow.players.you;
       if (!latestAi || !latestYou || latestAi.hp <= 0 || latestYou.hp <= 0) {
+        stepTimerRef.current?.();
+        stepTimerRef.current = null;
         setAiSimActive(false);
         setAiSimRolling(false);
         setPendingAttack(null);
@@ -149,97 +168,101 @@ export function useAiController({
         }
 
         if (step < 2) {
-          window.setTimeout(() => doStep(step + 1), aiStepDelay);
-        } else {
-          const ab = bestAbility(latestAi.hero, finalDice);
-          if (!ab) {
-            setAiSimActive(false);
-            logAiNoCombo(finalDice);
-            onAiNoCombo();
-            return;
-          }
-          const baseDamage = ab.damage;
-          let desiredChiSpend = 0;
-          if (latestAi.hero.id === "Shadow Monk") {
-            const desired = chooseAiAttackChiSpend(latestAi, latestYou, ab);
-            desiredChiSpend = Math.min(
-              desired,
-              turnChiAvailable.ai ?? 0,
-              getStacks(latestAi.tokens, "chi", 0)
-            );
-          }
-          let effectiveAbility = ab;
-          const attackStatusSpends: StatusSpendSummary[] = [];
-          let workingTokens = latestAi.tokens;
-          if (baseDamage > 0 && desiredChiSpend > 0) {
-            const chiDef = getStatus("chi");
-            const chiCost = chiDef?.spend?.costStacks ?? 1;
-            const maxAttempts =
-              chiDef?.spend && chiCost > 0
-                ? Math.floor(desiredChiSpend / chiCost)
-                : 0;
-            if (chiDef?.spend && maxAttempts > 0) {
-              const spendResults: StatusSpendApplyResult[] = [];
-              let runningBonus = 0;
-              for (let i = 0; i < maxAttempts; i += 1) {
-                const spendResult = spendStatus(
-                  workingTokens,
-                  "chi",
-                  "attackRoll",
-                  {
-                    phase: "attackRoll",
-                    baseDamage: baseDamage + runningBonus,
-                  }
-                );
-                if (!spendResult) break;
-                workingTokens = spendResult.next;
-                spendResults.push(spendResult.spend);
-                runningBonus += spendResult.spend.bonusDamage ?? 0;
-              }
-              if (spendResults.length > 0) {
-                const totalStacks = spendResults.length * chiCost;
-                attackStatusSpends.push(
-                  createStatusSpendSummary("chi", totalStacks, spendResults)
-                );
-              }
+          stepTimerRef.current?.();
+          stepTimerRef.current = scheduleDelay(aiStepDelay, () => doStep(step + 1));
+          return;
+        }
+
+        const ab = bestAbility(latestAi.hero, finalDice);
+        if (!ab) {
+          setAiSimActive(false);
+          logAiNoCombo(finalDice);
+          onAiNoCombo();
+          return;
+        }
+
+        const baseDamage = ab.damage;
+        let desiredChiSpend = 0;
+        if (latestAi.hero.id === "Shadow Monk") {
+          const desired = chooseAiAttackChiSpend(latestAi, latestYou, ab);
+          desiredChiSpend = Math.min(
+            desired,
+            getStatusBudget("ai", "chi"),
+            getStacks(latestAi.tokens, "chi", 0)
+          );
+        }
+        let effectiveAbility = ab;
+        const attackStatusSpends: StatusSpendSummary[] = [];
+        let workingTokens = latestAi.tokens;
+        if (baseDamage > 0 && desiredChiSpend > 0) {
+          const chiDef = getStatus("chi");
+          const chiCost = chiDef?.spend?.costStacks ?? 1;
+          const maxAttempts =
+            chiDef?.spend && chiCost > 0
+              ? Math.floor(desiredChiSpend / chiCost)
+              : 0;
+          if (chiDef?.spend && maxAttempts > 0) {
+            const spendResults: StatusSpendApplyResult[] = [];
+            let runningBonus = 0;
+            for (let i = 0; i < maxAttempts; i += 1) {
+              const spendResult = spendStatus(
+                workingTokens,
+                "chi",
+                "attackRoll",
+                {
+                  phase: "attackRoll",
+                  baseDamage: baseDamage + runningBonus,
+                }
+              );
+              if (!spendResult) break;
+              workingTokens = spendResult.next;
+              spendResults.push(spendResult.spend);
+              runningBonus += spendResult.spend.bonusDamage ?? 0;
+            }
+            if (spendResults.length > 0) {
+              const totalStacks = spendResults.length * chiCost;
+              attackStatusSpends.push(
+                createStatusSpendSummary("chi", totalStacks, spendResults)
+              );
             }
           }
-          if (attackStatusSpends.length > 0) {
-            const updatedAi = {
-              ...latestAi,
-              tokens: workingTokens,
-            };
-            dispatch({ type: "SET_PLAYER", side: "ai", player: updatedAi });
-            attackStatusSpends.forEach((spend) => {
-              if (spend.id === "chi" && spend.stacksSpent > 0) {
-                consumeTurnChi("ai", spend.stacksSpent);
-              }
-            });
-            const bonusDamage = attackStatusSpends.reduce(
-              (sum, spend) => sum + spend.bonusDamage,
-              0
-            );
-            effectiveAbility = {
-              ...ab,
-              damage: baseDamage + bonusDamage,
-            };
-          }
-          setPendingAttack({
-            attacker: "ai",
-            defender: "you",
-            dice: [...finalDice],
-            ability: effectiveAbility,
-            baseDamage,
-            modifiers:
-              attackStatusSpends.length
-                ? {
-                    statusSpends: attackStatusSpends,
-                  }
-                : undefined,
-          });
-          setPhase("defense");
-          logAiAttackRoll(finalDice, effectiveAbility);
         }
+        if (attackStatusSpends.length > 0) {
+          const updatedAi = {
+            ...latestAi,
+            tokens: workingTokens,
+          };
+          dispatch({ type: "SET_PLAYER", side: "ai", player: updatedAi });
+          attackStatusSpends.forEach((spend) => {
+            if (spend.stacksSpent <= 0) return;
+            if (getStatus(spend.id)?.spend?.turnLimited) {
+              consumeStatusBudget("ai", spend.id, spend.stacksSpent);
+            }
+          });
+          const bonusDamage = attackStatusSpends.reduce(
+            (sum, spend) => sum + spend.bonusDamage,
+            0
+          );
+          effectiveAbility = {
+            ...ab,
+            damage: baseDamage + bonusDamage,
+          };
+        }
+        setPendingAttack({
+          attacker: "ai",
+          defender: "you",
+          dice: [...finalDice],
+          ability: effectiveAbility,
+          baseDamage,
+          modifiers:
+            attackStatusSpends.length
+              ? {
+                  statusSpends: attackStatusSpends,
+                }
+              : undefined,
+        });
+        setPhase("defense");
+        logAiAttackRoll(finalDice, effectiveAbility);
       });
     };
 
@@ -248,17 +271,19 @@ export function useAiController({
     aiStepDelay,
     animatePreviewRoll,
     chooseAiAttackChiSpend,
-    consumeTurnChi,
+    consumeStatusBudget,
     logAiAttackRoll,
     logAiNoCombo,
     rng,
+    scheduleDelay,
     setAiSimActive,
     setAiSimHeld,
     setAiSimRolling,
     setPendingAttack,
     setPhase,
     sendFlowEvent,
-    turnChiAvailable.ai,
+    getStatusBudget,
+    dispatch,
   ]);
 
   return {

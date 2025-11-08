@@ -55,8 +55,8 @@ type UseAttackExecutionArgs = {
   scheduleCallback: (durationMs: number, callback: () => void) => () => void;
   latestState: MutableRefObject<GameState>;
   setPlayer: (side: Side, player: PlayerState) => void;
-  consumeTurnChi: (side: Side, amount: number) => void;
-  turnChiAvailable: Record<Side, number>;
+  consumeStatusBudget: (side: Side, statusId: StatusId, amount: number) => void;
+  getStatusBudget: (side: Side, statusId: StatusId) => number;
   openDiceTray: () => void;
   closeDiceTray: () => void;
   animateDefenseRoll: (
@@ -104,8 +104,8 @@ export function useAttackExecution({
   scheduleCallback,
   latestState,
   setPlayer,
-  consumeTurnChi,
-  turnChiAvailable,
+  consumeStatusBudget,
+  getStatusBudget,
   openDiceTray,
   closeDiceTray,
   animateDefenseRoll,
@@ -127,8 +127,8 @@ export function useAttackExecution({
     animateDefenseDie,
     pushLog,
     patchAiDefense,
-    consumeTurnChi,
-    turnChiAvailableAi: turnChiAvailable.ai ?? 0,
+    consumeStatusBudget,
+    getStatusBudget,
     scheduleCallback,
     pendingDefenseSpendsRef,
     resolveDefenseWithEvents,
@@ -188,20 +188,12 @@ export function useAttackExecution({
         }
         if (baseDamage <= 0) return;
         const costStacks = spendDef.costStacks || 1;
-        const availableStacks =
-          statusId === "chi"
-            ? Math.max(
-                0,
-                Math.min(
-                  requested,
-                  getStacks(workingTokens, "chi", 0),
-                  turnChiAvailable.you ?? 0
-                )
-              )
-            : Math.max(
-                0,
-                Math.min(requested, getStacks(workingTokens, statusId, 0))
-              );
+        const ownedStacks = getStacks(workingTokens, statusId, 0);
+        let availableStacks = Math.max(0, Math.min(requested, ownedStacks));
+        if (spendDef.turnLimited) {
+          const budget = getStatusBudget("you", statusId);
+          availableStacks = Math.min(availableStacks, budget);
+        }
         const attempts = costStacks > 0 ? Math.floor(availableStacks / costStacks) : 0;
         if (attempts <= 0) return;
         let localTokens = workingTokens;
@@ -244,8 +236,10 @@ export function useAttackExecution({
         0
       );
       attackStatusSpends.forEach((spend) => {
-        if (spend.id === "chi" && spend.stacksSpent > 0) {
-          consumeTurnChi("you", spend.stacksSpent);
+        if (spend.stacksSpent <= 0) return;
+        const def = getStatus(spend.id);
+        if (def?.spend?.turnLimited) {
+          consumeStatusBudget("you", spend.id, spend.stacksSpent);
         }
       });
       const effectiveAbility: OffensiveAbility = {
@@ -289,7 +283,7 @@ export function useAttackExecution({
     applyTurnEndResolution,
     attackStatusRequests,
     clearAttackStatusRequests,
-    consumeTurnChi,
+    consumeStatusBudget,
     dice,
     handleAiDefenseResponse,
     latestState,
@@ -304,7 +298,7 @@ export function useAttackExecution({
     setPhase,
     setPlayer,
     turn,
-    turnChiAvailable.you,
+    getStatusBudget,
     you.hero.name,
   ]);
 

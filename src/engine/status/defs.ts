@@ -17,6 +17,7 @@ defineStatus({
   spend: {
     costStacks: 1,
     allowedPhases: ["attackRoll", "defenseRoll"],
+    turnLimited: true,
   },
 });
 

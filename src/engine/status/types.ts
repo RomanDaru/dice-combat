@@ -58,6 +58,7 @@ export interface StatusSpend {
   costStacks: number;
   allowedPhases: StatusPhase[];
   needsRoll?: boolean;
+  turnLimited?: boolean;
   apply?: (ctx: StatusSpendApplyContext) => StatusSpendApplyResult;
 }
 

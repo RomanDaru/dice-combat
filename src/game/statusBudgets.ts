@@ -14,6 +14,12 @@ export const getTurnStatusBudget = (
   statusId: StatusId
 ): number => budgets[side]?.[statusId] ?? 0;
 
+export const hasTurnStatusBudget = (
+  budgets: TurnStatusBudgets,
+  side: Side,
+  statusId: StatusId
+): boolean => Object.prototype.hasOwnProperty.call(budgets[side] ?? {}, statusId);
+
 export const setTurnStatusBudgetValue = (
   budgets: TurnStatusBudgets,
   side: Side,

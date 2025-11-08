@@ -13,6 +13,7 @@ import {
   getStatus,
   getStacks,
   spendStatus,
+  type StatusId,
   type StatusSpendSummary,
 } from "../engine/status";
 import type { GameState } from "../game/state";
@@ -59,8 +60,8 @@ type UseAiDefenseResponseArgs = {
     options?: { blankLineBefore?: boolean; blankLineAfter?: boolean }
   ) => void;
   patchAiDefense: (partial: Partial<GameState["aiDefense"]>) => void;
-  consumeTurnChi: (side: Side, amount: number) => void;
-  turnChiAvailableAi: number;
+  consumeStatusBudget: (side: Side, statusId: StatusId, amount: number) => void;
+  getStatusBudget: (side: Side, statusId: StatusId) => number;
   scheduleCallback: (durationMs: number, callback: () => void) => () => void;
   pendingDefenseSpendsRef: MutableRefObject<StatusSpendSummary[]>;
   resolveDefenseWithEvents: DefenseResolutionHandler;
@@ -88,8 +89,8 @@ export function useAiDefenseResponse({
   animateDefenseDie,
   pushLog,
   patchAiDefense,
-  consumeTurnChi,
-  turnChiAvailableAi,
+  consumeStatusBudget,
+  getStatusBudget,
   scheduleCallback,
   pendingDefenseSpendsRef,
   resolveDefenseWithEvents,
@@ -176,7 +177,7 @@ export function useAiDefenseResponse({
 
             const requestedChi = Math.min(
               getStacks(defenderState.tokens, "chi", 0),
-              turnChiAvailableAi
+              getStatusBudget(defenderSide, "chi")
             );
             const defensePlan = buildDefensePlan({
               defender: defenderState,
@@ -199,8 +200,9 @@ export function useAiDefenseResponse({
 
             let updatedDefender = defensePlan.defenderAfter;
             defensePlan.defense.statusSpends.forEach((spend) => {
-              if (spend.id === "chi" && spend.stacksSpent > 0) {
-                consumeTurnChi(defenderSide, spend.stacksSpent);
+              if (spend.stacksSpent <= 0) return;
+              if (getStatus(spend.id)?.spend?.turnLimited) {
+                consumeStatusBudget(defenderSide, spend.id, spend.stacksSpent);
               }
             });
             if (updatedDefender !== defenderState) {
@@ -284,7 +286,7 @@ export function useAiDefenseResponse({
       animateDefenseDie,
       animateDefenseRoll,
       closeDiceTray,
-      consumeTurnChi,
+      consumeStatusBudget,
       openDiceTray,
       patchAiDefense,
       pendingDefenseSpendsRef,
@@ -295,7 +297,7 @@ export function useAiDefenseResponse({
       setDefenseStatusRollDisplay,
       setPhase,
       setPlayer,
-      turnChiAvailableAi,
+      getStatusBudget,
     ]
   );
 

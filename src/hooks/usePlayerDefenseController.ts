@@ -81,8 +81,8 @@ type UsePlayerDefenseControllerArgs = {
   ) => void;
   setDefenseStatusMessage: (message: string | null) => void;
   defenseStatusRequests: Record<StatusId, number>;
-  turnChiAvailableYou?: number;
-  consumeTurnChi: (side: Side, amount: number) => void;
+  getStatusBudget: (side: Side, statusId: StatusId) => number;
+  consumeStatusBudget: (side: Side, statusId: StatusId, amount: number) => void;
   pendingDefenseSpendsRef: MutableRefObject<StatusSpendSummary[]>;
   setPlayer: (side: Side, player: PlayerState) => void;
   resetDefenseRequests: () => void;
@@ -105,8 +105,8 @@ export function usePlayerDefenseController({
   setDefenseStatusRollDisplay,
   setDefenseStatusMessage,
   defenseStatusRequests,
-  turnChiAvailableYou,
-  consumeTurnChi,
+  getStatusBudget,
+  consumeStatusBudget,
   pendingDefenseSpendsRef,
   setPlayer,
   resetDefenseRequests,
@@ -200,7 +200,7 @@ export function usePlayerDefenseController({
     const requestedChi = Math.min(
       defenseStatusRequests.chi ?? 0,
       getStacks(defender.tokens, "chi", 0),
-      turnChiAvailableYou ?? 0
+      getStatusBudget("you", "chi")
     );
     const defensePlan = buildDefensePlan({
       defender,
@@ -211,8 +211,9 @@ export function usePlayerDefenseController({
 
     defender = defensePlan.defenderAfter;
     defensePlan.defense.statusSpends.forEach((spend) => {
-      if (spend.id === "chi" && spend.stacksSpent > 0) {
-        consumeTurnChi("you", spend.stacksSpent);
+      if (spend.stacksSpent <= 0) return;
+      if (getStatus(spend.id)?.spend?.turnLimited) {
+        consumeStatusBudget("you", spend.id, spend.stacksSpent);
       }
     });
     setPlayer("you", defender);
@@ -264,8 +265,9 @@ export function usePlayerDefenseController({
     });
   }, [
     closeDiceTray,
-    consumeTurnChi,
+    consumeStatusBudget,
     defenseStatusRequests,
+    getStatusBudget,
     latestState,
     pendingAttack,
     pendingDefenseSpendsRef,
@@ -275,7 +277,6 @@ export function usePlayerDefenseController({
     setPendingAttack,
     setPlayer,
     setPlayerDefenseState,
-    turnChiAvailableYou,
   ]);
 
   const onUserEvasiveRoll = useCallback(() => {

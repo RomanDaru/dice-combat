@@ -16,11 +16,12 @@ import type {
   CombatEvent,
   DefenseRollResult,
 } from "../game/combat/types";
-import { getStatus, getStacks, type StatusId } from "../engine/status";
+import { getStatus, getStacks, listStatuses, type StatusId } from "../engine/status";
 import {
   consumeTurnStatusBudgetValue,
   createEmptyTurnStatusBudgets,
   getTurnStatusBudget,
+  hasTurnStatusBudget,
   setTurnStatusBudgetValue,
   type TurnStatusBudgets,
 } from "../game/statusBudgets";
@@ -113,8 +114,8 @@ type ControllerContext = {
   undoStatusSpend: (phase: StatusSpendPhase, statusId: StatusId) => void;
   clearAttackStatusRequests: () => void;
   clearDefenseStatusRequests: () => void;
-  turnChiAvailable: Record<Side, number>;
-  consumeTurnChi: (side: Side, amount: number) => void;
+  getStatusBudget: (side: Side, statusId: StatusId) => number;
+  consumeStatusBudget: (side: Side, statusId: StatusId, amount: number) => void;
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
   onRoll: () => void;
   onToggleHold: (index: number) => void;
@@ -176,14 +177,16 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const [turnStatusBudgets, setTurnStatusBudgets] = useState<TurnStatusBudgets>(
     () => ({
       ...createEmptyTurnStatusBudgets(),
-      you: {
-        chi: getStacks(state.players.you.tokens, "chi", 0),
-      },
-      ai: {
-        chi: getStacks(state.players.ai.tokens, "chi", 0),
-      },
     })
   );
+  const turnLimitedStatusSet = useMemo(() => {
+    const defs = listStatuses();
+    return new Set<StatusId>(
+      defs
+        .filter((status) => status.spend?.turnLimited)
+        .map((status) => status.id)
+    );
+  }, []);
   const [playerDefenseState, setPlayerDefenseState] =
     useState<PlayerDefenseState | null>(null);
   const [playerAttackSelection, setPlayerAttackSelection] =
@@ -229,11 +232,20 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     []
   );
 
-  const turnChiAvailable = useMemo(
-    () => ({
-      you: getTurnStatusBudget(turnStatusBudgets, "you", "chi"),
-      ai: getTurnStatusBudget(turnStatusBudgets, "ai", "chi"),
-    }),
+  const consumeStatusBudget = useCallback(
+    (side: Side, statusId: StatusId, amount: number) => {
+      if (amount <= 0) return;
+      if (!turnLimitedStatusSet.has(statusId)) return;
+      setTurnStatusBudgets((prev) =>
+        consumeTurnStatusBudgetValue(prev, side, statusId, amount)
+      );
+    },
+    [turnLimitedStatusSet]
+  );
+
+  const getStatusBudget = useCallback(
+    (side: Side, statusId: StatusId) =>
+      getTurnStatusBudget(turnStatusBudgets, side, statusId),
     [turnStatusBudgets]
   );
 
@@ -250,9 +262,11 @@ export const GameController = ({ children }: { children: ReactNode }) => {
         const player = latestState.current.players.you;
         if (!player) return prev;
         const ownedStacks = getStacks(player.tokens, statusId, 0);
+        const isTurnLimited = turnLimitedStatusSet.has(statusId);
         let limit = ownedStacks;
-        if (statusId === "chi") {
-          limit = Math.min(limit, turnChiAvailable.you ?? limit);
+        if (isTurnLimited) {
+          const budget = getStatusBudget("you", statusId);
+          limit = Math.min(limit, budget);
         }
         if (delta > 0 && limit <= 0) return prev;
         let nextValue = current + delta;
@@ -269,7 +283,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
         return { ...prev, [statusId]: nextValue };
       });
     },
-    [latestState, turnChiAvailable.you]
+    [getStatusBudget, latestState, turnLimitedStatusSet]
   );
 
   const requestStatusSpend = useCallback(
@@ -295,24 +309,29 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    const clampChi = (prev: Record<StatusId, number>) => {
-      if (!("chi" in prev)) return prev;
+    const clampTurnLimited = (prev: Record<StatusId, number>) => {
       const player = latestState.current.players.you;
-      if (!player) return prev;
-      const ownedChi = getStacks(player.tokens, "chi", 0);
-      const maxChi = Math.min(ownedChi, turnChiAvailable.you ?? ownedChi);
-      const current = prev.chi ?? 0;
-      if (current <= maxChi) return prev;
-      if (maxChi <= 0) {
-        const { chi: _ignored, ...rest } = prev;
-        return rest;
-      }
-      return { ...prev, chi: maxChi };
+      if (!player || turnLimitedStatusSet.size === 0) return prev;
+      let next = prev;
+      Object.entries(prev).forEach(([statusId, requested]) => {
+        if (!turnLimitedStatusSet.has(statusId as StatusId)) return;
+        const owned = getStacks(player.tokens, statusId, 0);
+        const budget = getStatusBudget("you", statusId as StatusId);
+        const maxAllowed = Math.min(owned, budget);
+        if (requested <= maxAllowed) return;
+        if (maxAllowed <= 0) {
+          const { [statusId]: _ignored, ...rest } = next;
+          next = rest;
+        } else {
+          next = { ...next, [statusId]: maxAllowed };
+        }
+      });
+      return next;
     };
 
-    setAttackStatusRequests((prev) => clampChi(prev));
-    setDefenseStatusRequests((prev) => clampChi(prev));
-  }, [latestState, turnChiAvailable.you]);
+    setAttackStatusRequests((prev) => clampTurnLimited(prev));
+    setDefenseStatusRequests((prev) => clampTurnLimited(prev));
+  }, [getStatusBudget, latestState, turnLimitedStatusSet]);
 
 
   const triggerImpactLock = useCallback((kind: "hit" | "reflect") => {
@@ -508,19 +527,17 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   }, [playerDefenseState, defenseBaseBlock]);
 
   useEffect(() => {
+    if (turnLimitedStatusSet.size === 0) return;
     const currentPlayer = turn === "you" ? players.you : players.ai;
-    const currentChi = getStacks(currentPlayer.tokens, "chi", 0);
-    setTurnStatusBudgets((prev) =>
-      setTurnStatusBudgetValue(prev, turn, "chi", currentChi)
-    );
-  }, [turn, players.you.tokens, players.ai.tokens]);
-
-  const consumeTurnChi = useCallback((side: Side, amount: number) => {
-    if (amount <= 0) return;
-    setTurnStatusBudgets((prev) =>
-      consumeTurnStatusBudgetValue(prev, side, "chi", amount)
-    );
-  }, []);
+    setTurnStatusBudgets((prev) => {
+      let next = prev;
+      turnLimitedStatusSet.forEach((statusId) => {
+        const owned = getStacks(currentPlayer.tokens, statusId, 0);
+        next = setTurnStatusBudgetValue(next, turn, statusId, owned);
+      });
+      return next;
+    });
+  }, [players.ai.tokens, players.you.tokens, turn, turnLimitedStatusSet]);
   const statusActive = !!pendingStatusClear;
   const showDcLogo =
     turn === "you" && rollsLeft === 3 && !pendingAttack && !statusActive;
@@ -700,8 +717,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     sendFlowEvent,
     aiStepDelay: AI_STEP_MS,
     scheduleDelay: schedule,
-    turnChiAvailable,
-    consumeTurnChi,
+    getStatusBudget,
+    consumeStatusBudget,
     onAiNoCombo: () => {
       applyTurnEndResolution(
         resolvePassTurn({
@@ -746,8 +763,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     defenseStatusRequests,
     clearAttackStatusRequests,
     clearDefenseStatusRequests,
-    turnChiAvailable,
-    consumeTurnChi,
+    getStatusBudget,
+    consumeStatusBudget,
     playerDefenseState,
     setPlayerDefenseState,
     applyTurnEndResolution,
@@ -1083,8 +1100,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       undoStatusSpend,
       clearAttackStatusRequests,
       clearDefenseStatusRequests,
-      turnChiAvailable,
-      consumeTurnChi,
+      getStatusBudget,
+      consumeStatusBudget,
       popDamage,
       onRoll,
       onToggleHold,
@@ -1123,8 +1140,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       onSelectAttackCombo,
       openDiceTray,
       closeDiceTray,
-      turnChiAvailable,
-      consumeTurnChi,
+      getStatusBudget,
+      consumeStatusBudget,
       onUserDefenseRoll,
       onChooseDefenseOption,
       onConfirmDefense,
