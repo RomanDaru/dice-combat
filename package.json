@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "test:watch": "vitest --watch"
+    "test:watch": "vitest --watch",
+    "qa": "npm run test"
   },
   "dependencies": {
     "clsx": "^2.1.1",

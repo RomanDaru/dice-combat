@@ -62,6 +62,7 @@ Tento dokument udržiavaj aktuálny – pri každom zásadnom rozhodnutí o fáz
 - [x] Complete the pre-defense status channel by moving legacy reactions into preDefenseReactions.ts and surfacing cues/UI copy. _Done Nov 8 via chore/timing-helper-updates._
 - [x] Enable polarity-driven status transfer/cleanse flows so players can bounce negative stacks back to the source. _Done Nov 8 via eat/polarity-transfer (Purifying Flame)._
 - [x] Unify defense resolution summaries with cue overlays (damage vs. block snapshot) and add regression tests. _Done Nov 8 via eat/defense-summary-cues._
-- [x] Pipe esolveTurnStart outputs (status ticks, prompts) into the cue timeline with proper durations. _Done Nov 8 via eat/upkeep-cues._
-- [ ] Establish a QA checklist: initiative AI win, chi spend, evasive defense plus full itest run before merge.
+- [x] Pipe 
+esolveTurnStart outputs (status ticks, prompts) into the cue timeline with proper durations. _Done Nov 8 via eat/upkeep-cues._
+- [x] Establish a QA checklist: initiative AI win, chi spend, evasive defense plus full vitest run before merge. _Done Nov 8 via `docs/qa-checklist.md` + `npm run qa`._
 
