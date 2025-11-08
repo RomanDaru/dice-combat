@@ -43,6 +43,12 @@ import type {
 import { resolvePassTurn, type TurnEndResolution } from "../game/flow/turnEnd";
 import type { Cue } from "../game/flow/cues";
 import { getCueDuration } from "../config/cueDurations";
+import {
+  combineDefenseSpends,
+  extractDefenseAbilityName,
+  formatAbilityName,
+  type DefenseSelectionCarrier,
+} from "./defenseActions.helpers";
 
 type PlayerDefenseState = {
   roll: DefenseRollResult;
@@ -119,23 +125,6 @@ type UseDefenseActionsArgs = {
   interruptCue: () => void;
   scheduleCallback: (durationMs: number, callback: () => void) => () => void;
 };
-
-const formatAbilityName = (offense: OffensiveAbility): string =>
-  offense.displayName ?? offense.label ?? offense.combo;
-
-const formatDefenseAbilityName = (
-  ability: DefensiveAbility | null | undefined
-): string | null =>
-  ability?.displayName ?? ability?.label ?? ability?.combo ?? null;
-
-type DefenseSelectionCarrier = {
-  selection: { selected: { ability: DefensiveAbility } | null };
-};
-
-const extractDefenseAbilityName = (
-  defense: DefenseSelectionCarrier | null | undefined
-): string | null =>
-  formatDefenseAbilityName(defense?.selection?.selected?.ability);
 
 export function useDefenseActions({
   turn,
