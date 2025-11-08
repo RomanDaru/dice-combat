@@ -116,6 +116,11 @@
   background: rgba(22, 163, 74, 0.4);
 }
 
+.kind-statusDamage {
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(185, 28, 28, 0.45);
+}
+
 .progress {
   display: flex;
   flex-direction: column;
