@@ -8,6 +8,7 @@ import type {
   StatusSpendSummary,
 } from "./types";
 import { getStatus } from "./registry";
+import { getBehaviorHandlers } from "./behaviors";
 
 export type StatusStacks = Record<StatusId, number>;
 
@@ -76,8 +77,15 @@ export function tickStatuses(current: StatusStacks): TickResult {
 
   Object.entries(current).forEach(([id, stacks]) => {
     const def = getStatus(id);
-    if (!def?.onTick) return;
-    const result = def.onTick(stacks);
+    if (!def) return;
+    const behavior = getBehaviorHandlers(def.behaviorId);
+    const result =
+      def.onTick?.(stacks) ??
+      behavior?.applyTick?.({
+        def,
+        config: def.behaviorConfig,
+        stacks,
+      });
     if (!result) return;
     if (typeof result.damage === "number" && result.damage > 0) {
       totalDamage += result.damage;
@@ -126,10 +134,20 @@ export function spendStatus(
   const current = stacks[id] ?? 0;
   if (current < def.spend.costStacks) return null;
 
-  const result = def.spend.apply({ ...ctx, phase });
+  const behavior = getBehaviorHandlers(def.behaviorId);
+  const context = { ...ctx, phase };
+  const spendResult =
+    def.spend.apply?.(context) ??
+    behavior?.applySpend?.({
+      def,
+      config: def.behaviorConfig,
+      ctx: context,
+      phase,
+    });
+  if (!spendResult) return null;
   const remaining = current - def.spend.costStacks;
   const next = setStacks(stacks, id, remaining);
-  return { next, spend: result };
+  return { next, spend: spendResult };
 }
 
 export type SpendStatusManyResult = {

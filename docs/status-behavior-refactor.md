@@ -43,6 +43,22 @@
 - `behaviorConfig`: arbitrary JSON-ish blob consumed by that handler (e.g. Chi describes attack/defense payouts, Evasive stores DC).
 - `attachment`: { transferable?: boolean; ownerFlag?: boolean } so we can track whether the status may hop targets and whether we care about original applier.
 
+## Behavior Contract Draft
+
+- `bonus_pool`: active spend behavior used by Chi-like resources. Config:
+  - `attack.bonusDamagePerStack` (number) - optional per-stack damage boost when window includes attack roll.
+  - `defense.bonusBlockPerStack` (number) - optional per-stack block boost.
+  - `maxStacksPerWindow?` to cap spending per window (defaults infinite).
+- `pre_defense_reaction`: active pre-defense reaction. Config:
+  - `dieSize` (default 6) + `successThreshold`.
+  - `negateOnSuccess` (bool), optional `bonusBlockOnFail`, `animationKey`.
+  - Behavior decides whether to request a roll before continuing to defense phase.
+- `damage_over_time`: passive tick handler. Config:
+  - `tiers`: array describing damage per stack tier (index-based).
+  - `decayPerTick`: stacks removed after each tick.
+  - Optional `promptIfDamage` bool + `cleanseWindow` overrides.
+- `custom_script`: escape hatch where definition supplies direct callbacks (used only for legacy tests until replaced).
+
 ## Proposed Architecture
 
 1. **Status Definition Schema Update**

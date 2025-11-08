@@ -21,10 +21,6 @@ const ensureStatusDefined = () => {
       spend: {
         costStacks: 1,
         allowedPhases: ["defenseRoll"],
-        apply: (ctx) => ({
-          bonusBlock: 2,
-          log: `+2 block (baseBlock=${ctx.baseBlock ?? 0})`,
-        }),
       },
     });
   }

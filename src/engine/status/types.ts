@@ -59,7 +59,7 @@ export interface StatusSpend {
   costStacks: number;
   allowedPhases: StatusPhase[];
   needsRoll?: boolean;
-  apply: (ctx: StatusSpendApplyContext) => StatusSpendApplyResult;
+  apply?: (ctx: StatusSpendApplyContext) => StatusSpendApplyResult;
 }
 
 export interface StatusTickResult {
