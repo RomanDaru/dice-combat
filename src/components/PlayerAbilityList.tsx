@@ -59,11 +59,11 @@ export function PlayerAbilityList() {
     onConfirmAttack,
     onConfirmDefense,
     onEndTurnNoAttack,
-    attackStatusRequests,
-    defenseStatusRequests,
-    requestStatusSpend,
-    undoStatusSpend,
-    turnChiAvailable,
+  attackStatusRequests,
+  defenseStatusRequests,
+  requestStatusSpend,
+  undoStatusSpend,
+  getStatusBudget,
   } = useGameController();
 
   const player = state.players.you;
@@ -91,6 +91,29 @@ export function PlayerAbilityList() {
       .join("")
       .slice(0, 2) || label.slice(0, 2).toUpperCase();
 
+  const renderTooltip = (
+    abilityName: string,
+    tooltipParts: string[],
+    ready: boolean,
+    variant: "offense" | "defense"
+  ) => {
+    const lines = [abilityName, ...tooltipParts];
+    return (
+      <div
+        className={clsx(
+          abilityStyles.tooltip,
+          variant === "defense" && abilityStyles.tooltipDefense,
+          ready && abilityStyles.tooltipReady
+        )}
+        role='status'
+        aria-live='polite'>
+        {lines.map((line) => (
+          <span key={line}>{line}</span>
+        ))}
+      </div>
+    );
+  };
+
   const renderAbilityButton = (
     ability: OffensiveAbility | DefensiveAbility,
     options: {
@@ -107,10 +130,13 @@ export function PlayerAbilityList() {
     const hasUltimate =
       "ultimate" in (ability as Partial<OffensiveAbility>) &&
       Boolean((ability as Partial<OffensiveAbility>).ultimate);
-    const iconSources =
-      getAbilityIcon(hero.id, ability.combo as Combo, {
-        variant: options.variant,
-      }) ?? null;
+    const iconVariants = getAbilityIcon(hero.id, ability.combo as Combo);
+    const primarySource =
+      iconVariants?.[options.variant] ??
+      (options.variant === "defense"
+        ? iconVariants?.defense ?? iconVariants?.offense
+        : iconVariants?.offense ?? iconVariants?.defense);
+    const primaryIconSrc = primarySource?.webp ?? primarySource?.png ?? null;
 
     return (
       <button
@@ -124,15 +150,15 @@ export function PlayerAbilityList() {
         )}
         onClick={options.onClick}
         disabled={options.disabled}
-        title={[abilityName, ...options.tooltipParts].join(" - ")}
       >
-        {iconSources ? (
+        {renderTooltip(abilityName, options.tooltipParts, options.ready, options.variant)}
+        {primarySource && primaryIconSrc ? (
           <picture className={abilityStyles.iconPicture}>
-            {iconSources.webp && (
-              <source srcSet={iconSources.webp} type='image/webp' />
+            {primarySource.webp && (
+              <source srcSet={primarySource.webp} type='image/webp' />
             )}
             <img
-              src={iconSources.png}
+              src={primaryIconSrc}
               alt={abilityName}
               className={abilityStyles.iconImage}
               draggable={false}
@@ -191,6 +217,17 @@ export function PlayerAbilityList() {
     const tokens = player.tokens ?? {};
     const ids = new Set<StatusId>();
 
+    const isDefenseBlockStatus = (
+      definition: ReturnType<typeof getStatus>
+    ) => {
+      if (!definition) return false;
+      if (definition.behaviorId !== "bonus_pool") return false;
+      const config = definition.behaviorConfig as
+        | { defense?: { bonusBlockPerStack?: number } }
+        | undefined;
+      return typeof config?.defense?.bonusBlockPerStack === "number";
+    };
+
     Object.entries(tokens).forEach(([rawId, stacks]) => {
       if ((stacks ?? 0) <= 0) return;
       const statusId = rawId as StatusId;
@@ -198,7 +235,7 @@ export function PlayerAbilityList() {
       if (!definition?.spend) return;
       if (
         isDefenseTurn &&
-        statusId === "chi" &&
+        isDefenseBlockStatus(definition) &&
         baseBlockForDefense <= 0
       ) {
         return;
@@ -214,7 +251,7 @@ export function PlayerAbilityList() {
       if (!definition?.spend) return;
       if (
         isDefenseTurn &&
-        statusId === "chi" &&
+        isDefenseBlockStatus(definition) &&
         baseBlockForDefense <= 0
       ) {
         return;
@@ -244,10 +281,10 @@ export function PlayerAbilityList() {
           const icon = definition?.icon ?? name.slice(0, 2).toUpperCase();
           const ownedStacks = getStacks(player.tokens, statusId, 0);
           const requested = statusRequests[statusId] ?? 0;
-          const maxSpend =
-            statusId === "chi"
-              ? Math.min(ownedStacks, turnChiAvailable.you ?? ownedStacks)
-              : ownedStacks;
+          const maxBudget = definition?.spend?.turnLimited
+            ? getStatusBudget("you", statusId)
+            : ownedStacks;
+          const maxSpend = Math.min(ownedStacks, maxBudget);
           const canIncrement = requested < maxSpend && maxSpend > 0;
           const canDecrement = requested > 0;
           const handleAdjust = (delta: number) => {

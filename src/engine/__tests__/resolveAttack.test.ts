@@ -49,9 +49,13 @@ describe("resolveAttack with modifiers", () => {
   beforeAll(() => {
     defineStatus({
       id: "test_damage_suppression",
-      kind: "positive",
       name: "Damage Suppression",
       icon: "S",
+      polarity: "positive",
+      activation: "passive",
+      windows: ["damage:preCalc"],
+      behaviorId: "custom_script",
+      attachment: { transferable: false },
       priority: 10,
       onModify: (_instance, ctx) => ({
         baseDamage: 0,
@@ -61,9 +65,13 @@ describe("resolveAttack with modifiers", () => {
 
     defineStatus({
       id: "test_block_fortify",
-      kind: "positive",
       name: "Block Fortify",
       icon: "B",
+      polarity: "positive",
+      activation: "passive",
+      windows: ["damage:preCalc"],
+      behaviorId: "custom_script",
+      attachment: { transferable: false },
       priority: 5,
       onModify: (_instance, ctx) => ({
         baseBlock: ctx.baseBlock + 2,
@@ -73,9 +81,13 @@ describe("resolveAttack with modifiers", () => {
 
     defineStatus({
       id: "test_block_nullify",
-      kind: "negative",
       name: "Block Nullify",
       icon: "N",
+      polarity: "negative",
+      activation: "passive",
+      windows: ["damage:preCalc"],
+      behaviorId: "custom_script",
+      attachment: { transferable: true },
       priority: 1,
       onModify: () => ({
         baseBlock: 0,
@@ -85,9 +97,13 @@ describe("resolveAttack with modifiers", () => {
 
     defineStatus({
       id: "test_block_seed",
-      kind: "positive",
       name: "Block Seed",
       icon: "S",
+      polarity: "positive",
+      activation: "passive",
+      windows: ["damage:preCalc"],
+      behaviorId: "custom_script",
+      attachment: { transferable: false },
       priority: 3,
       onModify: (_instance, ctx) => ({
         baseBlock: Math.max(ctx.baseBlock, 1),

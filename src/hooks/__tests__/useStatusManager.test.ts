@@ -83,6 +83,12 @@ const animateDefenseDie = vi.fn<(cb: (roll: number) => void) => void>();
 const restoreDiceAfterDefense = vi.fn();
 const sendFlowEvent = vi.fn();
 const resumePendingStatus = vi.fn();
+const scheduleCallback = vi.fn<(duration: number, cb: () => void) => () => void>(
+  (duration, cb) => {
+    const handle = setTimeout(cb, duration);
+    return () => clearTimeout(handle);
+  }
+);
 
 const wrapHook = (pendingStatus: PendingStatusClear | null) => {
   mockState.pendingStatusClear = pendingStatus;
@@ -93,6 +99,7 @@ const wrapHook = (pendingStatus: PendingStatusClear | null) => {
       restoreDiceAfterDefense,
       sendFlowEvent,
       resumePendingStatus,
+      scheduleCallback,
     })
   );
 };
