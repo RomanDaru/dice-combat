@@ -4,6 +4,7 @@ import { useGame } from "../context/GameContext";
 import { useGameController, useGameData } from "../context/GameController";
 import { useCombatLog, indentLog } from "../hooks/useCombatLog";
 import { getHeroSkin } from "../game/visuals";
+import { getStatus } from "../engine/status";
 import styles from "./PlayerActionPanel.module.css";
 
 export function PlayerActionPanel() {
@@ -106,7 +107,25 @@ export function PlayerActionPanel() {
           <span className='badge indigo'>
             {pendingStatusClear.side === "you" ? you.hero.name : ai.hero.name}
           </span>
-          <span>Burn stacks: {pendingStatusClear.stacks}</span>
+          {(() => {
+            const targetDef = getStatus(pendingStatusClear.status);
+            const sourceDef = pendingStatusClear.sourceStatus
+              ? getStatus(pendingStatusClear.sourceStatus)
+              : null;
+            const mode = pendingStatusClear.action ?? "cleanse";
+            const targetName = targetDef?.name ?? pendingStatusClear.status;
+            const sourceName = sourceDef?.name ?? "Status";
+            return mode === "transfer" ? (
+              <span>
+                {sourceName}: {targetName} ({pendingStatusClear.stacks} stack
+                {pendingStatusClear.stacks === 1 ? "" : "s"})
+              </span>
+            ) : (
+              <span>
+                {targetName} stacks: {pendingStatusClear.stacks}
+              </span>
+            );
+          })()}
         </div>
         <div className={styles.statusActions}>
           {pendingStatusClear.side === "you" ? (
@@ -114,13 +133,17 @@ export function PlayerActionPanel() {
               className='btn success'
               onClick={handleStatusRoll}
               disabled={impactLocked}>
-              Status Roll
+              {pendingStatusClear.action === "transfer"
+                ? "Attempt Transfer"
+                : "Status Roll"}
             </button>
           ) : (
             <div className={styles.statusInfoColumn}>
               <div className={styles.statusInfoText}>
                 {pendingStatusClear.rolling
                   ? "AI is rolling..."
+                  : pendingStatusClear.action === "transfer"
+                  ? "AI will attempt a transfer."
                   : "AI will roll automatically."}
               </div>
             </div>
@@ -129,8 +152,12 @@ export function PlayerActionPanel() {
             <div className={styles.statusRollText}>
               Roll: <b>{pendingStatusClear.roll}</b>{" "}
               {pendingStatusClear.success
-                ? "-> Burn cleared"
-                : "-> Burn sticks"}
+                ? pendingStatusClear.action === "transfer"
+                  ? "-> Transfer success"
+                  : "-> Cleansed"
+                : pendingStatusClear.action === "transfer"
+                ? "-> Transfer failed"
+                : "-> Status sticks"}
             </div>
           )}
         </div>

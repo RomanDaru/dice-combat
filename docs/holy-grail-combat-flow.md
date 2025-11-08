@@ -69,7 +69,7 @@ Tento dokument udržiavaj aktuálny – pri každom zásadnom rozhodnutí o fáz
 
 - [x] Finish migrating every timing interaction to the central helper (no stray `setTimeout` usage) and expose transition metadata via context. _Done Nov 8 via `chore/timing-helper-updates`._
 - [x] Complete the pre-defense status channel by moving legacy reactions into `preDefenseReactions.ts` and surfacing cues/UI copy. _Done Nov 8 via `chore/timing-helper-updates`._
-- [ ] Enable polarity-driven status transfer/cleanse flows so players can bounce negative stacks back to the source.
+- [x] Enable polarity-driven status transfer/cleanse flows so players can bounce negative stacks back to the source. _Done Nov 8 via `feat/polarity-transfer` (Purifying Flame)._
 - [ ] Unify defense resolution summaries with cue overlays (damage vs. block snapshot) and add regression tests.
 - [ ] Pipe `resolveTurnStart` outputs (status ticks, prompts) into the cue timeline with proper durations.
 - [ ] Establish a QA checklist: initiative AI win, chi spend, evasive defense plus full `vitest` run before merge.

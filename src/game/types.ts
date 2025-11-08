@@ -11,11 +11,13 @@ export type AbilityPresentation = {
   tooltip?: string;
 };
 
+type AbilityApplyMap = Partial<{ burn: number; chi: number; evasive: number; purify: number }>;
+
 export type OffensiveAbility = AbilityPresentation & {
   combo: Combo;
   damage: number;
   ultimate?: boolean;
-  apply?: Partial<{ burn: number; chi: number; evasive: number }>;
+  apply?: AbilityApplyMap;
 };
 
 export type DefensiveAbility = AbilityPresentation & {
@@ -24,7 +26,7 @@ export type DefensiveAbility = AbilityPresentation & {
   reflect?: number;
   heal?: number;
   retaliatePercent?: number;
-  apply?: Partial<{ burn: number; chi: number; evasive: number }>;
+  apply?: AbilityApplyMap;
 };
 
 export type OffensiveAbilityBoard = Partial<Record<Combo, OffensiveAbility>>;

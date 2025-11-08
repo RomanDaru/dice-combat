@@ -63,6 +63,23 @@ export interface StatusSpend {
   apply?: (ctx: StatusSpendApplyContext) => StatusSpendApplyResult;
 }
 
+export type StatusTransferTarget = "self" | "opponent";
+
+export interface StatusTransferConfig {
+  mode: "cleanse" | "transfer";
+  targetPolarity: StatusPolarity;
+  allowedStatuses?: StatusId[];
+  target?: StatusTransferTarget;
+  transferStacks?: number;
+  consumeStacks?: number;
+  rollThreshold: number;
+  dieSize?: number;
+  window?: "upkeep" | "turnEnd";
+  successLog?: string;
+  failureLog?: string;
+  animationDurationMs?: number;
+}
+
 export interface StatusTickResult {
   damage?: number;
   nextStacks: number;
@@ -111,6 +128,7 @@ export interface StatusDef {
   priority?: number;
   onTick?: (stacks: number) => StatusTickResult | undefined;
   spend?: StatusSpend;
+  transfer?: StatusTransferConfig;
   cleanse?: StatusCleanseRoll;
   onModify?: (
     instance: { id: string; stacks: number },

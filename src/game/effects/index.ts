@@ -3,6 +3,8 @@ import type { EffectDefinition, EffectId } from "./types";
 
 const burnStatus = getStatus("burn");
 
+const purifyStatus = getStatus("purify");
+
 const effectDefinitions: Record<EffectId, EffectDefinition> = {
   burn: {
     id: "burn",
@@ -27,6 +29,14 @@ const effectDefinitions: Record<EffectId, EffectDefinition> = {
     icon: "E",
     summary:
       "Spend an Evasive token to attempt a dodge. Rolling 5+ avoids all damage from the incoming attack.",
+  },
+  purify: {
+    id: "purify",
+    kind: "status",
+    name: purifyStatus?.name ?? "Purify",
+    icon: purifyStatus?.icon ?? "P",
+    summary:
+      "Allows the owner to roll during upkeep to transfer a negative status (like Burn) back to the opponent.",
   },
 };
 

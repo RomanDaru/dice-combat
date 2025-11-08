@@ -34,6 +34,8 @@ export type PendingAttack = {
   };
 };
 
+export type PendingStatusClearAction = "cleanse" | "transfer";
+
 export type PendingStatusClear = {
   side: Side;
   status: StatusId;
@@ -41,6 +43,15 @@ export type PendingStatusClear = {
   rolling?: boolean;
   roll?: number;
   success?: boolean;
+  action?: PendingStatusClearAction;
+  sourceStatus?: StatusId;
+  targetSide?: Side;
+  transferStacks?: number;
+  consumeStacks?: number;
+  rollThreshold?: number;
+  dieSize?: number;
+  successLog?: string;
+  failureLog?: string;
 } | null;
 
 export type AiPreviewState = {

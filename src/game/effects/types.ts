@@ -1,6 +1,6 @@
 export type EffectKind = "status" | "token" | "resource";
 
-export type EffectId = "burn" | "chi" | "evasive";
+export type EffectId = "burn" | "chi" | "evasive" | "purify";
 
 export type EffectDefinition = {
   id: EffectId;
