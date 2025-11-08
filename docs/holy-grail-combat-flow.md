@@ -55,3 +55,21 @@ Cieľ: výsledný `useDefenseActions` ≤ 500 riadkov, žiadne priame referencie
 5. **Testing** – unit testy pre nové čisté funkcie + manálne scenáre (útok s viacerými statusmi, pre-defense reakcie, hráčska obrana).
 
 Tento dokument udržiavaj aktuálny – pri každom zásadnom rozhodnutí o fázach, statusoch alebo orchestrácii sem doplň poznámky.\*\*\*
+## Current Progress (Nov 2025)
+
+- **Status Schema Upgrade**: `docs/status-definition-template.md` and `src/engine/status/defs.ts` now track polarity, activation mode, hook windows; hardcoded IDs are gone.
+- **Behavior Registry**: `src/engine/status/behaviors/*` implements bonus pools, DOT, and pre-defense reactions mapped by `behaviorId`.
+- **Hook Decomposition**: `useDefenseActions` has been split into `useAttackExecution`, `useDefenseResolution`, `useAiDefenseResponse`, `usePlayerDefenseController`, plus shared helpers.
+- **GameController Alignment**: turn flow + cue scheduling live in `useGameFlow`/`GameController`; initiative follow-up for AI is fixed.
+- **Testing**: new engine/hooks suites (`combat.integration.test.ts`, `statusSpends.test.ts`, `StatusFlagArchitecture.test.ts`) cover the runtime changes.
+- **Timing Helper Adoption**: All battle UI + hooks call shared timer utilities; stray `setTimeout`/`setInterval` usage now lives in the centralized scheduler only.
+- **Pre-defense Channel**: Reaction metadata + UI messaging now flow through `game/combat/preDefenseReactions.ts`, so both player + AI use the same descriptors.
+
+## Upcoming Tasklist
+
+- [x] Finish migrating every timing interaction to the central helper (no stray `setTimeout` usage) and expose transition metadata via context. _Done Nov 8 via `chore/timing-helper-updates`._
+- [x] Complete the pre-defense status channel by moving legacy reactions into `preDefenseReactions.ts` and surfacing cues/UI copy. _Done Nov 8 via `chore/timing-helper-updates`._
+- [x] Enable polarity-driven status transfer/cleanse flows so players can bounce negative stacks back to the source. _Done Nov 8 via `feat/polarity-transfer` (Purifying Flame)._
+- [ ] Unify defense resolution summaries with cue overlays (damage vs. block snapshot) and add regression tests.
+- [ ] Pipe `resolveTurnStart` outputs (status ticks, prompts) into the cue timeline with proper durations.
+- [ ] Establish a QA checklist: initiative AI win, chi spend, evasive defense plus full `vitest` run before merge.

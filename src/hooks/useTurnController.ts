@@ -291,7 +291,7 @@ export function useGameFlow({
         const heroName = turnResult.updatedPlayer.hero.name;
         const statusDamageDuration = getCueDuration("statusDamage");
         cueQueueRef.current?.enqueue({
-          kind: "status",
+          kind: "statusDamage",
           title: "Status Damage",
           subtitle: `${heroName} loses ${turnResult.statusDamage} HP`,
           durationMs: statusDamageDuration,

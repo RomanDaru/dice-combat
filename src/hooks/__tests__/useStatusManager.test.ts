@@ -115,6 +115,31 @@ const buildPending = (
   rolling,
 });
 
+const buildTransferPending = (
+  overrides: Partial<PendingStatusClear> = {}
+): PendingStatusClear => ({
+  side: "you",
+  status: "burn",
+  stacks: 2,
+  action: "transfer",
+  sourceStatus: "purify",
+  targetSide: "ai",
+  transferStacks: 1,
+  consumeStacks: 1,
+  rollThreshold: 4,
+  rolling: false,
+  ...overrides,
+});
+
+const findSetPlayer = (side: Side) => {
+  const call = [...mockDispatch.mock.calls]
+    .reverse()
+    .find(
+      ([action]) => action.type === "SET_PLAYER" && action.side === side
+    );
+  return call?.[0].player;
+};
+
 describe("useStatusManager", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -173,5 +198,117 @@ describe("useStatusManager", () => {
     expect(pushLog).toHaveBeenCalledWith(
       expect.stringContaining("failed")
     );
+  });
+  it("transfers burn to opponent on successful transfer roll", () => {
+    mockState.players.you = {
+      ...basePlayer,
+      tokens: { burn: 2, purify: 1 },
+    };
+    mockState.players.ai = {
+      ...basePlayer,
+      hero: { ...basePlayer.hero, id: "ai", name: "AI" },
+      tokens: {},
+    };
+    const { result } = wrapHook(buildTransferPending());
+
+    act(() => {
+      result.current.performStatusClearRoll("you");
+      vi.runAllTimers();
+    });
+
+    const youPlayer = findSetPlayer("you");
+    const aiPlayer = findSetPlayer("ai");
+
+    expect(youPlayer?.tokens.burn ?? 0).toBe(1);
+    expect(youPlayer?.tokens.purify ?? 0).toBe(0);
+    expect(aiPlayer?.tokens.burn ?? 0).toBe(1);
+    expect(pushLog).toHaveBeenCalled();
+  });
+
+  it("consumes purify stack on failed transfer", () => {
+    mockState.players.you = {
+      ...basePlayer,
+      tokens: { burn: 2, purify: 1 },
+    };
+    mockState.players.ai = {
+      ...basePlayer,
+      hero: { ...basePlayer.hero, id: "ai", name: "AI" },
+      tokens: {},
+    };
+    animateDefenseDie.mockImplementationOnce((cb) => cb(2));
+    const { result } = wrapHook(buildTransferPending());
+
+    act(() => {
+      result.current.performStatusClearRoll("you");
+      vi.runAllTimers();
+    });
+
+    const youPlayer = findSetPlayer("you");
+    const aiPlayer = findSetPlayer("ai");
+
+    expect(youPlayer?.tokens.burn ?? 0).toBe(2);
+    expect(youPlayer?.tokens.purify ?? 0).toBe(0);
+    expect(aiPlayer?.tokens.burn ?? 0).toBe(0);
+  });
+
+  it("falls back to cleanse when no transfer metadata is present", () => {
+    mockState.players.you = {
+      ...basePlayer,
+      tokens: { burn: 2 },
+    };
+    const { result } = wrapHook(buildPending("you", 2));
+
+    act(() => {
+      result.current.performStatusClearRoll("you");
+      vi.runAllTimers();
+    });
+
+    const youPlayer = findSetPlayer("you");
+    const aiPlayer = findSetPlayer("ai");
+
+    expect(youPlayer?.tokens.burn ?? 0).toBe(0);
+    expect(aiPlayer).toBeUndefined();
+  });
+
+  it("merges transferred stacks with existing opponent stacks", () => {
+    mockState.players.you = {
+      ...basePlayer,
+      tokens: { burn: 2, purify: 1 },
+    };
+    mockState.players.ai = {
+      ...basePlayer,
+      hero: { ...basePlayer.hero, id: "ai", name: "AI" },
+      tokens: { burn: 1 },
+    };
+    const { result } = wrapHook(buildTransferPending());
+
+    act(() => {
+      result.current.performStatusClearRoll("you");
+      vi.runAllTimers();
+    });
+
+    const aiPlayer = findSetPlayer("ai");
+    expect(aiPlayer?.tokens.burn ?? 0).toBe(2);
+  });
+
+  it("caps transferred stacks at status maxStacks", () => {
+    mockState.players.you = {
+      ...basePlayer,
+      tokens: { burn: 2, purify: 1 },
+    };
+    mockState.players.ai = {
+      ...basePlayer,
+      hero: { ...basePlayer.hero, id: "ai", name: "AI" },
+      tokens: { burn: 3 },
+    };
+    const { result } = wrapHook(buildTransferPending());
+
+    act(() => {
+      result.current.performStatusClearRoll("you");
+      vi.runAllTimers();
+    });
+
+    const aiPlayer = findSetPlayer("ai");
+    expect(aiPlayer?.tokens.burn ?? 0).toBe(3);
   });
 });

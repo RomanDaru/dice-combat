@@ -888,13 +888,32 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   }, [clearCues, players.ai.hp, players.you.hp]);
 
   const initialStartRef = useRef(false);
+  const initialStartTimersRef = useRef<{
+    start: (() => void) | null;
+    follow: (() => void) | null;
+  }>({
+    start: null,
+    follow: null,
+  });
+  const clearInitialStartTimers = useCallback(() => {
+    initialStartTimersRef.current.start?.();
+    initialStartTimersRef.current.start = null;
+    initialStartTimersRef.current.follow?.();
+    initialStartTimersRef.current.follow = null;
+  }, []);
   const lastAttackCueKeyRef = useRef<string | null>(null);
   const lastStatusCueKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (state.phase === "standoff") {
       initialStartRef.current = false;
+      clearInitialStartTimers();
     }
-  }, [state.phase]);
+  }, [clearInitialStartTimers, state.phase]);
+  useEffect(() => {
+    return () => {
+      clearInitialStartTimers();
+    };
+  }, [clearInitialStartTimers]);
 
   useEffect(() => {
     if (!diceTrayVisible) {
@@ -1004,16 +1023,19 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       state.initialRoll.winner
     ) {
       initialStartRef.current = true;
+      clearInitialStartTimers();
       const startingSide = state.turn;
-      let cancelFollow: (() => void) | null = null;
       const cancelStart = scheduleCallback(0, () => {
+        initialStartTimersRef.current.start = null;
         if (startingSide === "ai") {
           queueTurnCue("ai", TURN_TRANSITION_DELAY_MS);
           const cont = sendFlowEvent({
             type: "TURN_START",
             side: "ai",
             afterReady: () => {
-              cancelFollow = scheduleCallback(450, () => {
+              initialStartTimersRef.current.follow?.();
+              initialStartTimersRef.current.follow = scheduleCallback(450, () => {
+                initialStartTimersRef.current.follow = null;
                 const aiState = latestState.current.players.ai;
                 const youState = latestState.current.players.you;
                 if (!aiState || !youState || aiState.hp <= 0 || youState.hp <= 0)
@@ -1023,21 +1045,19 @@ export const GameController = ({ children }: { children: ReactNode }) => {
             },
           });
           if (!cont) {
-            cancelFollow?.();
-            cancelFollow = null;
+            initialStartTimersRef.current.follow?.();
+            initialStartTimersRef.current.follow = null;
           }
         } else {
           queueTurnCue("you", TURN_TRANSITION_DELAY_MS);
           sendFlowEvent({ type: "TURN_START", side: "you" });
         }
       });
-      return () => {
-        cancelFollow?.();
-        cancelStart();
-      };
+      initialStartTimersRef.current.start = cancelStart;
     }
   }, [
     aiPlay,
+    clearInitialStartTimers,
     queueTurnCue,
     scheduleCallback,
     sendFlowEvent,

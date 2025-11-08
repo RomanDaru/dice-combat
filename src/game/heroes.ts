@@ -60,6 +60,7 @@ export const HEROES: Record<HeroId, Hero> = {
         combo: "FULL_HOUSE",
         label: "Ember Shield",
         block: 5,
+        apply: { purify: 1 },
       },
       "4OAK": {
         combo: "4OAK",
@@ -243,6 +244,7 @@ export const getHeroEffectIds = (hero: Hero): EffectId[] => {
     if (applyData.burn && applyData.burn > 0) effectIds.add("burn");
     if (applyData.chi && applyData.chi > 0) effectIds.add("chi");
     if (applyData.evasive && applyData.evasive > 0) effectIds.add("evasive");
+    if (applyData.purify && applyData.purify > 0) effectIds.add("purify");
   };
 
   Object.values(hero.offensiveBoard).forEach((ability) =>

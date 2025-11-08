@@ -18,6 +18,7 @@ import { useGame } from "../context/GameContext";
 import TableBackground from "../assets/defualtTableBg.png";
 import { getHeroSkin } from "../game/visuals";
 import { DiceTrayOverlay } from "../components/DiceTrayOverlay";
+import { scheduleInterval } from "../utils/timers";
 import styles from "./BattleScreen.module.css";
 
 type BattleScreenProps = {
@@ -125,12 +126,12 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
     you: number | null;
     ai: number | null;
   }>({ you: null, ai: null });
-  const rollAnimRef = useRef<number | null>(null);
+  const rollAnimRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (phase !== "standoff") {
       if (rollAnimRef.current) {
-        window.clearInterval(rollAnimRef.current);
+        rollAnimRef.current();
         rollAnimRef.current = null;
       }
       setDisplayRolls({ you: null, ai: null });
@@ -140,7 +141,7 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
   useEffect(() => {
     if (!initialRoll.inProgress) {
       if (rollAnimRef.current) {
-        window.clearInterval(rollAnimRef.current);
+        rollAnimRef.current();
         rollAnimRef.current = null;
       }
       if (initialRoll.you !== null || initialRoll.ai !== null) {
@@ -153,7 +154,8 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
     }
 
     if (rollAnimRef.current) {
-      window.clearInterval(rollAnimRef.current);
+      rollAnimRef.current();
+      rollAnimRef.current = null;
     }
 
     setDisplayRolls({
@@ -161,7 +163,7 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
       ai: 1 + Math.floor(Math.random() * 6),
     });
 
-    rollAnimRef.current = window.setInterval(() => {
+    rollAnimRef.current = scheduleInterval(() => {
       setDisplayRolls({
         you: 1 + Math.floor(Math.random() * 6),
         ai: 1 + Math.floor(Math.random() * 6),
@@ -170,7 +172,7 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
 
     return () => {
       if (rollAnimRef.current) {
-        window.clearInterval(rollAnimRef.current);
+        rollAnimRef.current();
         rollAnimRef.current = null;
       }
     };
@@ -184,7 +186,7 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
   useEffect(() => {
     return () => {
       if (rollAnimRef.current) {
-        window.clearInterval(rollAnimRef.current);
+        rollAnimRef.current();
         rollAnimRef.current = null;
       }
     };
