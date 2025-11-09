@@ -1,0 +1,1334 @@
+{
+  "matchup": {
+    "youHeroId": "Pyromancer",
+    "youHeroName": "Pyromancer",
+    "aiHeroId": "Shadow Monk",
+    "aiHeroName": "Shadow Monk",
+    "firstPlayer": "Pyromancer"
+  },
+  "summary": {
+    "games": 2000,
+    "wins": {
+      "you": 1181,
+      "ai": 818,
+      "draw": 1
+    },
+    "winRateYou": 0.5905,
+    "averageRounds": 8.166,
+    "seed": 1337
+  },
+  "analytics": {
+    "initiative": [
+      {
+        "heroId": "Pyromancer",
+        "heroName": "Pyromancer",
+        "games": 991,
+        "wins": 651,
+        "ci": {
+          "lower": 0.6267991593201927,
+          "upper": 0.6858134214162783
+        }
+      },
+      {
+        "heroId": "Shadow Monk",
+        "heroName": "Shadow Monk",
+        "games": 1009,
+        "wins": 479,
+        "ci": {
+          "lower": 0.444069285566849,
+          "upper": 0.5055773324235655
+        }
+      }
+    ],
+    "ttk": {
+      "average": 8.166,
+      "median": 8,
+      "iqr": 2,
+      "histogram": [
+        {
+          "round": 4,
+          "games": 18
+        },
+        {
+          "round": 5,
+          "games": 93
+        },
+        {
+          "round": 6,
+          "games": 240
+        },
+        {
+          "round": 7,
+          "games": 386
+        },
+        {
+          "round": 8,
+          "games": 445
+        },
+        {
+          "round": 9,
+          "games": 386
+        },
+        {
+          "round": 10,
+          "games": 243
+        },
+        {
+          "round": 11,
+          "games": 118
+        },
+        {
+          "round": 12,
+          "games": 43
+        },
+        {
+          "round": 13,
+          "games": 18
+        },
+        {
+          "round": 14,
+          "games": 9
+        },
+        {
+          "round": 15,
+          "games": 1
+        }
+      ]
+    },
+    "dpr": {
+      "you": {
+        "attackOnly": 5.567482241515391,
+        "actual": 4.352486187845304
+      },
+      "ai": {
+        "attackOnly": 5.185005018917458,
+        "actual": 3.8735232800555943
+      }
+    },
+    "damageSwing": {
+      "averageSwing": 3.0538579772517678,
+      "averageMaxSwing": 6.815,
+      "lethalFromHp": {
+        "5": 0.24203133441383037,
+        "10": 0.018368449486763912,
+        "15": 0
+      }
+    },
+    "mitigation": {
+      "blockedPercent": {
+        "you": 0.25293740971839584,
+        "ai": 0.26736724634985587
+      },
+      "preventedPercent": {
+        "you": 0,
+        "ai": 0.10915464517067024
+      },
+      "defenseVsTopAbilities": [
+        {
+          "abilityId": "Pyromancer:3OAK",
+          "label": "Pyromancer Three of a kind",
+          "successRate": 0.562907268170426
+        },
+        {
+          "abilityId": "Shadow Monk:3OAK",
+          "label": "Shadow Monk Shade Break",
+          "successRate": 0.12091690544412607
+        },
+        {
+          "abilityId": "Pyromancer:PAIR_PAIR",
+          "label": "Pyromancer Two pairs",
+          "successRate": 0
+        }
+      ]
+    },
+    "statuses": {
+      "chi": {
+        "applied": 6506,
+        "damage": 3359,
+        "mitigation": 5197,
+        "avgLifetime": 1.2042431918936036
+      },
+      "evasive": {
+        "applied": 3676,
+        "damage": 0,
+        "mitigation": 6757,
+        "avgLifetime": 1.2896332659543748
+      },
+      "burn": {
+        "applied": 2663,
+        "damage": 4731,
+        "mitigation": 0,
+        "avgLifetime": 1.003419452887538
+      },
+      "purify": {
+        "applied": 504,
+        "damage": 0,
+        "mitigation": 0,
+        "avgLifetime": null
+      }
+    },
+    "abilityTiering": {
+      "abilities": [
+        {
+          "abilityId": "Pyromancer:FULL_HOUSE",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "FULL_HOUSE",
+          "label": "Pyromancer Full House",
+          "uses": 1445,
+          "opportunities": 1445,
+          "pickRate": 1,
+          "opportunityRate": 1,
+          "expected": 7539.71564226296,
+          "actual": 8878,
+          "ev": 0.9261483444546998,
+          "winRateAfterUse": 0.7038062283737024,
+          "uplift": 0.11330622837370241
+        },
+        {
+          "abilityId": "Pyromancer:3OAK",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "3OAK",
+          "label": "Pyromancer Three of a kind",
+          "uses": 4985,
+          "opportunities": 8467,
+          "pickRate": 0.5887563481752687,
+          "opportunityRate": 0.5887563481752687,
+          "expected": 16256.696572958846,
+          "actual": 17307,
+          "ev": 0.210692763699329,
+          "winRateAfterUse": 0.5985957873620863,
+          "uplift": 0.00809578736208627
+        },
+        {
+          "abilityId": "Shadow Monk:PAIR_PAIR",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "PAIR_PAIR",
+          "label": "Shadow Monk Vow at Dusk",
+          "uses": 3014,
+          "opportunities": 3014,
+          "pickRate": 1,
+          "opportunityRate": 1,
+          "expected": 7348.85470060014,
+          "actual": 6163,
+          "ev": -0.39344880577310537,
+          "winRateAfterUse": 0.4041141340411413,
+          "uplift": -0.004885865958858648
+        },
+        {
+          "abilityId": "Shadow Monk:3OAK",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "3OAK",
+          "label": "Shadow Monk Shade Break",
+          "uses": 4077,
+          "opportunities": 7665,
+          "pickRate": 0.5318982387475538,
+          "opportunityRate": 0.5318982387475538,
+          "expected": 12967.512442108085,
+          "actual": 12136,
+          "ev": -0.20395203387492877,
+          "winRateAfterUse": 0.4059357370615649,
+          "uplift": -0.0030642629384350917
+        },
+        {
+          "abilityId": "Shadow Monk:4OAK",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "4OAK",
+          "label": "Shadow Monk Moon Splitting Cut",
+          "uses": 1572,
+          "opportunities": 1759,
+          "pickRate": 0.8936895963615691,
+          "opportunityRate": 0.8936895963615691,
+          "expected": 7352.5900135515485,
+          "actual": 7670,
+          "ev": 0.20191474964914224,
+          "winRateAfterUse": 0.5388040712468194,
+          "uplift": 0.12980407124681942
+        },
+        {
+          "abilityId": "Shadow Monk:SMALL_STRAIGHT",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "SMALL_STRAIGHT",
+          "label": "Shadow Monk Balance the Scales",
+          "uses": 1714,
+          "opportunities": 2272,
+          "pickRate": 0.7544014084507042,
+          "opportunityRate": 0.7544014084507042,
+          "expected": 6760.916442048518,
+          "actual": 6678,
+          "ev": -0.0483759871928342,
+          "winRateAfterUse": 0.47316219369894985,
+          "uplift": 0.06416219369894988
+        },
+        {
+          "abilityId": "Shadow Monk:FULL_HOUSE",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "FULL_HOUSE",
+          "label": "Shadow Monk Foot Step",
+          "uses": 1829,
+          "opportunities": 1829,
+          "pickRate": 1,
+          "opportunityRate": 1,
+          "expected": 9903.061696772944,
+          "actual": 10752,
+          "ev": 0.4641543484018902,
+          "winRateAfterUse": 0.547840349917988,
+          "uplift": 0.13884034991798805
+        },
+        {
+          "abilityId": "Pyromancer:SMALL_STRAIGHT",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "SMALL_STRAIGHT",
+          "label": "Pyromancer Small straight + Burn",
+          "uses": 780,
+          "opportunities": 805,
+          "pickRate": 0.968944099378882,
+          "opportunityRate": 0.968944099378882,
+          "expected": 3052.4108309507483,
+          "actual": 3440,
+          "ev": 0.4969091910887844,
+          "winRateAfterUse": 0.7141025641025641,
+          "uplift": 0.1236025641025641
+        },
+        {
+          "abilityId": "Shadow Monk:5OAK",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "5OAK",
+          "label": "Shadow Monk ULT: Dusk Extinction",
+          "uses": 187,
+          "opportunities": 187,
+          "pickRate": 1,
+          "opportunityRate": 1,
+          "expected": 1571.0726273622136,
+          "actual": 1854,
+          "ev": 1.5129806023411039,
+          "winRateAfterUse": 0.6737967914438503,
+          "uplift": 0.2647967914438504
+        },
+        {
+          "abilityId": "Pyromancer:PAIR_PAIR",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "PAIR_PAIR",
+          "label": "Pyromancer Two pairs",
+          "uses": 3398,
+          "opportunities": 3398,
+          "pickRate": 1,
+          "opportunityRate": 1,
+          "expected": 8865.035900487728,
+          "actual": 8633,
+          "ev": -0.06828602133246875,
+          "winRateAfterUse": 0.5729841082989994,
+          "uplift": -0.017515891701000652
+        },
+        {
+          "abilityId": "Shadow Monk:LARGE_STRAIGHT",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "LARGE_STRAIGHT",
+          "label": "Shadow Monk Weight of Regret",
+          "uses": 558,
+          "opportunities": 558,
+          "pickRate": 1,
+          "opportunityRate": 1,
+          "expected": 4261.9920775565515,
+          "actual": 4913,
+          "ev": 1.1666808645939932,
+          "winRateAfterUse": 0.6469534050179212,
+          "uplift": 0.23795340501792123
+        },
+        {
+          "abilityId": "Pyromancer:4OAK",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "4OAK",
+          "label": "Pyromancer Four of a kind + Burn",
+          "uses": 1833,
+          "opportunities": 2037,
+          "pickRate": 0.8998527245949927,
+          "opportunityRate": 0.8998527245949927,
+          "expected": 8368.693028189968,
+          "actual": 9667,
+          "ev": 0.7082962203000722,
+          "winRateAfterUse": 0.7114020731042008,
+          "uplift": 0.12090207310420076
+        },
+        {
+          "abilityId": "Pyromancer:5OAK",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "5OAK",
+          "label": "Pyromancer ULT: Supernova",
+          "uses": 204,
+          "opportunities": 204,
+          "pickRate": 1,
+          "opportunityRate": 1,
+          "expected": 1729.6994708720906,
+          "actual": 2245,
+          "ev": 2.525982985921125,
+          "winRateAfterUse": 0.8235294117647058,
+          "uplift": 0.23302941176470582
+        },
+        {
+          "abilityId": "Pyromancer:LARGE_STRAIGHT",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "LARGE_STRAIGHT",
+          "label": "Pyromancer Inferno",
+          "uses": 25,
+          "opportunities": 25,
+          "pickRate": 1,
+          "opportunityRate": 1,
+          "expected": 195.6673609583813,
+          "actual": 245,
+          "ev": 1.9733055616647492,
+          "winRateAfterUse": 0.92,
+          "uplift": 0.3295
+        }
+      ],
+      "trap": [],
+      "overtuned": []
+    },
+    "initiativeBreakdown": {
+      "first": {
+        "dpr": {
+          "attackOnly": 5.372435560231457,
+          "actual": 3.936198993011197
+        },
+        "mitigation": {
+          "blockedPercent": 0.258904424880603,
+          "preventedPercent": 0.04770124863340813
+        },
+        "statuses": {
+          "evasive": {
+            "applied": 1875,
+            "damage": 0,
+            "mitigation": 3316,
+            "avgLifetime": null
+          },
+          "chi": {
+            "applied": 3424,
+            "damage": 0,
+            "mitigation": 2780,
+            "avgLifetime": null
+          },
+          "burn": {
+            "applied": 1270,
+            "damage": 2435,
+            "mitigation": 0,
+            "avgLifetime": null
+          },
+          "purify": {
+            "applied": 216,
+            "damage": 0,
+            "mitigation": 0,
+            "avgLifetime": null
+          }
+        }
+      },
+      "second": {
+        "dpr": {
+          "attackOnly": 5.375994802663635,
+          "actual": 3.9144063667370474
+        },
+        "mitigation": {
+          "blockedPercent": 0.2550579191800566,
+          "preventedPercent": 0.0459216356162921
+        },
+        "statuses": {
+          "chi": {
+            "applied": 3082,
+            "damage": 0,
+            "mitigation": 2417,
+            "avgLifetime": null
+          },
+          "evasive": {
+            "applied": 1801,
+            "damage": 0,
+            "mitigation": 3441,
+            "avgLifetime": null
+          },
+          "burn": {
+            "applied": 1393,
+            "damage": 2296,
+            "mitigation": 0,
+            "avgLifetime": null
+          },
+          "purify": {
+            "applied": 288,
+            "damage": 0,
+            "mitigation": 0,
+            "avgLifetime": null
+          }
+        }
+      }
+    },
+    "winRateCi": {
+      "lower": 0.5687949465785327,
+      "upper": 0.6118580551357745
+    },
+    "convergence": [
+      {
+        "games": 100,
+        "winRate": 0.66
+      },
+      {
+        "games": 200,
+        "winRate": 0.66
+      },
+      {
+        "games": 300,
+        "winRate": 0.6333333333333333
+      },
+      {
+        "games": 400,
+        "winRate": 0.6125
+      },
+      {
+        "games": 500,
+        "winRate": 0.614
+      },
+      {
+        "games": 600,
+        "winRate": 0.6166666666666667
+      },
+      {
+        "games": 700,
+        "winRate": 0.6114285714285714
+      },
+      {
+        "games": 800,
+        "winRate": 0.605
+      },
+      {
+        "games": 900,
+        "winRate": 0.61
+      },
+      {
+        "games": 1000,
+        "winRate": 0.607
+      },
+      {
+        "games": 1100,
+        "winRate": 0.6090909090909091
+      },
+      {
+        "games": 1200,
+        "winRate": 0.6108333333333333
+      },
+      {
+        "games": 1300,
+        "winRate": 0.6123076923076923
+      },
+      {
+        "games": 1400,
+        "winRate": 0.6085714285714285
+      },
+      {
+        "games": 1500,
+        "winRate": 0.606
+      },
+      {
+        "games": 1600,
+        "winRate": 0.6025
+      },
+      {
+        "games": 1700,
+        "winRate": 0.5982352941176471
+      },
+      {
+        "games": 1800,
+        "winRate": 0.5933333333333334
+      },
+      {
+        "games": 1900,
+        "winRate": 0.5905263157894737
+      },
+      {
+        "games": 2000,
+        "winRate": 0.5905
+      }
+    ]
+  },
+  "sample": {
+    "winner": "you",
+    "rounds": 8,
+    "turns": 15,
+    "meta": {
+      "firstPlayer": "you",
+      "heroBySide": {
+        "you": "Pyromancer",
+        "ai": "Shadow Monk"
+      }
+    },
+    "hp": {
+      "you": 4,
+      "ai": 0
+    },
+    "history": [
+      {
+        "side": "you",
+        "round": 1,
+        "dice": [
+          4,
+          4,
+          4,
+          3,
+          3
+        ],
+        "defenseDice": [
+          4,
+          4,
+          2,
+          3,
+          3
+        ],
+        "abilityId": "Pyromancer:FULL_HOUSE",
+        "combo": "FULL_HOUSE",
+        "opportunities": [
+          "FULL_HOUSE",
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 30,
+        "defenderHpAfter": 23,
+        "baseDamage": 8,
+        "modifiedDamage": 8,
+        "damageDealt": 7,
+        "damageBlocked": 1,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": "Shadow Monk:PAIR_PAIR",
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {
+          "chi": 1
+        },
+        "notes": []
+      },
+      {
+        "side": "ai",
+        "round": 1,
+        "dice": [
+          1,
+          2,
+          4,
+          2,
+          4
+        ],
+        "defenseDice": [
+          3,
+          2,
+          3,
+          5,
+          5
+        ],
+        "abilityId": "Shadow Monk:PAIR_PAIR",
+        "combo": "PAIR_PAIR",
+        "opportunities": [
+          "PAIR_PAIR"
+        ],
+        "attackerHeroId": "Shadow Monk",
+        "defenderHeroId": "Pyromancer",
+        "defenderHpBefore": 30,
+        "defenderHpAfter": 27,
+        "baseDamage": 3,
+        "modifiedDamage": 4,
+        "damageDealt": 3,
+        "damageBlocked": 1,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 1,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": "Pyromancer:PAIR_PAIR",
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {},
+        "notes": [
+          "Spent 1 Chi for +1 damage."
+        ]
+      },
+      {
+        "side": "you",
+        "round": 2,
+        "dice": [
+          2,
+          5,
+          5,
+          1,
+          5
+        ],
+        "defenseDice": [
+          4,
+          3,
+          3,
+          2,
+          1
+        ],
+        "abilityId": "Pyromancer:3OAK",
+        "combo": "3OAK",
+        "opportunities": [
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 23,
+        "defenderHpAfter": 20,
+        "baseDamage": 5,
+        "modifiedDamage": 5,
+        "damageDealt": 3,
+        "damageBlocked": 2,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 1,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": "Shadow Monk:SMALL_STRAIGHT",
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {
+          "chi": -1,
+          "evasive": 1
+        },
+        "notes": [
+          "Defender spends 1 Chi for +1 block."
+        ]
+      },
+      {
+        "side": "ai",
+        "round": 2,
+        "dice": [
+          4,
+          2,
+          2,
+          3,
+          2
+        ],
+        "defenseDice": [
+          3,
+          6,
+          6,
+          5,
+          1
+        ],
+        "abilityId": "Shadow Monk:3OAK",
+        "combo": "3OAK",
+        "opportunities": [
+          "3OAK"
+        ],
+        "attackerHeroId": "Shadow Monk",
+        "defenderHeroId": "Pyromancer",
+        "defenderHpBefore": 27,
+        "defenderHpAfter": 23,
+        "baseDamage": 4,
+        "modifiedDamage": 4,
+        "damageDealt": 4,
+        "damageBlocked": 0,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {},
+        "notes": []
+      },
+      {
+        "side": "you",
+        "round": 3,
+        "dice": [
+          1,
+          2,
+          1,
+          1,
+          2
+        ],
+        "defenseDice": [
+          1,
+          1,
+          5,
+          4,
+          4
+        ],
+        "abilityId": "Pyromancer:FULL_HOUSE",
+        "combo": "FULL_HOUSE",
+        "opportunities": [
+          "FULL_HOUSE",
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 20,
+        "defenderHpAfter": 13,
+        "baseDamage": 8,
+        "modifiedDamage": 8,
+        "damageDealt": 7,
+        "damageBlocked": 1,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": true,
+        "evasiveSuccess": false,
+        "defenseAbilityId": "Shadow Monk:PAIR_PAIR",
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {
+          "evasive": -1,
+          "chi": 1
+        },
+        "notes": []
+      },
+      {
+        "side": "ai",
+        "round": 3,
+        "dice": [
+          2,
+          2,
+          2,
+          2,
+          4
+        ],
+        "defenseDice": [
+          4,
+          4,
+          5,
+          6,
+          1
+        ],
+        "abilityId": "Shadow Monk:4OAK",
+        "combo": "4OAK",
+        "opportunities": [
+          "4OAK",
+          "3OAK"
+        ],
+        "attackerHeroId": "Shadow Monk",
+        "defenderHeroId": "Pyromancer",
+        "defenderHpBefore": 23,
+        "defenderHpAfter": 16,
+        "baseDamage": 6,
+        "modifiedDamage": 7,
+        "damageDealt": 7,
+        "damageBlocked": 0,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 1,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {},
+        "notes": [
+          "Spent 1 Chi for +1 damage."
+        ]
+      },
+      {
+        "side": "you",
+        "round": 4,
+        "dice": [
+          6,
+          6,
+          6,
+          4,
+          4
+        ],
+        "defenseDice": [
+          3,
+          3,
+          1,
+          3,
+          4
+        ],
+        "abilityId": "Pyromancer:FULL_HOUSE",
+        "combo": "FULL_HOUSE",
+        "opportunities": [
+          "FULL_HOUSE",
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 13,
+        "defenderHpAfter": 7,
+        "baseDamage": 8,
+        "modifiedDamage": 8,
+        "damageDealt": 6,
+        "damageBlocked": 2,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 1,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": "Shadow Monk:3OAK",
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {
+          "chi": -1
+        },
+        "notes": [
+          "Defender spends 1 Chi for +1 block."
+        ]
+      },
+      {
+        "side": "ai",
+        "round": 4,
+        "dice": [
+          3,
+          5,
+          6,
+          2,
+          2
+        ],
+        "defenseDice": [
+          1,
+          1,
+          3,
+          4,
+          4
+        ],
+        "abilityId": null,
+        "combo": null,
+        "opportunities": [],
+        "attackerHeroId": "Shadow Monk",
+        "defenderHeroId": "Pyromancer",
+        "defenderHpBefore": 16,
+        "defenderHpAfter": 16,
+        "baseDamage": null,
+        "modifiedDamage": null,
+        "damageDealt": 0,
+        "damageBlocked": 0,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {},
+        "notes": [
+          "No combo available."
+        ]
+      },
+      {
+        "side": "you",
+        "round": 5,
+        "dice": [
+          5,
+          3,
+          1,
+          3,
+          3
+        ],
+        "defenseDice": [
+          5,
+          1,
+          1,
+          3,
+          5
+        ],
+        "abilityId": "Pyromancer:3OAK",
+        "combo": "3OAK",
+        "opportunities": [
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 7,
+        "defenderHpAfter": 3,
+        "baseDamage": 5,
+        "modifiedDamage": 5,
+        "damageDealt": 4,
+        "damageBlocked": 1,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": "Shadow Monk:PAIR_PAIR",
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {
+          "chi": 1
+        },
+        "notes": []
+      },
+      {
+        "side": "ai",
+        "round": 5,
+        "dice": [
+          4,
+          4,
+          5,
+          2,
+          3
+        ],
+        "defenseDice": [
+          3,
+          6,
+          1,
+          2,
+          3
+        ],
+        "abilityId": "Shadow Monk:SMALL_STRAIGHT",
+        "combo": "SMALL_STRAIGHT",
+        "opportunities": [
+          "SMALL_STRAIGHT"
+        ],
+        "attackerHeroId": "Shadow Monk",
+        "defenderHeroId": "Pyromancer",
+        "defenderHpBefore": 16,
+        "defenderHpAfter": 10,
+        "baseDamage": 5,
+        "modifiedDamage": 6,
+        "damageDealt": 6,
+        "damageBlocked": 0,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 1,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {
+          "chi": -1,
+          "evasive": 1
+        },
+        "defenderStatusDiff": {},
+        "notes": [
+          "Spent 1 Chi for +1 damage."
+        ]
+      },
+      {
+        "side": "you",
+        "round": 6,
+        "dice": [
+          3,
+          6,
+          6,
+          6,
+          5
+        ],
+        "defenseDice": [
+          3,
+          1,
+          4,
+          1,
+          2
+        ],
+        "abilityId": "Pyromancer:3OAK",
+        "combo": "3OAK",
+        "opportunities": [
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 3,
+        "defenderHpAfter": 3,
+        "baseDamage": 5,
+        "modifiedDamage": 5,
+        "damageDealt": 0,
+        "damageBlocked": 5,
+        "damagePrevented": 5,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": true,
+        "evasiveSuccess": true,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {
+          "evasive": -1
+        },
+        "notes": [
+          "Evasive roll 5 negates attack."
+        ]
+      },
+      {
+        "side": "ai",
+        "round": 6,
+        "dice": [
+          4,
+          3,
+          1,
+          4,
+          2
+        ],
+        "defenseDice": [
+          5,
+          1,
+          5,
+          2,
+          6
+        ],
+        "abilityId": "Shadow Monk:SMALL_STRAIGHT",
+        "combo": "SMALL_STRAIGHT",
+        "opportunities": [
+          "SMALL_STRAIGHT"
+        ],
+        "attackerHeroId": "Shadow Monk",
+        "defenderHeroId": "Pyromancer",
+        "defenderHpBefore": 10,
+        "defenderHpAfter": 5,
+        "baseDamage": 5,
+        "modifiedDamage": 5,
+        "damageDealt": 5,
+        "damageBlocked": 0,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {
+          "evasive": 1
+        },
+        "defenderStatusDiff": {},
+        "notes": []
+      },
+      {
+        "side": "you",
+        "round": 7,
+        "dice": [
+          5,
+          2,
+          2,
+          2,
+          5
+        ],
+        "defenseDice": [
+          6,
+          2,
+          1,
+          5,
+          5
+        ],
+        "abilityId": "Pyromancer:FULL_HOUSE",
+        "combo": "FULL_HOUSE",
+        "opportunities": [
+          "FULL_HOUSE",
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 3,
+        "defenderHpAfter": 3,
+        "baseDamage": 8,
+        "modifiedDamage": 8,
+        "damageDealt": 0,
+        "damageBlocked": 8,
+        "damagePrevented": 8,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": true,
+        "evasiveSuccess": true,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {
+          "evasive": -1
+        },
+        "notes": [
+          "Evasive roll 5 negates attack."
+        ]
+      },
+      {
+        "side": "ai",
+        "round": 7,
+        "dice": [
+          4,
+          4,
+          4,
+          6,
+          1
+        ],
+        "defenseDice": [
+          2,
+          1,
+          3,
+          1,
+          4
+        ],
+        "abilityId": "Shadow Monk:3OAK",
+        "combo": "3OAK",
+        "opportunities": [
+          "3OAK"
+        ],
+        "attackerHeroId": "Shadow Monk",
+        "defenderHeroId": "Pyromancer",
+        "defenderHpBefore": 5,
+        "defenderHpAfter": 4,
+        "baseDamage": 4,
+        "modifiedDamage": 4,
+        "damageDealt": 1,
+        "damageBlocked": 3,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": "Pyromancer:SMALL_STRAIGHT",
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {},
+        "notes": []
+      },
+      {
+        "side": "you",
+        "round": 8,
+        "dice": [
+          3,
+          6,
+          3,
+          2,
+          3
+        ],
+        "defenseDice": [
+          3,
+          5,
+          1,
+          2,
+          2
+        ],
+        "abilityId": "Pyromancer:3OAK",
+        "combo": "3OAK",
+        "opportunities": [
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 3,
+        "defenderHpAfter": 0,
+        "baseDamage": 5,
+        "modifiedDamage": 5,
+        "damageDealt": 5,
+        "damageBlocked": 0,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {},
+        "notes": []
+      }
+    ],
+    "statusStats": {
+      "applied": {
+        "chi": 3,
+        "evasive": 3
+      },
+      "damage": {
+        "chi": 3
+      },
+      "mitigation": {
+        "chi": 2,
+        "evasive": 13
+      },
+      "lifetimes": {
+        "chi": [
+          1,
+          1,
+          1
+        ],
+        "evasive": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    "roundDamage": {
+      "1": {
+        "you": 7,
+        "ai": 3
+      },
+      "2": {
+        "you": 3,
+        "ai": 4
+      },
+      "3": {
+        "you": 7,
+        "ai": 7
+      },
+      "4": {
+        "you": 6,
+        "ai": 0
+      },
+      "5": {
+        "you": 4,
+        "ai": 6
+      },
+      "6": {
+        "you": 0,
+        "ai": 5
+      },
+      "7": {
+        "you": 0,
+        "ai": 1
+      },
+      "8": {
+        "you": 5,
+        "ai": 0
+      }
+    },
+    "lethalShots": [
+      {
+        "side": "you",
+        "defenderHpBefore": 3
+      }
+    ],
+    "statusDamageEvents": []
+  },
+  "elasticity": [
+    {
+      "metric": "damage",
+      "delta": -1,
+      "winRate": 0.3585,
+      "winRateDelta": -0.23200000000000004,
+      "lethal5": 0.21938232161874335,
+      "lethal5Delta": -0.02264901279508702
+    },
+    {
+      "metric": "damage",
+      "delta": 1,
+      "winRate": 0.7585,
+      "winRateDelta": 0.16799999999999993,
+      "lethal5": 0.30640818524501884,
+      "lethal5Delta": 0.06437685083118846
+    },
+    {
+      "metric": "block",
+      "delta": -1,
+      "winRate": 0.4645,
+      "winRateDelta": -0.126,
+      "lethal5": 0.26481580352375866,
+      "lethal5Delta": 0.02278446910992829
+    },
+    {
+      "metric": "block",
+      "delta": 1,
+      "winRate": 0.8075,
+      "winRateDelta": 0.21699999999999997,
+      "lethal5": 0.20638414969730326,
+      "lethal5Delta": -0.035647184716527114
+    }
+  ]
+}

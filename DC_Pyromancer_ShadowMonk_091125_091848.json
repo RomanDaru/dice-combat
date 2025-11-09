@@ -1,0 +1,997 @@
+{
+  "gameStats": {
+    "id": "game_mhrfu3f2_hpxw2k",
+    "schemaVersion": "1.0.0",
+    "sessionId": "session_mhrfu3es_c7468b",
+    "heroId": "Pyromancer",
+    "opponentHeroId": "Shadow Monk",
+    "heroVersion": {
+      "Pyromancer": "0.7.2",
+      "Shadow Monk": "0.2.1"
+    },
+    "rulesVersion": "0.9.3",
+    "buildHash": "abc123",
+    "seed": 1739503555,
+    "startedAt": 1762676094926,
+    "metadata": {},
+    "firstPlayer": "you",
+    "endedAt": 1762676328486,
+    "winner": "you",
+    "resultType": "win",
+    "roundsPlayed": 6,
+    "hpRemainingWinner": 23,
+    "hpRemainingLoser": 0,
+    "integrity": {
+      "ok": true,
+      "recomputedHpYou": 23,
+      "recomputedHpAi": 0,
+      "hpDriftYou": 0,
+      "hpDriftAi": 0
+    },
+    "tempoSeconds": 233.56,
+    "avgTurnTimeSec": 21.232727272727274,
+    "roundsPerMinute": 1.5413598218873095,
+    "maxDamageSingleTurn": 10,
+    "dprNet": 2.909090909090909,
+    "dprNetBySide": {
+      "you": 4.166666666666667,
+      "ai": 1.4
+    },
+    "atkEvBySide": {
+      "you": -3.8333333333333335,
+      "ai": -1.8
+    },
+    "defEvBySide": {
+      "you": 3,
+      "ai": 2
+    },
+    "abilityValue": {
+      "Pyromancer:3OAK": -2,
+      "Shadow Monk:PAIR_PAIR": -3,
+      "Pyromancer:LARGE_STRAIGHT": -6,
+      "Shadow Monk:3OAK": 0,
+      "Pyromancer:SMALL_STRAIGHT": -6,
+      "Pyromancer:FULL_HOUSE": -1,
+      "Shadow Monk:4OAK": -6
+    },
+    "pickRate": {
+      "Pyromancer:3OAK": 1,
+      "Shadow Monk:PAIR_PAIR": 1,
+      "Pyromancer:LARGE_STRAIGHT": 0.5,
+      "Shadow Monk:3OAK": 1,
+      "Pyromancer:SMALL_STRAIGHT": 1,
+      "Pyromancer:FULL_HOUSE": 0.5,
+      "Shadow Monk:4OAK": 0.5
+    },
+    "opportunityRate": {
+      "Pyromancer:3OAK": 0.18181818181818182,
+      "Shadow Monk:PAIR_PAIR": 0.09090909090909091,
+      "Pyromancer:LARGE_STRAIGHT": 0.36363636363636365,
+      "Shadow Monk:3OAK": 0.2727272727272727,
+      "Pyromancer:SMALL_STRAIGHT": 0.09090909090909091,
+      "Pyromancer:FULL_HOUSE": 0.18181818181818182,
+      "Shadow Monk:4OAK": 0.18181818181818182
+    },
+    "combosTriggered": {
+      "3OAK": 7,
+      "PAIR_PAIR": 1,
+      "SMALL_STRAIGHT": 3,
+      "LARGE_STRAIGHT": 2,
+      "FULL_HOUSE": 1,
+      "4OAK": 1
+    },
+    "statusSummary": {
+      "applied": {
+        "chi": 5,
+        "evasive": 1,
+        "burn": 4
+      },
+      "avgLifetimeTurns": {
+        "chi": 1.5,
+        "evasive": 1,
+        "burn": 2
+      }
+    }
+  },
+  "turnStats": [
+    {
+      "id": "turn_mhrfu4zk_j408zh",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfu4zk_j408zh",
+      "round": 1,
+      "attackerSide": "you",
+      "defenderSide": "ai",
+      "abilityId": "Pyromancer:3OAK",
+      "combo": "3OAK",
+      "expectedDamage": 5,
+      "attackDice": [
+        2,
+        3,
+        2,
+        2,
+        6
+      ],
+      "opportunityCount": 1,
+      "pickCount": 1,
+      "combosTriggered": {
+        "3OAK": 1
+      },
+      "actualDamage": 4,
+      "damageBlocked": 1,
+      "damageWithoutBlock": 5,
+      "damagePrevented": 0,
+      "counterDamage": 0,
+      "phaseDamage": {
+        "attack": 5,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "defenseAbilityId": "Shadow Monk:3OAK",
+      "defenseEfficacy": {
+        "defenseAbilityId": "Shadow Monk:3OAK",
+        "incomingAbilityId": "Pyromancer:3OAK",
+        "blocked": 1,
+        "prevented": 0,
+        "reflected": 0
+      }
+    },
+    {
+      "id": "turn_mhrfuk3f_muvjbd",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfuk3f_muvjbd",
+      "round": 2,
+      "attackerSide": "ai",
+      "defenderSide": "you",
+      "abilityId": "Shadow Monk:PAIR_PAIR",
+      "combo": "PAIR_PAIR",
+      "expectedDamage": 3,
+      "attackDice": [
+        6,
+        5,
+        6,
+        5,
+        4
+      ],
+      "opportunityCount": 1,
+      "pickCount": 1,
+      "combosTriggered": {
+        "PAIR_PAIR": 1
+      },
+      "phaseDamage": {
+        "attack": 3,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "actualDamage": 0,
+      "damageBlocked": 3,
+      "damageWithoutBlock": 3,
+      "damagePrevented": 0,
+      "counterDamage": 0,
+      "defenseAbilityId": "Pyromancer:LARGE_STRAIGHT",
+      "defensePromptToChoiceMs": 8906,
+      "statusApplied": {
+        "chi": 1
+      },
+      "attackerStatusDiff": {
+        "chi": 1
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": "Pyromancer:LARGE_STRAIGHT",
+        "incomingAbilityId": "Shadow Monk:PAIR_PAIR",
+        "blocked": 3,
+        "prevented": 0,
+        "reflected": 0
+      }
+    },
+    {
+      "id": "turn_mhrfv2jg_frov9h",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfv2jg_frov9h",
+      "round": 2,
+      "attackerSide": "you",
+      "defenderSide": "ai",
+      "abilityId": "Pyromancer:LARGE_STRAIGHT",
+      "combo": "LARGE_STRAIGHT",
+      "expectedDamage": 12,
+      "attackDice": [
+        2,
+        1,
+        5,
+        4,
+        3
+      ],
+      "opportunityCount": 2,
+      "pickCount": 1,
+      "combosTriggered": {
+        "SMALL_STRAIGHT": 1,
+        "LARGE_STRAIGHT": 1
+      },
+      "actualDamage": 10,
+      "damageBlocked": 2,
+      "damageWithoutBlock": 12,
+      "damagePrevented": 0,
+      "counterDamage": 0,
+      "phaseDamage": {
+        "attack": 12,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "defenseAbilityId": "Shadow Monk:SMALL_STRAIGHT",
+      "statusLifetimeTurns": {
+        "chi": [
+          1
+        ]
+      },
+      "statusRemovalReasons": {
+        "chi": {
+          "natural": 1,
+          "cleanse": 0,
+          "transfer": 0,
+          "cap": 0
+        }
+      },
+      "statusApplied": {
+        "evasive": 1,
+        "burn": 2
+      },
+      "defenderStatusDiff": {
+        "evasive": 1,
+        "burn": 2
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": "Shadow Monk:SMALL_STRAIGHT",
+        "incomingAbilityId": "Pyromancer:LARGE_STRAIGHT",
+        "blocked": 2,
+        "prevented": 0,
+        "reflected": 0
+      }
+    },
+    {
+      "id": "turn_mhrfveer_eggzcc",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfveer_eggzcc",
+      "round": 3,
+      "attackerSide": "ai",
+      "defenderSide": "you",
+      "abilityId": "Shadow Monk:3OAK",
+      "combo": "3OAK",
+      "expectedDamage": 4,
+      "attackDice": [
+        6,
+        3,
+        3,
+        2,
+        3
+      ],
+      "opportunityCount": 1,
+      "pickCount": 1,
+      "combosTriggered": {
+        "3OAK": 1
+      },
+      "phaseDamage": {
+        "attack": 4,
+        "counter": 0,
+        "upkeepDot": 3,
+        "collateral": 0
+      },
+      "actualDamage": 3,
+      "damageBlocked": 4,
+      "damageWithoutBlock": 4,
+      "damagePrevented": 0,
+      "counterDamage": 0,
+      "defenseAbilityId": "Pyromancer:FULL_HOUSE",
+      "defensePromptToChoiceMs": 11006,
+      "defenseEfficacy": {
+        "defenseAbilityId": "Pyromancer:FULL_HOUSE",
+        "incomingAbilityId": "Shadow Monk:3OAK",
+        "blocked": 4,
+        "prevented": 0,
+        "reflected": 0
+      }
+    },
+    {
+      "id": "turn_mhrfvzwl_d7sj02",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfvzwl_d7sj02",
+      "round": 3,
+      "attackerSide": "you",
+      "defenderSide": "ai",
+      "abilityId": "Pyromancer:SMALL_STRAIGHT",
+      "combo": "SMALL_STRAIGHT",
+      "expectedDamage": 6,
+      "attackDice": [
+        5,
+        3,
+        2,
+        2,
+        4
+      ],
+      "opportunityCount": 1,
+      "pickCount": 1,
+      "combosTriggered": {
+        "SMALL_STRAIGHT": 1
+      },
+      "actualDamage": 0,
+      "damageBlocked": 0,
+      "damageWithoutBlock": 6,
+      "damagePrevented": 6,
+      "counterDamage": 0,
+      "phaseDamage": {
+        "attack": 6,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "defenseAbilityId": null,
+      "statusLifetimeTurns": {
+        "evasive": [
+          1
+        ]
+      },
+      "statusRemovalReasons": {
+        "evasive": {
+          "natural": 1,
+          "cleanse": 0,
+          "transfer": 0,
+          "cap": 0
+        }
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": null,
+        "incomingAbilityId": "Pyromancer:SMALL_STRAIGHT",
+        "blocked": 0,
+        "prevented": 6,
+        "reflected": 0
+      }
+    },
+    {
+      "id": "turn_mhrfwgbt_idg3fx",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfwgbt_idg3fx",
+      "round": 4,
+      "attackerSide": "ai",
+      "defenderSide": "you",
+      "abilityId": "Shadow Monk:3OAK",
+      "combo": "3OAK",
+      "expectedDamage": 4,
+      "attackDice": [
+        3,
+        1,
+        1,
+        1,
+        4
+      ],
+      "opportunityCount": 1,
+      "pickCount": 1,
+      "combosTriggered": {
+        "3OAK": 1
+      },
+      "phaseDamage": {
+        "attack": 4,
+        "counter": 0,
+        "upkeepDot": 2,
+        "collateral": 0
+      },
+      "actualDamage": 5,
+      "damageBlocked": 1,
+      "damageWithoutBlock": 4,
+      "damagePrevented": 0,
+      "counterDamage": 0,
+      "defenseAbilityId": "Pyromancer:PAIR_PAIR",
+      "defensePromptToChoiceMs": 6476,
+      "statusLifetimeTurns": {
+        "burn": [
+          2
+        ]
+      },
+      "statusRemovalReasons": {
+        "burn": {
+          "natural": 1,
+          "cleanse": 0,
+          "transfer": 0,
+          "cap": 0
+        }
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": "Pyromancer:PAIR_PAIR",
+        "incomingAbilityId": "Shadow Monk:3OAK",
+        "blocked": 1,
+        "prevented": 0,
+        "reflected": 0
+      }
+    },
+    {
+      "id": "turn_mhrfwyrb_6yo4ks",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfwyrb_6yo4ks",
+      "round": 4,
+      "attackerSide": "you",
+      "defenderSide": "ai",
+      "abilityId": "Pyromancer:FULL_HOUSE",
+      "combo": "FULL_HOUSE",
+      "expectedDamage": 8,
+      "attackDice": [
+        6,
+        1,
+        6,
+        1,
+        1
+      ],
+      "opportunityCount": 2,
+      "pickCount": 1,
+      "combosTriggered": {
+        "FULL_HOUSE": 1,
+        "3OAK": 1
+      },
+      "actualDamage": 7,
+      "damageBlocked": 1,
+      "damageWithoutBlock": 8,
+      "damagePrevented": 0,
+      "counterDamage": 0,
+      "phaseDamage": {
+        "attack": 8,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "defenseAbilityId": "Shadow Monk:PAIR_PAIR",
+      "statusApplied": {
+        "chi": 1
+      },
+      "defenderStatusDiff": {
+        "chi": 1
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": "Shadow Monk:PAIR_PAIR",
+        "incomingAbilityId": "Pyromancer:FULL_HOUSE",
+        "blocked": 1,
+        "prevented": 0,
+        "reflected": 0
+      }
+    },
+    {
+      "id": "turn_mhrfxd7o_mkpz6k",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfxd7o_mkpz6k",
+      "round": 5,
+      "attackerSide": "ai",
+      "defenderSide": "you",
+      "abilityId": "Shadow Monk:4OAK",
+      "combo": "4OAK",
+      "expectedDamage": 6,
+      "attackDice": [
+        1,
+        1,
+        1,
+        1,
+        4
+      ],
+      "opportunityCount": 2,
+      "pickCount": 1,
+      "combosTriggered": {
+        "4OAK": 1,
+        "3OAK": 1
+      },
+      "phaseDamage": {
+        "attack": 6,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "actualDamage": 0,
+      "damageBlocked": 6,
+      "damageWithoutBlock": 6,
+      "damagePrevented": 0,
+      "counterDamage": 0,
+      "defenseAbilityId": "Pyromancer:LARGE_STRAIGHT",
+      "defensePromptToChoiceMs": 7711,
+      "statusApplied": {
+        "chi": 1
+      },
+      "attackerStatusDiff": {
+        "chi": 1
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": "Pyromancer:LARGE_STRAIGHT",
+        "incomingAbilityId": "Shadow Monk:4OAK",
+        "blocked": 6,
+        "prevented": 0,
+        "reflected": 0
+      }
+    },
+    {
+      "id": "turn_mhrfxur8_k42xog",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfxur8_k42xog",
+      "round": 5,
+      "attackerSide": "you",
+      "defenderSide": "ai",
+      "abilityId": "Pyromancer:3OAK",
+      "combo": "3OAK",
+      "expectedDamage": 5,
+      "attackDice": [
+        6,
+        5,
+        4,
+        5,
+        5
+      ],
+      "opportunityCount": 1,
+      "pickCount": 1,
+      "combosTriggered": {
+        "3OAK": 1
+      },
+      "actualDamage": 2,
+      "damageBlocked": 2,
+      "damageWithoutBlock": 4,
+      "damagePrevented": 0,
+      "counterDamage": 0,
+      "phaseDamage": {
+        "attack": 4,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "defenseAbilityId": "Shadow Monk:PAIR_PAIR",
+      "statusApplied": {
+        "chi": 1
+      },
+      "defenderStatusDiff": {
+        "chi": 1
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": "Shadow Monk:PAIR_PAIR",
+        "incomingAbilityId": "Pyromancer:3OAK",
+        "blocked": 2,
+        "prevented": 0,
+        "reflected": 0
+      }
+    },
+    {
+      "id": "turn_mhrfyak9_i79ieq",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfyak9_i79ieq",
+      "round": 6,
+      "attackerSide": "ai",
+      "defenderSide": "you",
+      "abilityId": "Shadow Monk:3OAK",
+      "combo": "3OAK",
+      "expectedDamage": 4,
+      "attackDice": [
+        2,
+        2,
+        5,
+        2,
+        4
+      ],
+      "opportunityCount": 1,
+      "pickCount": 1,
+      "combosTriggered": {
+        "3OAK": 1
+      },
+      "phaseDamage": {
+        "attack": 5,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "actualDamage": 4,
+      "damageBlocked": 1,
+      "damageWithoutBlock": 5,
+      "damagePrevented": 0,
+      "counterDamage": 0,
+      "defenseAbilityId": "Pyromancer:PAIR_PAIR",
+      "defensePromptToChoiceMs": 5759,
+      "statusLifetimeTurns": {
+        "chi": [
+          2
+        ]
+      },
+      "statusRemovalReasons": {
+        "chi": {
+          "natural": 1,
+          "cleanse": 0,
+          "transfer": 0,
+          "cap": 0
+        }
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": "Pyromancer:PAIR_PAIR",
+        "incomingAbilityId": "Shadow Monk:3OAK",
+        "blocked": 1,
+        "prevented": 0,
+        "reflected": 0
+      }
+    },
+    {
+      "id": "turn_mhrfyqkz_wagu7u",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfyqkz_wagu7u",
+      "round": 6,
+      "attackerSide": "you",
+      "defenderSide": "ai",
+      "abilityId": "Pyromancer:LARGE_STRAIGHT",
+      "combo": "LARGE_STRAIGHT",
+      "expectedDamage": 12,
+      "attackDice": [
+        4,
+        2,
+        3,
+        5,
+        6
+      ],
+      "opportunityCount": 2,
+      "pickCount": 1,
+      "combosTriggered": {
+        "SMALL_STRAIGHT": 1,
+        "LARGE_STRAIGHT": 1
+      },
+      "actualDamage": 2,
+      "damageBlocked": 0,
+      "damageWithoutBlock": 2,
+      "damagePrevented": 0,
+      "counterDamage": 0,
+      "phaseDamage": {
+        "attack": 2,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "defenseAbilityId": "Shadow Monk:FULL_HOUSE",
+      "statusApplied": {
+        "chi": 1,
+        "burn": 2
+      },
+      "defenderStatusDiff": {
+        "chi": 1,
+        "burn": 2
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": "Shadow Monk:FULL_HOUSE",
+        "incomingAbilityId": "Pyromancer:LARGE_STRAIGHT",
+        "blocked": 0,
+        "prevented": 0,
+        "reflected": 0
+      }
+    }
+  ],
+  "rollStats": [
+    {
+      "id": "roll_mhrfu6rj_5cu3et",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfu4zk_j408zh",
+      "side": "you",
+      "round": 1,
+      "attemptIndex": 0,
+      "diceBeforeHold": [
+        2,
+        2,
+        3,
+        4,
+        6
+      ],
+      "holdsUsed": 0,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676099263
+    },
+    {
+      "id": "roll_mhrfu9g5_mhvr4t",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfu4zk_j408zh",
+      "side": "you",
+      "round": 1,
+      "attemptIndex": 1,
+      "diceBeforeHold": [
+        2,
+        3,
+        2,
+        2,
+        1
+      ],
+      "holdsUsed": 3,
+      "combosAvailable": [
+        "3OAK"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676102741
+    },
+    {
+      "id": "roll_mhrfub4e_7thmn8",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfu4zk_j408zh",
+      "side": "you",
+      "round": 1,
+      "attemptIndex": 2,
+      "diceBeforeHold": [
+        2,
+        6,
+        2,
+        2,
+        5
+      ],
+      "holdsUsed": 3,
+      "combosAvailable": [
+        "3OAK"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676104910
+    },
+    {
+      "id": "roll_mhrfv3yo_03kwhc",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfv2jg_frov9h",
+      "side": "you",
+      "round": 2,
+      "attemptIndex": 0,
+      "diceBeforeHold": [
+        2,
+        2,
+        3,
+        4,
+        6
+      ],
+      "holdsUsed": 0,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676142288
+    },
+    {
+      "id": "roll_mhrfw1eh_aqi7wu",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfvzwl_d7sj02",
+      "side": "you",
+      "round": 3,
+      "attemptIndex": 0,
+      "diceBeforeHold": [
+        2,
+        2,
+        3,
+        4,
+        6
+      ],
+      "holdsUsed": 0,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676185625
+    },
+    {
+      "id": "roll_mhrfw4zn_4r3zna",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfvzwl_d7sj02",
+      "side": "you",
+      "round": 3,
+      "attemptIndex": 1,
+      "diceBeforeHold": [
+        3,
+        3,
+        6,
+        2,
+        4
+      ],
+      "holdsUsed": 3,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676190275
+    },
+    {
+      "id": "roll_mhrfw78p_nsdaya",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfvzwl_d7sj02",
+      "side": "you",
+      "round": 3,
+      "attemptIndex": 2,
+      "diceBeforeHold": [
+        4,
+        3,
+        4,
+        2,
+        4
+      ],
+      "holdsUsed": 3,
+      "combosAvailable": [
+        "3OAK"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676193193
+    },
+    {
+      "id": "roll_mhrfx09a_4a7p9r",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfwyrb_6yo4ks",
+      "side": "you",
+      "round": 4,
+      "attemptIndex": 0,
+      "diceBeforeHold": [
+        2,
+        2,
+        3,
+        4,
+        6
+      ],
+      "holdsUsed": 0,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676230798
+    },
+    {
+      "id": "roll_mhrfx2y5_aflycx",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfwyrb_6yo4ks",
+      "side": "you",
+      "round": 4,
+      "attemptIndex": 1,
+      "diceBeforeHold": [
+        6,
+        1,
+        4,
+        1,
+        1
+      ],
+      "holdsUsed": 3,
+      "combosAvailable": [
+        "3OAK"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676234285
+    },
+    {
+      "id": "roll_mhrfx4ns_opz8et",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfwyrb_6yo4ks",
+      "side": "you",
+      "round": 4,
+      "attemptIndex": 2,
+      "diceBeforeHold": [
+        2,
+        1,
+        3,
+        1,
+        1
+      ],
+      "holdsUsed": 3,
+      "combosAvailable": [
+        "3OAK"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676236504
+    },
+    {
+      "id": "roll_mhrfxvpt_0aw3yq",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfxur8_k42xog",
+      "side": "you",
+      "round": 5,
+      "attemptIndex": 0,
+      "diceBeforeHold": [
+        2,
+        2,
+        3,
+        4,
+        6
+      ],
+      "holdsUsed": 0,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676271569
+    },
+    {
+      "id": "roll_mhrfxzme_dqnyz9",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfxur8_k42xog",
+      "side": "you",
+      "round": 5,
+      "attemptIndex": 1,
+      "diceBeforeHold": [
+        2,
+        5,
+        1,
+        4,
+        5
+      ],
+      "holdsUsed": 2,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676276630
+    },
+    {
+      "id": "roll_mhrfy20m_o1xxns",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfxur8_k42xog",
+      "side": "you",
+      "round": 5,
+      "attemptIndex": 2,
+      "diceBeforeHold": [
+        3,
+        5,
+        6,
+        1,
+        5
+      ],
+      "holdsUsed": 2,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676279734
+    },
+    {
+      "id": "roll_mhrfyso1_389t7d",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfyqkz_wagu7u",
+      "side": "you",
+      "round": 6,
+      "attemptIndex": 0,
+      "diceBeforeHold": [
+        2,
+        2,
+        3,
+        4,
+        6
+      ],
+      "holdsUsed": 0,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676314273
+    },
+    {
+      "id": "roll_mhrfyw46_od02ch",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfyqkz_wagu7u",
+      "side": "you",
+      "round": 6,
+      "attemptIndex": 1,
+      "diceBeforeHold": [
+        4,
+        2,
+        3,
+        5,
+        3
+      ],
+      "holdsUsed": 4,
+      "combosAvailable": [
+        "SMALL_STRAIGHT"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676318742
+    },
+    {
+      "id": "roll_mhrfyxoh_x8izin",
+      "gameId": "game_mhrfu3f2_hpxw2k",
+      "turnId": "turn_mhrfyqkz_wagu7u",
+      "side": "you",
+      "round": 6,
+      "attemptIndex": 2,
+      "diceBeforeHold": [
+        4,
+        2,
+        3,
+        5,
+        2
+      ],
+      "holdsUsed": 4,
+      "combosAvailable": [
+        "SMALL_STRAIGHT"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1762676320769
+    }
+  ]
+}

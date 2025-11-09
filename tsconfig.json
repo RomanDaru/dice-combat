@@ -13,7 +13,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "types": ["vitest/globals", "vitest/importMeta", "vite/client"]
+    "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node"]
   },
   "include": ["src", "vitest.setup.ts"]
 }

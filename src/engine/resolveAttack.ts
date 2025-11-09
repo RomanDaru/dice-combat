@@ -1,9 +1,26 @@
 import { applyAttack, applyAbilityEffects } from "../game/engine";
 import type { AttackContext, AttackResolution } from "../game/combat/types";
-import type { Side } from "../game/types";
+import type { Side, PlayerState } from "../game/types";
 import { buildAttackResolutionLines } from "../game/logging/combatLog";
 import { aggregateStatusSpendSummaries, applyModifiers } from "./status";
 import { TURN_TRANSITION_DELAY_MS } from "../game/flow/turnEnd";
+
+const diffTokens = (before: PlayerState, after: PlayerState) => {
+  const beforeTokens = before.tokens ?? {};
+  const afterTokens = after.tokens ?? {};
+  const diff: Record<string, number> = {};
+  const keys = new Set([
+    ...Object.keys(beforeTokens),
+    ...Object.keys(afterTokens),
+  ]);
+  keys.forEach((key) => {
+    const delta = (afterTokens[key] ?? 0) - (beforeTokens[key] ?? 0);
+    if (delta !== 0) {
+      diff[key] = delta;
+    }
+  });
+  return diff;
+};
 
 export function resolveAttack(context: AttackContext): AttackResolution {
   const {
@@ -87,6 +104,10 @@ export function resolveAttack(context: AttackContext): AttackResolution {
         statusSpends: defenseStatusSpends,
       }
     : null;
+  const defenseAbilitySelection = defenseResolution?.selection.selected ?? null;
+  const defenseAbilityId = defenseAbilitySelection
+    ? `${initialDefender.hero.id}:${defenseAbilitySelection.ability.combo}`
+    : null;
 
   let nextAttacker = attackerState;
   let nextDefender = defenderState;
@@ -167,6 +188,9 @@ export function resolveAttack(context: AttackContext): AttackResolution {
       : []),
   ];
 
+  const attackerStatusDiff = diffTokens(attackerState, nextAttacker);
+  const defenderStatusDiff = diffTokens(defenderState, nextDefender);
+
   const summary = {
     damageDealt,
     blocked: reportedBlocked,
@@ -174,6 +198,14 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     negated: wasNegated,
     attackerDefeated: outcome === "attacker_defeated",
     defenderDefeated: outcome === "defender_defeated",
+    baseDamage,
+    modifiedBaseDamage,
+    attackDamage,
+    baseBlock,
+    totalBlock,
+    defenseAbilityId,
+    attackerStatusDiff,
+    defenderStatusDiff,
   };
 
   const resolution: AttackResolution = {

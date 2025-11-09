@@ -15,6 +15,7 @@ const HERO_IMAGES: Record<string, string> = {
   "Shadow Monk": ShadowMonkPortrait,
   "Training Dummy": TrainingDummyPortrait,
 };
+const AVAILABLE_HEROES = ["Pyromancer", "Shadow Monk"] as const;
 
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, undefined, () =>
@@ -25,14 +26,12 @@ export default function App() {
     "intro"
   );
 
-  const heroOptions: HeroOption[] = useMemo(
-    () =>
-      Object.values(HEROES).map((hero) => ({
-        hero,
-        image: HERO_IMAGES[hero.id] ?? PyromancerPortrait,
-      })),
-    []
-  );
+  const heroOptions: HeroOption[] = useMemo(() => {
+    return AVAILABLE_HEROES.map((id) => HEROES[id]).map((hero) => ({
+      hero,
+      image: HERO_IMAGES[hero.id] ?? PyromancerPortrait,
+    }));
+  }, []);
 
   const startBattle = (playerHero: Hero, aiHero: Hero) => {
     dispatch({

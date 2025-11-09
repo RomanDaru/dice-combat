@@ -15,12 +15,17 @@ import type { DefenseResolutionHandler } from "./useDefenseResolution";
 import { useAiDefenseResponse } from "./useAiDefenseResponse";
 import { listPreDefenseReactions } from "../game/combat/preDefenseReactions";
 import { applyAttackStatusSpends } from "./statusSpends";
+import { detectCombos } from "../game/combos";
+import type { StatsTurnInput } from "../stats/types";
 
 type UseAttackExecutionArgs = {
   turn: Side;
   rolling: boolean[];
   ability: OffensiveAbility | null;
   dice: number[];
+  turnId: string;
+  round: number;
+  prepareTurnSnapshot: (snapshot: StatsTurnInput) => void;
   you: PlayerState;
   attackStatusRequests: Record<StatusId, number>;
   clearAttackStatusRequests: () => void;
@@ -84,6 +89,9 @@ export function useAttackExecution({
   rolling,
   ability,
   dice,
+  turnId,
+  round,
+  prepareTurnSnapshot,
   you,
   attackStatusRequests,
   clearAttackStatusRequests,
@@ -194,6 +202,30 @@ export function useAttackExecution({
       };
 
       logPlayerAttackStart(attackDice, effectiveAbility, attacker.hero.name);
+      const combos = detectCombos(attackDice);
+      const combosTriggered: Record<string, number> = {};
+      let opportunityCount = 0;
+      Object.entries(combos).forEach(([comboId, active]) => {
+        if (active) {
+          opportunityCount += 1;
+          combosTriggered[comboId] = (combosTriggered[comboId] ?? 0) + 1;
+        }
+      });
+      const turnSnapshot: StatsTurnInput = {
+        turnId,
+        round,
+        attackerSide: "you",
+        defenderSide: "ai",
+        abilityId: `${attacker.hero.id}:${effectiveAbility.combo}`,
+        combo: effectiveAbility.combo,
+        expectedDamage: baseDamage,
+        attackDice: [...attackDice],
+        opportunityCount,
+        pickCount: 1,
+        combosTriggered:
+          Object.keys(combosTriggered).length > 0 ? combosTriggered : undefined,
+      };
+      prepareTurnSnapshot(turnSnapshot);
 
       const aiReactionAbility = aiActiveAbilities.find(
         (abilityItem) =>
@@ -255,6 +287,9 @@ export function useAttackExecution({
     turn,
     getStatusBudget,
     you.hero.name,
+    turnId,
+    round,
+    prepareTurnSnapshot,
   ]);
 
   return { onConfirmAttack };

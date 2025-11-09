@@ -1,0 +1,527 @@
+[
+    {
+        "id":  "turn_mhrg2ol9_57x19x",
+        "gameId":  "game_mhrg2mhc_vkoesb",
+        "turnId":  "turn_mhrg2ol9_57x19x",
+        "round":  1,
+        "attackerSide":  "you",
+        "defenderSide":  "ai",
+        "abilityId":  "Pyromancer:3OAK",
+        "combo":  "3OAK",
+        "expectedDamage":  5,
+        "attackDice":  [
+                           2,
+                           6,
+                           3,
+                           6,
+                           6
+                       ],
+        "opportunityCount":  1,
+        "pickCount":  1,
+        "combosTriggered":  {
+                                "3OAK":  1
+                            },
+        "actualDamage":  5,
+        "damageBlocked":  0,
+        "damageWithoutBlock":  5,
+        "damagePrevented":  0,
+        "counterDamage":  0,
+        "phaseDamage":  {
+                            "attack":  5,
+                            "counter":  0,
+                            "upkeepDot":  0,
+                            "collateral":  0
+                        },
+        "defenseAbilityId":  null,
+        "defenseEfficacy":  {
+                                "defenseAbilityId":  null,
+                                "incomingAbilityId":  "Pyromancer:3OAK",
+                                "blocked":  0,
+                                "prevented":  0,
+                                "reflected":  0
+                            }
+    },
+    {
+        "id":  "turn_mhrg37jk_iv3muk",
+        "gameId":  "game_mhrg2mhc_vkoesb",
+        "turnId":  "turn_mhrg37jk_iv3muk",
+        "round":  1,
+        "attackerSide":  "ai",
+        "defenderSide":  "you",
+        "abilityId":  "Shadow Monk:FULL_HOUSE",
+        "combo":  "FULL_HOUSE",
+        "expectedDamage":  7,
+        "attackDice":  [
+                           5,
+                           6,
+                           6,
+                           5,
+                           5
+                       ],
+        "opportunityCount":  2,
+        "pickCount":  1,
+        "combosTriggered":  {
+                                "FULL_HOUSE":  1,
+                                "3OAK":  1
+                            },
+        "phaseDamage":  {
+                            "attack":  7,
+                            "counter":  0,
+                            "upkeepDot":  0,
+                            "collateral":  0
+                        },
+        "actualDamage":  7,
+        "damageBlocked":  0,
+        "damageWithoutBlock":  7,
+        "damagePrevented":  0,
+        "counterDamage":  0,
+        "defenseAbilityId":  null,
+        "defensePromptToChoiceMs":  8102,
+        "statusApplied":  {
+                              "chi":  1
+                          },
+        "attackerStatusDiff":  {
+                                   "chi":  1
+                               },
+        "defenseEfficacy":  {
+                                "defenseAbilityId":  null,
+                                "incomingAbilityId":  "Shadow Monk:FULL_HOUSE",
+                                "blocked":  0,
+                                "prevented":  0,
+                                "reflected":  0
+                            }
+    },
+    {
+        "id":  "turn_mhrg3pe0_qdld8b",
+        "gameId":  "game_mhrg2mhc_vkoesb",
+        "turnId":  "turn_mhrg3pe0_qdld8b",
+        "round":  2,
+        "attackerSide":  "you",
+        "defenderSide":  "ai",
+        "abilityId":  "Pyromancer:FULL_HOUSE",
+        "combo":  "FULL_HOUSE",
+        "expectedDamage":  8,
+        "attackDice":  [
+                           4,
+                           4,
+                           6,
+                           6,
+                           6
+                       ],
+        "opportunityCount":  2,
+        "pickCount":  1,
+        "combosTriggered":  {
+                                "FULL_HOUSE":  1,
+                                "3OAK":  1
+                            },
+        "actualDamage":  6,
+        "damageBlocked":  2,
+        "damageWithoutBlock":  8,
+        "damagePrevented":  0,
+        "counterDamage":  0,
+        "phaseDamage":  {
+                            "attack":  8,
+                            "counter":  0,
+                            "upkeepDot":  0,
+                            "collateral":  0
+                        },
+        "defenseAbilityId":  "Shadow Monk:PAIR_PAIR",
+        "statusApplied":  {
+                              "chi":  1
+                          },
+        "defenderStatusDiff":  {
+                                   "chi":  1
+                               },
+        "defenseEfficacy":  {
+                                "defenseAbilityId":  "Shadow Monk:PAIR_PAIR",
+                                "incomingAbilityId":  "Pyromancer:FULL_HOUSE",
+                                "blocked":  2,
+                                "prevented":  0,
+                                "reflected":  0
+                            }
+    },
+    {
+        "id":  "turn_mhrg47k9_tg67oe",
+        "gameId":  "game_mhrg2mhc_vkoesb",
+        "turnId":  "turn_mhrg47k9_tg67oe",
+        "round":  3,
+        "attackerSide":  "you",
+        "defenderSide":  "ai",
+        "abilityId":  "Pyromancer:3OAK",
+        "combo":  "3OAK",
+        "expectedDamage":  5,
+        "attackDice":  [
+                           6,
+                           4,
+                           6,
+                           6,
+                           5
+                       ],
+        "opportunityCount":  1,
+        "pickCount":  1,
+        "combosTriggered":  {
+                                "3OAK":  1
+                            },
+        "actualDamage":  5,
+        "damageBlocked":  0,
+        "damageWithoutBlock":  5,
+        "damagePrevented":  0,
+        "counterDamage":  0,
+        "phaseDamage":  {
+                            "attack":  5,
+                            "counter":  0,
+                            "upkeepDot":  0,
+                            "collateral":  0
+                        },
+        "defenseAbilityId":  null,
+        "defenseEfficacy":  {
+                                "defenseAbilityId":  null,
+                                "incomingAbilityId":  "Pyromancer:3OAK",
+                                "blocked":  0,
+                                "prevented":  0,
+                                "reflected":  0
+                            }
+    },
+    {
+        "id":  "turn_mhrg4mtg_ebwdgl",
+        "gameId":  "game_mhrg2mhc_vkoesb",
+        "turnId":  "turn_mhrg4mtg_ebwdgl",
+        "round":  3,
+        "attackerSide":  "ai",
+        "defenderSide":  "you",
+        "abilityId":  "Shadow Monk:5OAK",
+        "combo":  "5OAK",
+        "expectedDamage":  11,
+        "attackDice":  [
+                           6,
+                           6,
+                           6,
+                           6,
+                           6
+                       ],
+        "opportunityCount":  3,
+        "pickCount":  1,
+        "combosTriggered":  {
+                                "5OAK":  1,
+                                "4OAK":  1,
+                                "3OAK":  1
+                            },
+        "phaseDamage":  {
+                            "attack":  12,
+                            "counter":  0,
+                            "upkeepDot":  0,
+                            "collateral":  0
+                        },
+        "actualDamage":  10,
+        "damageBlocked":  2,
+        "damageWithoutBlock":  12,
+        "damagePrevented":  0,
+        "counterDamage":  0,
+        "defenseAbilityId":  "Pyromancer:3OAK",
+        "defensePromptToChoiceMs":  7892,
+        "statusLifetimeTurns":  {
+                                    "chi":  [
+                                                2
+                                            ]
+                                },
+        "statusRemovalReasons":  {
+                                     "chi":  {
+                                                 "natural":  1,
+                                                 "cleanse":  0,
+                                                 "transfer":  0,
+                                                 "cap":  0
+                                             }
+                                 },
+        "defenseEfficacy":  {
+                                "defenseAbilityId":  "Pyromancer:3OAK",
+                                "incomingAbilityId":  "Shadow Monk:5OAK",
+                                "blocked":  2,
+                                "prevented":  0,
+                                "reflected":  0
+                            }
+    },
+    {
+        "id":  "turn_mhrg5el8_maexzu",
+        "gameId":  "game_mhrg2mhc_vkoesb",
+        "turnId":  "turn_mhrg5el8_maexzu",
+        "round":  4,
+        "attackerSide":  "ai",
+        "defenderSide":  "you",
+        "abilityId":  "Shadow Monk:SMALL_STRAIGHT",
+        "combo":  "SMALL_STRAIGHT",
+        "expectedDamage":  5,
+        "attackDice":  [
+                           5,
+                           2,
+                           4,
+                           2,
+                           3
+                       ],
+        "opportunityCount":  1,
+        "pickCount":  1,
+        "combosTriggered":  {
+                                "SMALL_STRAIGHT":  1
+                            },
+        "phaseDamage":  {
+                            "attack":  5,
+                            "counter":  0,
+                            "upkeepDot":  0,
+                            "collateral":  0
+                        },
+        "actualDamage":  5,
+        "damageBlocked":  0,
+        "damageWithoutBlock":  5,
+        "damagePrevented":  0,
+        "counterDamage":  0,
+        "defenseAbilityId":  null,
+        "defensePromptToChoiceMs":  7221,
+        "statusApplied":  {
+                              "evasive":  1
+                          },
+        "attackerStatusDiff":  {
+                                   "evasive":  1
+                               },
+        "defenseEfficacy":  {
+                                "defenseAbilityId":  null,
+                                "incomingAbilityId":  "Shadow Monk:SMALL_STRAIGHT",
+                                "blocked":  0,
+                                "prevented":  0,
+                                "reflected":  0
+                            }
+    },
+    {
+        "id":  "turn_mhrg5ujd_2djm0r",
+        "gameId":  "game_mhrg2mhc_vkoesb",
+        "turnId":  "turn_mhrg5ujd_2djm0r",
+        "round":  5,
+        "attackerSide":  "you",
+        "defenderSide":  "ai",
+        "abilityId":  "Pyromancer:3OAK",
+        "combo":  "3OAK",
+        "expectedDamage":  5,
+        "attackDice":  [
+                           5,
+                           3,
+                           4,
+                           3,
+                           3
+                       ],
+        "opportunityCount":  1,
+        "pickCount":  1,
+        "combosTriggered":  {
+                                "3OAK":  1
+                            },
+        "actualDamage":  5,
+        "damageBlocked":  0,
+        "damageWithoutBlock":  5,
+        "damagePrevented":  0,
+        "counterDamage":  0,
+        "phaseDamage":  {
+                            "attack":  5,
+                            "counter":  0,
+                            "upkeepDot":  0,
+                            "collateral":  0
+                        },
+        "defenseAbilityId":  null,
+        "statusLifetimeTurns":  {
+                                    "evasive":  [
+                                                    1
+                                                ]
+                                },
+        "statusRemovalReasons":  {
+                                     "evasive":  {
+                                                     "natural":  1,
+                                                     "cleanse":  0,
+                                                     "transfer":  0,
+                                                     "cap":  0
+                                                 }
+                                 },
+        "defenseEfficacy":  {
+                                "defenseAbilityId":  null,
+                                "incomingAbilityId":  "Pyromancer:3OAK",
+                                "blocked":  0,
+                                "prevented":  0,
+                                "reflected":  0
+                            }
+    },
+    {
+        "id":  "turn_mhrg6e35_iurnvd",
+        "gameId":  "game_mhrg2mhc_vkoesb",
+        "turnId":  "turn_mhrg6e35_iurnvd",
+        "round":  5,
+        "attackerSide":  "ai",
+        "defenderSide":  "you",
+        "abilityId":  "Shadow Monk:3OAK",
+        "combo":  "3OAK",
+        "expectedDamage":  4,
+        "attackDice":  [
+                           1,
+                           1,
+                           1,
+                           4,
+                           2
+                       ],
+        "opportunityCount":  1,
+        "pickCount":  1,
+        "combosTriggered":  {
+                                "3OAK":  1
+                            },
+        "phaseDamage":  {
+                            "attack":  4,
+                            "counter":  0,
+                            "upkeepDot":  0,
+                            "collateral":  0
+                        },
+        "actualDamage":  3,
+        "damageBlocked":  1,
+        "damageWithoutBlock":  4,
+        "damagePrevented":  0,
+        "counterDamage":  0,
+        "defenseAbilityId":  "Pyromancer:PAIR_PAIR",
+        "defensePromptToChoiceMs":  6588,
+        "defenseEfficacy":  {
+                                "defenseAbilityId":  "Pyromancer:PAIR_PAIR",
+                                "incomingAbilityId":  "Shadow Monk:3OAK",
+                                "blocked":  1,
+                                "prevented":  0,
+                                "reflected":  0
+                            }
+    },
+    {
+        "id":  "turn_mhrg6uqn_dw2ekl",
+        "gameId":  "game_mhrg2mhc_vkoesb",
+        "turnId":  "turn_mhrg6uqn_dw2ekl",
+        "round":  6,
+        "attackerSide":  "you",
+        "defenderSide":  "ai",
+        "abilityId":  "Pyromancer:FULL_HOUSE",
+        "combo":  "FULL_HOUSE",
+        "expectedDamage":  8,
+        "attackDice":  [
+                           1,
+                           1,
+                           3,
+                           1,
+                           3
+                       ],
+        "opportunityCount":  2,
+        "pickCount":  1,
+        "combosTriggered":  {
+                                "FULL_HOUSE":  1,
+                                "3OAK":  1
+                            },
+        "actualDamage":  7,
+        "damageBlocked":  1,
+        "damageWithoutBlock":  8,
+        "damagePrevented":  0,
+        "counterDamage":  0,
+        "phaseDamage":  {
+                            "attack":  8,
+                            "counter":  0,
+                            "upkeepDot":  0,
+                            "collateral":  0
+                        },
+        "defenseAbilityId":  "Shadow Monk:3OAK",
+        "defenseEfficacy":  {
+                                "defenseAbilityId":  "Shadow Monk:3OAK",
+                                "incomingAbilityId":  "Pyromancer:FULL_HOUSE",
+                                "blocked":  1,
+                                "prevented":  0,
+                                "reflected":  0
+                            }
+    },
+    {
+        "id":  "turn_mhrg75hq_plqeal",
+        "gameId":  "game_mhrg2mhc_vkoesb",
+        "turnId":  "turn_mhrg75hq_plqeal",
+        "round":  6,
+        "attackerSide":  "ai",
+        "defenderSide":  "you",
+        "abilityId":  "Shadow Monk:3OAK",
+        "combo":  "3OAK",
+        "expectedDamage":  4,
+        "attackDice":  [
+                           5,
+                           1,
+                           2,
+                           2,
+                           2
+                       ],
+        "opportunityCount":  1,
+        "pickCount":  1,
+        "combosTriggered":  {
+                                "3OAK":  1
+                            },
+        "phaseDamage":  {
+                            "attack":  4,
+                            "counter":  0,
+                            "upkeepDot":  0,
+                            "collateral":  0
+                        },
+        "actualDamage":  2,
+        "damageBlocked":  2,
+        "damageWithoutBlock":  4,
+        "damagePrevented":  0,
+        "counterDamage":  0,
+        "defenseAbilityId":  "Pyromancer:3OAK",
+        "defensePromptToChoiceMs":  6468,
+        "defenseEfficacy":  {
+                                "defenseAbilityId":  "Pyromancer:3OAK",
+                                "incomingAbilityId":  "Shadow Monk:3OAK",
+                                "blocked":  2,
+                                "prevented":  0,
+                                "reflected":  0
+                            }
+    },
+    {
+        "id":  "turn_mhrg7m1y_0vjmb2",
+        "gameId":  "game_mhrg2mhc_vkoesb",
+        "turnId":  "turn_mhrg7m1y_0vjmb2",
+        "round":  7,
+        "attackerSide":  "you",
+        "defenderSide":  "ai",
+        "abilityId":  "Pyromancer:4OAK",
+        "combo":  "4OAK",
+        "expectedDamage":  7,
+        "attackDice":  [
+                           6,
+                           6,
+                           6,
+                           4,
+                           6
+                       ],
+        "opportunityCount":  2,
+        "pickCount":  1,
+        "combosTriggered":  {
+                                "4OAK":  1,
+                                "3OAK":  1
+                            },
+        "actualDamage":  2,
+        "damageBlocked":  0,
+        "damageWithoutBlock":  2,
+        "damagePrevented":  0,
+        "counterDamage":  0,
+        "phaseDamage":  {
+                            "attack":  2,
+                            "counter":  0,
+                            "upkeepDot":  0,
+                            "collateral":  0
+                        },
+        "defenseAbilityId":  "Shadow Monk:SMALL_STRAIGHT",
+        "statusApplied":  {
+                              "evasive":  1,
+                              "burn":  1
+                          },
+        "defenderStatusDiff":  {
+                                   "evasive":  1,
+                                   "burn":  1
+                               },
+        "defenseEfficacy":  {
+                                "defenseAbilityId":  "Shadow Monk:SMALL_STRAIGHT",
+                                "incomingAbilityId":  "Pyromancer:4OAK",
+                                "blocked":  0,
+                                "prevented":  0,
+                                "reflected":  0
+                            }
+    }
+]

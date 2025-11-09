@@ -67,6 +67,7 @@ export type TickResult = {
   totalDamage: number;
   logs: string[];
   prompts: Array<{ id: StatusId; stacks: number }>;
+  breakdown?: Record<string, number>;
 };
 
 export function tickStatuses(current: StatusStacks): TickResult {
@@ -74,6 +75,7 @@ export function tickStatuses(current: StatusStacks): TickResult {
   let totalDamage = 0;
   const logs: string[] = [];
   const prompts: Array<{ id: StatusId; stacks: number }> = [];
+  const breakdown: Record<string, number> = {};
 
   Object.entries(current).forEach(([id, stacks]) => {
     const def = getStatus(id);
@@ -89,6 +91,7 @@ export function tickStatuses(current: StatusStacks): TickResult {
     if (!result) return;
     if (typeof result.damage === "number" && result.damage > 0) {
       totalDamage += result.damage;
+      breakdown[id] = (breakdown[id] ?? 0) + result.damage;
     }
     if (result.log) logs.push(result.log);
     working = setStacks(working, id, result.nextStacks);
@@ -98,7 +101,13 @@ export function tickStatuses(current: StatusStacks): TickResult {
     }
   });
 
-  return { next: working, totalDamage, logs, prompts };
+  return {
+    next: working,
+    totalDamage,
+    logs,
+    prompts,
+    breakdown: Object.keys(breakdown).length ? breakdown : undefined,
+  };
 }
 
 export type SpendStatusResult = {

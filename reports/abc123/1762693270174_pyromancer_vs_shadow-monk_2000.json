@@ -1,0 +1,3778 @@
+{
+  "header": {
+    "simVersion": "0.1.0",
+    "policyId": "baseline/v0",
+    "rng": "mulberry32",
+    "seed": 1337,
+    "rulesVersion": "0.9.3",
+    "buildHash": "abc123",
+    "heroVersions": {
+      "Pyromancer": "0.7.2",
+      "Shadow Monk": "0.2.1",
+      "Training Dummy": "0.1.0"
+    },
+    "timestamp": 1762693270174
+  },
+  "matchup": {
+    "youHeroId": "Pyromancer",
+    "youHeroName": "Pyromancer",
+    "aiHeroId": "Shadow Monk",
+    "aiHeroName": "Shadow Monk",
+    "firstPlayer": "you"
+  },
+  "summary": {
+    "games": 2000,
+    "wins": {
+      "you": 1181,
+      "ai": 818,
+      "draw": 1
+    },
+    "winRateYou": 0.5905,
+    "averageRounds": 8.166,
+    "seed": 1337
+  },
+  "analytics": {
+    "initiative": [
+      {
+        "heroId": "Pyromancer",
+        "heroName": "Pyromancer",
+        "games": 991,
+        "wins": 651,
+        "ci": {
+          "lower": 0.6267991593201927,
+          "upper": 0.6858134214162783
+        }
+      },
+      {
+        "heroId": "Shadow Monk",
+        "heroName": "Shadow Monk",
+        "games": 1009,
+        "wins": 479,
+        "ci": {
+          "lower": 0.444069285566849,
+          "upper": 0.5055773324235655
+        }
+      }
+    ],
+    "ttk": {
+      "average": 8.166,
+      "median": 8,
+      "iqr": 2,
+      "histogram": [
+        {
+          "round": 4,
+          "games": 18
+        },
+        {
+          "round": 5,
+          "games": 93
+        },
+        {
+          "round": 6,
+          "games": 240
+        },
+        {
+          "round": 7,
+          "games": 386
+        },
+        {
+          "round": 8,
+          "games": 445
+        },
+        {
+          "round": 9,
+          "games": 386
+        },
+        {
+          "round": 10,
+          "games": 243
+        },
+        {
+          "round": 11,
+          "games": 118
+        },
+        {
+          "round": 12,
+          "games": 43
+        },
+        {
+          "round": 13,
+          "games": 18
+        },
+        {
+          "round": 14,
+          "games": 9
+        },
+        {
+          "round": 15,
+          "games": 1
+        }
+      ]
+    },
+    "dpr": {
+      "you": {
+        "attackOnly": 5.567482241515391,
+        "actual": 4.352486187845304
+      },
+      "ai": {
+        "attackOnly": 5.185005018917458,
+        "actual": 3.8735232800555943
+      }
+    },
+    "damageSwing": {
+      "averageSwing": 3.0538579772517678,
+      "averageMaxSwing": 6.815,
+      "lethalFromHp": {
+        "5": 0.24203133441383037,
+        "10": 0.018368449486763912,
+        "15": 0
+      }
+    },
+    "mitigation": {
+      "blockedPercent": {
+        "you": 0.25293740971839584,
+        "ai": 0.26736724634985587
+      },
+      "preventedPercent": {
+        "you": 0,
+        "ai": 0.10915464517067024
+      },
+      "defenseVsTopAbilities": [
+        {
+          "abilityId": "Pyromancer:3OAK",
+          "label": "Pyromancer Three of a kind",
+          "successRate": 0.562907268170426
+        },
+        {
+          "abilityId": "Shadow Monk:3OAK",
+          "label": "Shadow Monk Shade Break",
+          "successRate": 0.12091690544412607
+        },
+        {
+          "abilityId": "Pyromancer:PAIR_PAIR",
+          "label": "Pyromancer Two pairs",
+          "successRate": 0
+        }
+      ]
+    },
+    "statuses": {
+      "chi": {
+        "applied": 6506,
+        "damage": 3359,
+        "mitigation": 5197,
+        "avgLifetime": 1.2042431918936036
+      },
+      "evasive": {
+        "applied": 3676,
+        "damage": 0,
+        "mitigation": 6757,
+        "avgLifetime": 1.2896332659543748
+      },
+      "burn": {
+        "applied": 2663,
+        "damage": 4731,
+        "mitigation": 0,
+        "avgLifetime": 1.003419452887538
+      },
+      "purify": {
+        "applied": 504,
+        "damage": 0,
+        "mitigation": 0,
+        "avgLifetime": null
+      }
+    },
+    "abilityTiering": {
+      "abilities": [
+        {
+          "abilityId": "Pyromancer:5OAK",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "5OAK",
+          "label": "Pyromancer ULT: Supernova",
+          "uses": 204,
+          "opportunities": 204,
+          "pickRate": 1,
+          "opportunityRate": 0.012922024450497244,
+          "expected": 1729.6994708720906,
+          "actual": 2245,
+          "evEff": 2.5259829859211242,
+          "evEffCi": [
+            2.084929076117654,
+            2.9670368957245943
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.8235294117647058,
+          "uplift": 0.23302941176470582,
+          "upliftCi": [
+            0.17487754903013542,
+            0.2792214879287793
+          ],
+          "buckets": [
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 21,
+              "opportunities": 21,
+              "pickRate": 1,
+              "opportunityRate": 0.012544802867383513,
+              "evEff": 2.854414358470144,
+              "evEffCi": [
+                1.6883078262680282,
+                4.02052089067226
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 29,
+              "opportunities": 29,
+              "pickRate": 1,
+              "opportunityRate": 0.011111111111111112,
+              "evEff": 2.038322404447155,
+              "evEffCi": [
+                0.6812983119440894,
+                3.3953464969502205
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 33,
+              "opportunities": 33,
+              "pickRate": 1,
+              "opportunityRate": 0.011344104503265727,
+              "evEff": 2.127141631197417,
+              "evEffCi": [
+                0.918015369088004,
+                3.3362678933068297
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 41,
+              "opportunities": 41,
+              "pickRate": 1,
+              "opportunityRate": 0.014695340501792114,
+              "evEff": 2.3991298056246153,
+              "evEffCi": [
+                1.2678094134000362,
+                3.5304501978491944
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 31,
+              "opportunities": 31,
+              "pickRate": 1,
+              "opportunityRate": 0.014790076335877863,
+              "evEff": 2.392048767072294,
+              "evEffCi": [
+                1.3291780152065307,
+                3.4549195189380573
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 49,
+              "opportunities": 49,
+              "pickRate": 1,
+              "opportunityRate": 0.013214670981661273,
+              "evEff": 3.133325923095994,
+              "evEffCi": [
+                2.429100580372989,
+                3.837551265818999
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": 1.4720430902085269,
+          "variancePenalty": 0.07001400420140048,
+          "nichePenalty": 1,
+          "verdict": "watchlist",
+          "hysteresisLocked": false,
+          "notes": "Ultimátka s nízkym výskytom – sledovať."
+        },
+        {
+          "abilityId": "Pyromancer:LARGE_STRAIGHT",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "LARGE_STRAIGHT",
+          "label": "Pyromancer Inferno",
+          "uses": 25,
+          "opportunities": 25,
+          "pickRate": 1,
+          "opportunityRate": 0.0015835814277570153,
+          "expected": 195.6673609583813,
+          "actual": 245,
+          "evEff": 1.9733055616647481,
+          "evEffCi": [
+            0.7650804170828291,
+            3.181530706246667
+          ],
+          "evEffPValue": 0.001369052761696521,
+          "evEffFdr": 0.0014743645125962533,
+          "winRateAfterUse": 0.92,
+          "uplift": 0.3295,
+          "upliftCi": [
+            0.1598348787704218,
+            0.3872800663089081
+          ],
+          "buckets": [
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 8,
+              "opportunities": 8,
+              "pickRate": 1,
+              "opportunityRate": 0.0030651340996168583,
+              "evEff": 3.1733055616647476,
+              "evEffCi": [
+                2.6494735275164025,
+                3.6971375958130928
+              ],
+              "passesFilter": false
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 5,
+              "opportunities": 5,
+              "pickRate": 1,
+              "opportunityRate": 0.001348435814455232,
+              "evEff": 0.7733055616647476,
+              "evEffCi": [
+                -3.591821698793989,
+                5.138432822123484
+              ],
+              "passesFilter": false
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 4,
+              "opportunities": 4,
+              "pickRate": 1,
+              "opportunityRate": 0.0013750429700928155,
+              "evEff": -0.32669443833525236,
+              "evEffCi": [
+                -5.291597928501667,
+                4.638209051831162
+              ],
+              "passesFilter": false
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 3,
+              "opportunities": 3,
+              "pickRate": 1,
+              "opportunityRate": 0.001075268817204301,
+              "evEff": 2.506638894998081,
+              "evEffCi": [
+                1.1999722283314167,
+                3.8133055616647455
+              ],
+              "passesFilter": false
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 3,
+              "opportunities": 3,
+              "pickRate": 1,
+              "opportunityRate": 0.0017921146953405018,
+              "evEff": 2.506638894998081,
+              "evEffCi": [
+                1.8533055616647522,
+                3.15997222833141
+              ],
+              "passesFilter": false
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 2,
+              "opportunities": 2,
+              "pickRate": 1,
+              "opportunityRate": 0.0009541984732824427,
+              "evEff": 3.1733055616647476,
+              "evEffCi": [
+                3.1733055616647476,
+                3.1733055616647476
+              ],
+              "passesFilter": false
+            }
+          ],
+          "consistency": null,
+          "score": 1.1859790712748142,
+          "variancePenalty": 0.2,
+          "nichePenalty": 1,
+          "verdict": "watchlist",
+          "hysteresisLocked": false,
+          "notes": "Ultimátka s nízkym výskytom – sledovať."
+        },
+        {
+          "abilityId": "Shadow Monk:5OAK",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "5OAK",
+          "label": "Shadow Monk ULT: Dusk Extinction",
+          "uses": 187,
+          "opportunities": 187,
+          "pickRate": 1,
+          "opportunityRate": 0.011978732944718467,
+          "expected": 1571.0726273622136,
+          "actual": 1854,
+          "evEff": 1.512980602341104,
+          "evEffCi": [
+            1.2765024214106786,
+            1.7494587832715296
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.6737967914438503,
+          "uplift": 0.2647967914438504,
+          "upliftCi": [
+            0.1946900527483475,
+            0.3279065467352035
+          ],
+          "buckets": [
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 26,
+              "opportunities": 26,
+              "pickRate": 1,
+              "opportunityRate": 0.012476007677543186,
+              "evEff": 1.1673788007051842,
+              "evEffCi": [
+                0.4910282143359145,
+                1.843729387074454
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 33,
+              "opportunities": 33,
+              "pickRate": 1,
+              "opportunityRate": 0.012114537444933921,
+              "evEff": 1.6165349643927767,
+              "evEffCi": [
+                1.0598712331055078,
+                2.1731986956800453
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 23,
+              "opportunities": 23,
+              "pickRate": 1,
+              "opportunityRate": 0.010167992926613616,
+              "evEff": 1.7283468212134494,
+              "evEffCi": [
+                1.1177142893700562,
+                2.3389793530568426
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 43,
+              "opportunities": 43,
+              "pickRate": 1,
+              "opportunityRate": 0.01225071225071225,
+              "evEff": 1.445785323115935,
+              "evEffCi": [
+                0.9473525536678687,
+                1.9442180925640011
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 25,
+              "opportunities": 25,
+              "pickRate": 1,
+              "opportunityRate": 0.00933184023889511,
+              "evEff": 1.1827814924572977,
+              "evEffCi": [
+                0.40384431455784464,
+                1.9617186703567508
+              ],
+              "passesFilter": false
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 37,
+              "opportunities": 37,
+              "pickRate": 1,
+              "opportunityRate": 0.015731292517006803,
+              "evEff": 1.830799645977379,
+              "evEffCi": [
+                1.375474807438597,
+                2.286124484516161
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": 0.9505316734863356,
+          "variancePenalty": 0.07312724241271307,
+          "nichePenalty": 1,
+          "verdict": "watchlist",
+          "hysteresisLocked": false,
+          "notes": "Ultimátka s nízkym výskytom – sledovať."
+        },
+        {
+          "abilityId": "Shadow Monk:LARGE_STRAIGHT",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "LARGE_STRAIGHT",
+          "label": "Shadow Monk Weight of Regret",
+          "uses": 558,
+          "opportunities": 558,
+          "pickRate": 1,
+          "opportunityRate": 0.0357440266478765,
+          "expected": 4261.9920775565515,
+          "actual": 4913,
+          "evEff": 1.1666808645939937,
+          "evEffCi": [
+            1.0288153733817693,
+            1.304546355806218
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.6469534050179212,
+          "uplift": 0.23795340501792123,
+          "upliftCi": [
+            0.19741722899030317,
+            0.27647998901562604
+          ],
+          "buckets": [
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 81,
+              "opportunities": 81,
+              "pickRate": 1,
+              "opportunityRate": 0.03580901856763926,
+              "evEff": 1.178175003047306,
+              "evEffCi": [
+                0.8084364001268136,
+                1.5479136059677983
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 76,
+              "opportunities": 76,
+              "pickRate": 1,
+              "opportunityRate": 0.03231292517006803,
+              "evEff": 1.0464785177788627,
+              "evEffCi": [
+                0.6659528214464614,
+                1.427004214111264
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 106,
+              "opportunities": 106,
+              "pickRate": 1,
+              "opportunityRate": 0.039567002612915264,
+              "evEff": 0.9877526093684101,
+              "evEffCi": [
+                0.659239777653404,
+                1.3162654410834163
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 96,
+              "opportunities": 96,
+              "pickRate": 1,
+              "opportunityRate": 0.03524229074889868,
+              "evEff": 1.2619098809647902,
+              "evEffCi": [
+                0.9481906114858846,
+                1.575629150443696
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 83,
+              "opportunities": 83,
+              "pickRate": 1,
+              "opportunityRate": 0.03982725527831094,
+              "evEff": 1.063108265439533,
+              "evEffCi": [
+                0.6785368622776813,
+                1.4476796686013846
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 116,
+              "opportunities": 116,
+              "pickRate": 1,
+              "opportunityRate": 0.03304843304843305,
+              "evEff": 1.3962092124850893,
+              "evEffCi": [
+                1.1165408105919505,
+                1.6758776143782281
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": 0.671846433291877,
+          "variancePenalty": 0.04233337566673017,
+          "nichePenalty": 1,
+          "verdict": "watchlist",
+          "hysteresisLocked": false,
+          "notes": "Ultimátka s nízkym výskytom – sledovať."
+        },
+        {
+          "abilityId": "Pyromancer:FULL_HOUSE",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "FULL_HOUSE",
+          "label": "Pyromancer Full House",
+          "uses": 1445,
+          "opportunities": 1445,
+          "pickRate": 1,
+          "opportunityRate": 0.09153100652435549,
+          "expected": 7539.71564226296,
+          "actual": 8878,
+          "evEff": 0.9261483444546993,
+          "evEffCi": [
+            0.811815885029249,
+            1.0404808038801496
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.7038062283737024,
+          "uplift": 0.11330622837370241,
+          "upliftCi": [
+            0.0892492208197937,
+            0.13628245248389936
+          ],
+          "buckets": [
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 340,
+              "opportunities": 340,
+              "pickRate": 1,
+              "opportunityRate": 0.09169363538295577,
+              "evEff": 1.1145566489529695,
+              "evEffCi": [
+                0.8913013075977598,
+                1.337811990308179
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 218,
+              "opportunities": 218,
+              "pickRate": 1,
+              "opportunityRate": 0.08352490421455938,
+              "evEff": 0.6812862765838378,
+              "evEffCi": [
+                0.3762520717322516,
+                0.986320481435424
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 177,
+              "opportunities": 177,
+              "pickRate": 1,
+              "opportunityRate": 0.1057347670250896,
+              "evEff": 0.9912432557990974,
+              "evEffCi": [
+                0.6765099731246621,
+                1.3059765384735327
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 273,
+              "opportunities": 273,
+              "pickRate": 1,
+              "opportunityRate": 0.09384668270883464,
+              "evEff": 0.771214696787488,
+              "evEffCi": [
+                0.4859486352970538,
+                1.0564807582779223
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 254,
+              "opportunities": 254,
+              "pickRate": 1,
+              "opportunityRate": 0.0910394265232975,
+              "evEff": 1.0499202432095696,
+              "evEffCi": [
+                0.7930444277500412,
+                1.3067960586690979
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 183,
+              "opportunities": 183,
+              "pickRate": 1,
+              "opportunityRate": 0.08730916030534351,
+              "evEff": 0.864170920891253,
+              "evEffCi": [
+                0.5345859710597236,
+                1.1937558707227824
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": 0.17700604852090235,
+          "variancePenalty": 0.02630668208823282,
+          "nichePenalty": 1,
+          "verdict": "niche",
+          "hysteresisLocked": false,
+          "notes": "Nízka opportunity rate, verdikt len informačný."
+        },
+        {
+          "abilityId": "Pyromancer:4OAK",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "4OAK",
+          "label": "Pyromancer Four of a kind + Burn",
+          "uses": 1833,
+          "opportunities": 2037,
+          "pickRate": 0.8998527245949927,
+          "opportunityRate": 0.1290302147336416,
+          "expected": 8368.693028189968,
+          "actual": 9667,
+          "evEff": 0.7082962203000722,
+          "evEffCi": [
+            0.6200154844704431,
+            0.7965769561297014
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.7114020731042008,
+          "uplift": 0.12090207310420076,
+          "upliftCi": [
+            0.0997335747519642,
+            0.1411863120798671
+          ],
+          "buckets": [
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 317,
+              "opportunities": 350,
+              "pickRate": 0.9057142857142857,
+              "opportunityRate": 0.12031625988312135,
+              "evEff": 0.6457847111814083,
+              "evEffCi": [
+                0.4265897576529924,
+                0.8649796647098242
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 200,
+              "opportunities": 221,
+              "pickRate": 0.9049773755656109,
+              "opportunityRate": 0.13201911589008364,
+              "evEff": 0.47442824430443636,
+              "evEffCi": [
+                0.1716649784086554,
+                0.7771915102002174
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 319,
+              "opportunities": 348,
+              "pickRate": 0.9166666666666666,
+              "opportunityRate": 0.13333333333333333,
+              "evEff": 0.5316069276900164,
+              "evEffCi": [
+                0.30399855795018815,
+                0.7592152974298446
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 303,
+              "opportunities": 344,
+              "pickRate": 0.8808139534883721,
+              "opportunityRate": 0.12329749103942653,
+              "evEff": 0.7941642179017959,
+              "evEffCi": [
+                0.5968057143749437,
+                0.9915227214286482
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 245,
+              "opportunities": 276,
+              "pickRate": 0.8876811594202898,
+              "opportunityRate": 0.1316793893129771,
+              "evEff": 0.5119792647125998,
+              "evEffCi": [
+                0.25930102053244236,
+                0.7646575088927572
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 449,
+              "opportunities": 498,
+              "pickRate": 0.9016064257028112,
+              "opportunityRate": 0.1343042071197411,
+              "evEff": 1.0313102042153501,
+              "evEffCi": [
+                0.8774199997551749,
+                1.1852004086755252
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": 0.003311463418084526,
+          "variancePenalty": 0.023357091793352585,
+          "nichePenalty": 1,
+          "verdict": "neutral",
+          "hysteresisLocked": false,
+          "notes": null
+        },
+        {
+          "abilityId": "Shadow Monk:FULL_HOUSE",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "FULL_HOUSE",
+          "label": "Shadow Monk Foot Step",
+          "uses": 1829,
+          "opportunities": 1829,
+          "pickRate": 1,
+          "opportunityRate": 0.1171609762347063,
+          "expected": 9903.061696772944,
+          "actual": 10752,
+          "evEff": 0.4641543484018896,
+          "evEffCi": [
+            0.3891878747187961,
+            0.5391208220849831
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.547840349917988,
+          "uplift": 0.13884034991798805,
+          "upliftCi": [
+            0.11595393966520745,
+            0.1615262153029034
+          ],
+          "buckets": [
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 417,
+              "opportunities": 417,
+              "pickRate": 1,
+              "opportunityRate": 0.1188034188034188,
+              "evEff": 0.409706182426399,
+              "evEffCi": [
+                0.2561113063793148,
+                0.5633010584734832
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 313,
+              "opportunities": 313,
+              "pickRate": 1,
+              "opportunityRate": 0.11490455212922174,
+              "evEff": 0.5453212284954282,
+              "evEffCi": [
+                0.3612408336766171,
+                0.7294016233142393
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 349,
+              "opportunities": 349,
+              "pickRate": 1,
+              "opportunityRate": 0.13027248973497574,
+              "evEff": 0.4411322231097095,
+              "evEffCi": [
+                0.2663379557160619,
+                0.6159264905033571
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 252,
+              "opportunities": 252,
+              "pickRate": 1,
+              "opportunityRate": 0.10714285714285714,
+              "evEff": 0.5531005341432583,
+              "evEffCi": [
+                0.36351283971734394,
+                0.7426882285691727
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 260,
+              "opportunities": 260,
+              "pickRate": 1,
+              "opportunityRate": 0.11494252873563218,
+              "evEff": 0.278977230420991,
+              "evEffCi": [
+                0.060253789847808686,
+                0.49770067099417326
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 238,
+              "opportunities": 238,
+              "pickRate": 1,
+              "opportunityRate": 0.11420345489443379,
+              "evEff": 0.5946836985602122,
+              "evEffCi": [
+                0.401197277171529,
+                0.7881701199488954
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": -0.028685016876788066,
+          "variancePenalty": 0.023382618677247783,
+          "nichePenalty": 1,
+          "verdict": "neutral",
+          "hysteresisLocked": false,
+          "notes": null
+        },
+        {
+          "abilityId": "Pyromancer:SMALL_STRAIGHT",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "SMALL_STRAIGHT",
+          "label": "Pyromancer Small straight + Burn",
+          "uses": 780,
+          "opportunities": 805,
+          "pickRate": 0.968944099378882,
+          "opportunityRate": 0.05099132197377589,
+          "expected": 3052.4108309507483,
+          "actual": 3440,
+          "evEff": 0.4969091910887843,
+          "evEffCi": [
+            0.38068042152198506,
+            0.6131379606555836
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.7141025641025641,
+          "uplift": 0.1236025641025641,
+          "upliftCi": [
+            0.09090379975343399,
+            0.15420269931474517
+          ],
+          "buckets": [
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 100,
+              "opportunities": 102,
+              "pickRate": 0.9803921568627451,
+              "opportunityRate": 0.04866412213740458,
+              "evEff": 0.16665278083237411,
+              "evEffCi": [
+                -0.20573158885555837,
+                0.5390371505203067
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 119,
+              "opportunities": 127,
+              "pickRate": 0.937007874015748,
+              "opportunityRate": 0.04865900383141762,
+              "evEff": 0.5572410161264916,
+              "evEffCi": [
+                0.2551170081552636,
+                0.8593650240977195
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 93,
+              "opportunities": 96,
+              "pickRate": 0.96875,
+              "opportunityRate": 0.05734767025089606,
+              "evEff": 0.17267428620871814,
+              "evEffCi": [
+                -0.22108101211187128,
+                0.5664295845293076
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 181,
+              "opportunities": 186,
+              "pickRate": 0.9731182795698925,
+              "opportunityRate": 0.05016181229773463,
+              "evEff": 0.5507411786224292,
+              "evEffCi": [
+                0.30004316761437594,
+                0.8014391896304824
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 135,
+              "opportunities": 138,
+              "pickRate": 0.9782608695652174,
+              "opportunityRate": 0.04946236559139785,
+              "evEff": 0.5681342623138553,
+              "evEffCi": [
+                0.3133414701252772,
+                0.8229270545024334
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 152,
+              "opportunities": 156,
+              "pickRate": 0.9743589743589743,
+              "opportunityRate": 0.053626675833619804,
+              "evEff": 0.7379685703060584,
+              "evEffCi": [
+                0.5415421684503843,
+                0.9343949721617326
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": -0.07455083782930735,
+          "variancePenalty": 0.03580574370197165,
+          "nichePenalty": 1,
+          "verdict": "niche",
+          "hysteresisLocked": false,
+          "notes": "Nízka opportunity rate, verdikt len informačný."
+        },
+        {
+          "abilityId": "Shadow Monk:4OAK",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "4OAK",
+          "label": "Shadow Monk Moon Splitting Cut",
+          "uses": 1572,
+          "opportunities": 1759,
+          "pickRate": 0.8936895963615691,
+          "opportunityRate": 0.11267695855486516,
+          "expected": 7352.5900135515485,
+          "actual": 7670,
+          "evEff": 0.20191474964914216,
+          "evEffCi": [
+            0.12176157470711989,
+            0.2820679245911644
+          ],
+          "evEffPValue": 7.926528373669584e-7,
+          "evEffFdr": 0.0000010088308839215834,
+          "winRateAfterUse": 0.5388040712468194,
+          "uplift": 0.12980407124681942,
+          "upliftCi": [
+            0.10509666627499853,
+            0.1543222824315214
+          ],
+          "buckets": [
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 273,
+              "opportunities": 306,
+              "pickRate": 0.8921568627450981,
+              "opportunityRate": 0.11233480176211454,
+              "evEff": 0.3992869822715988,
+              "evEffCi": [
+                0.2246734678922725,
+                0.5739004966509251
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 234,
+              "opportunities": 259,
+              "pickRate": 0.9034749034749034,
+              "opportunityRate": 0.09667786487495333,
+              "evEff": 0.1509566970319603,
+              "evEffCi": [
+                -0.0708438635910312,
+                0.3727572576549518
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 211,
+              "opportunities": 237,
+              "pickRate": 0.890295358649789,
+              "opportunityRate": 0.11372360844529751,
+              "evEff": 0.15341945975756255,
+              "evEffCi": [
+                -0.08145582759947773,
+                0.3882947471146028
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 373,
+              "opportunities": 416,
+              "pickRate": 0.8966346153846154,
+              "opportunityRate": 0.11851851851851852,
+              "evEff": 0.16704803144032596,
+              "evEffCi": [
+                0.0011937336444216295,
+                0.3329023292362303
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 263,
+              "opportunities": 300,
+              "pickRate": 0.8766666666666667,
+              "opportunityRate": 0.12755102040816327,
+              "evEff": 0.16980384653779265,
+              "evEffCi": [
+                -0.024949303438935727,
+                0.364556996514521
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 218,
+              "opportunities": 241,
+              "pickRate": 0.9045643153526971,
+              "opportunityRate": 0.10654288240495137,
+              "evEff": 0.15477954040045827,
+              "evEffCi": [
+                -0.05059323242911146,
+                0.360152313230028
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": -0.28117077697141624,
+          "variancePenalty": 0.025221663615265913,
+          "nichePenalty": 1,
+          "verdict": "neutral",
+          "hysteresisLocked": false,
+          "notes": null
+        },
+        {
+          "abilityId": "Pyromancer:PAIR_PAIR",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "PAIR_PAIR",
+          "label": "Pyromancer Two pairs",
+          "uses": 3398,
+          "opportunities": 3398,
+          "pickRate": 1,
+          "opportunityRate": 0.21524038766073353,
+          "expected": 8865.035900487728,
+          "actual": 8633,
+          "evEff": -0.06828602133246857,
+          "evEffCi": [
+            -0.10783549541461679,
+            -0.028736547250320342
+          ],
+          "evEffPValue": 0.000714144628881197,
+          "evEffFdr": 0.0008331687336947299,
+          "winRateAfterUse": 0.5729841082989994,
+          "uplift": -0.017515891701000652,
+          "upliftCi": [
+            -0.034220861489766885,
+            -0.000975759540442267
+          ],
+          "buckets": [
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 599,
+              "opportunities": 599,
+              "pickRate": 1,
+              "opportunityRate": 0.22950191570881226,
+              "evEff": -0.1514690976977274,
+              "evEffCi": [
+                -0.24642094249454458,
+                -0.056517252900910225
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 614,
+              "opportunities": 614,
+              "pickRate": 1,
+              "opportunityRate": 0.22007168458781362,
+              "evEff": -0.04538023080230445,
+              "evEffCi": [
+                -0.13420575939531082,
+                0.043445297790701914
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 777,
+              "opportunities": 777,
+              "pickRate": 1,
+              "opportunityRate": 0.20954692556634305,
+              "evEff": 0.11825758104397646,
+              "evEffCi": [
+                0.03963709664211418,
+                0.19687806544583875
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 643,
+              "opportunities": 643,
+              "pickRate": 1,
+              "opportunityRate": 0.22103815744242009,
+              "evEff": -0.1267830605752033,
+              "evEffCi": [
+                -0.21994055780783134,
+                -0.03362556334257527
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 453,
+              "opportunities": 453,
+              "pickRate": 1,
+              "opportunityRate": 0.21612595419847327,
+              "evEff": -0.16960454787775517,
+              "evEffCi": [
+                -0.27794219018424704,
+                -0.0612669055712633
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 312,
+              "opportunities": 312,
+              "pickRate": 1,
+              "opportunityRate": 0.1863799283154122,
+              "evEff": -0.15056481277841746,
+              "evEffCi": [
+                -0.29369665878575474,
+                -0.007432966771080185
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 0.8333333333333334,
+          "score": -0.6246431241079516,
+          "variancePenalty": 0.017154904816703558,
+          "nichePenalty": 0,
+          "verdict": "neutral",
+          "hysteresisLocked": false,
+          "notes": null
+        },
+        {
+          "abilityId": "Pyromancer:3OAK",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "3OAK",
+          "label": "Pyromancer Three of a kind",
+          "uses": 4985,
+          "opportunities": 8467,
+          "pickRate": 0.5887563481752687,
+          "opportunityRate": 0.5363273579527459,
+          "expected": 16256.696572958846,
+          "actual": 17307,
+          "evEff": 0.21069276369932868,
+          "evEffCi": [
+            0.17193666913365774,
+            0.24944885826499963
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.5985957873620863,
+          "uplift": 0.00809578736208627,
+          "upliftCi": [
+            -0.005582698934989194,
+            0.021622428558796147
+          ],
+          "buckets": [
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 1215,
+              "opportunities": 2053,
+              "pickRate": 0.5918168533852898,
+              "opportunityRate": 0.5536677454153183,
+              "evEff": 0.3948443955496121,
+              "evEffCi": [
+                0.3195941780878042,
+                0.47009461301141997
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 804,
+              "opportunities": 1370,
+              "pickRate": 0.5868613138686132,
+              "opportunityRate": 0.524904214559387,
+              "evEff": 0.13191214323095873,
+              "evEffCi": [
+                0.03151959771712158,
+                0.23230468874479587
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 494,
+              "opportunities": 892,
+              "pickRate": 0.5538116591928252,
+              "opportunityRate": 0.5328554360812425,
+              "evEff": -0.032377743368433014,
+              "evEffCi": [
+                -0.1629685124339872,
+                0.09821302569712115
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 912,
+              "opportunities": 1510,
+              "pickRate": 0.6039735099337749,
+              "opportunityRate": 0.5412186379928315,
+              "evEff": 0.35510538753575016,
+              "evEffCi": [
+                0.2741420238226525,
+                0.4360687512488478
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 893,
+              "opportunities": 1516,
+              "pickRate": 0.5890501319261213,
+              "opportunityRate": 0.521141285665177,
+              "evEff": 0.14089299485191284,
+              "evEffCi": [
+                0.04749697963337829,
+                0.2342890100704474
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 667,
+              "opportunities": 1126,
+              "pickRate": 0.5923623445825933,
+              "opportunityRate": 0.5372137404580153,
+              "evEff": 0.0462236441968934,
+              "evEffCi": [
+                -0.06466955741641987,
+                0.15711684581020668
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 0.8333333333333334,
+          "score": -0.6478516686139041,
+          "variancePenalty": 0.014163396676512622,
+          "nichePenalty": 0,
+          "verdict": "neutral",
+          "hysteresisLocked": false,
+          "notes": null
+        },
+        {
+          "abilityId": "Shadow Monk:PAIR_PAIR",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "PAIR_PAIR",
+          "label": "Shadow Monk Vow at Dusk",
+          "uses": 3014,
+          "opportunities": 3014,
+          "pickRate": 1,
+          "opportunityRate": 0.19306898981487414,
+          "expected": 7348.85470060014,
+          "actual": 6163,
+          "evEff": -0.3934488057731055,
+          "evEffCi": [
+            -0.4369380728879928,
+            -0.34995953865821816
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.4041141340411413,
+          "uplift": -0.004885865958858648,
+          "upliftCi": [
+            -0.022272428829669066,
+            0.012744815186858827
+          ],
+          "buckets": [
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 451,
+              "opportunities": 451,
+              "pickRate": 1,
+              "opportunityRate": 0.1917517006802721,
+              "evEff": -0.35228840742515605,
+              "evEffCi": [
+                -0.4665263178424958,
+                -0.23805049700781628
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 663,
+              "opportunities": 663,
+              "pickRate": 1,
+              "opportunityRate": 0.18888888888888888,
+              "evEff": -0.42343505653149316,
+              "evEffCi": [
+                -0.5141809193630356,
+                -0.3326891936999508
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 550,
+              "opportunities": 550,
+              "pickRate": 1,
+              "opportunityRate": 0.20530048525569242,
+              "evEff": -0.3543974570202028,
+              "evEffCi": [
+                -0.455075515906967,
+                -0.25371939813343863
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 513,
+              "opportunities": 513,
+              "pickRate": 1,
+              "opportunityRate": 0.1883259911894273,
+              "evEff": -0.4255484199686936,
+              "evEffCi": [
+                -0.5321208168152913,
+                -0.31897602312209583
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 406,
+              "opportunities": 406,
+              "pickRate": 1,
+              "opportunityRate": 0.1948176583493282,
+              "evEff": -0.4331765560640372,
+              "evEffCi": [
+                -0.5520545604791202,
+                -0.31429855164895426
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 431,
+              "opportunities": 431,
+              "pickRate": 1,
+              "opportunityRate": 0.1905393457117595,
+              "evEff": -0.3645952756472486,
+              "evEffCi": [
+                -0.4814510858849295,
+                -0.24773946540956765
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": -0.7518310680593968,
+          "variancePenalty": 0.018214966464911487,
+          "nichePenalty": 0,
+          "verdict": "neutral",
+          "hysteresisLocked": false,
+          "notes": null
+        },
+        {
+          "abilityId": "Shadow Monk:SMALL_STRAIGHT",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "SMALL_STRAIGHT",
+          "label": "Shadow Monk Balance the Scales",
+          "uses": 1714,
+          "opportunities": 2272,
+          "pickRate": 0.7544014084507042,
+          "opportunityRate": 0.14553840240855806,
+          "expected": 6760.916442048518,
+          "actual": 6678,
+          "evEff": -0.04837598719283409,
+          "evEffCi": [
+            -0.12270597497727047,
+            0.025954000591602286
+          ],
+          "evEffPValue": 0.20208946671549266,
+          "evEffFdr": 0.20208946671549266,
+          "winRateAfterUse": 0.47316219369894985,
+          "uplift": 0.06416219369894988,
+          "upliftCi": [
+            0.04061148167760098,
+            0.087832940206233
+          ],
+          "buckets": [
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 268,
+              "opportunities": 349,
+              "pickRate": 0.7679083094555874,
+              "opportunityRate": 0.15428824049513704,
+              "evEff": -0.03851866933000429,
+              "evEffCi": [
+                -0.2238658090241113,
+                0.14682847036410274
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 237,
+              "opportunities": 313,
+              "pickRate": 0.7571884984025559,
+              "opportunityRate": 0.133078231292517,
+              "evEff": -0.14670670741619082,
+              "evEffCi": [
+                -0.35639732639184407,
+                0.0629839115594624
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 319,
+              "opportunities": 415,
+              "pickRate": 0.7686746987951807,
+              "opportunityRate": 0.15234948604992657,
+              "evEff": 0.044586315527411324,
+              "evEffCi": [
+                -0.12284769722563488,
+                0.21202032828045753
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 395,
+              "opportunities": 511,
+              "pickRate": 0.7729941291585127,
+              "opportunityRate": 0.14558404558404558,
+              "evEff": -0.1352691430931499,
+              "evEffCi": [
+                -0.29534213377394114,
+                0.024803847587641287
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 277,
+              "opportunities": 383,
+              "pickRate": 0.7232375979112271,
+              "opportunityRate": 0.1429637924598731,
+              "evEff": 0.13287452219194348,
+              "evEffCi": [
+                -0.034709571666569156,
+                0.3004586160504561
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 218,
+              "opportunities": 301,
+              "pickRate": 0.7242524916943521,
+              "opportunityRate": 0.1444337811900192,
+              "evEff": -0.16248584765622703,
+              "evEffCi": [
+                -0.3805079738774201,
+                0.055536278564965985
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 0.6666666666666666,
+          "score": -0.7740596529543389,
+          "variancePenalty": 0.024154307519818494,
+          "nichePenalty": 1,
+          "verdict": "neutral",
+          "hysteresisLocked": false,
+          "notes": null
+        },
+        {
+          "abilityId": "Shadow Monk:3OAK",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "3OAK",
+          "label": "Shadow Monk Shade Break",
+          "uses": 4077,
+          "opportunities": 7665,
+          "pickRate": 0.5318982387475538,
+          "opportunityRate": 0.49099993594260455,
+          "expected": 12967.512442108085,
+          "actual": 12136,
+          "evEff": -0.20395203387492897,
+          "evEffCi": [
+            -0.24606220968382903,
+            -0.1618418580660289
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.4059357370615649,
+          "uplift": -0.0030642629384350917,
+          "upliftCi": [
+            -0.018042965512102327,
+            0.012091539022037301
+          ],
+          "buckets": [
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 701,
+              "opportunities": 1320,
+              "pickRate": 0.531060606060606,
+              "opportunityRate": 0.4845814977973568,
+              "evEff": -0.15641461784415853,
+              "evEffCi": [
+                -0.2566468018007565,
+                -0.056182433887560584
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 589,
+              "opportunities": 1090,
+              "pickRate": 0.5403669724770642,
+              "opportunityRate": 0.4818744473916888,
+              "evEff": -0.16113652481108448,
+              "evEffCi": [
+                -0.27126268899046296,
+                -0.051010360631706
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 922,
+              "opportunities": 1755,
+              "pickRate": 0.5253561253561253,
+              "opportunityRate": 0.5,
+              "evEff": -0.21446669339870567,
+              "evEffCi": [
+                -0.3040705078685963,
+                -0.12486287892881505
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 703,
+              "opportunities": 1311,
+              "pickRate": 0.5362318840579711,
+              "opportunityRate": 0.48936170212765956,
+              "evEff": -0.1926276087863208,
+              "evEffCi": [
+                -0.29334503493267894,
+                -0.09191018263996265
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 540,
+              "opportunities": 1015,
+              "pickRate": 0.5320197044334976,
+              "opportunityRate": 0.4870441458733205,
+              "evEff": -0.2139701733572266,
+              "evEffCi": [
+                -0.3285572858046758,
+                -0.09938306090977739
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 622,
+              "opportunities": 1174,
+              "pickRate": 0.5298126064735945,
+              "opportunityRate": 0.4991496598639456,
+              "evEff": -0.28658679739920995,
+              "evEffCi": [
+                -0.39648060736854157,
+                -0.17669298742987832
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": -0.9330384408859776,
+          "variancePenalty": 0.015661366191164653,
+          "nichePenalty": 0,
+          "verdict": "neutral",
+          "hysteresisLocked": false,
+          "notes": null
+        }
+      ],
+      "trap": [],
+      "overtuned": [],
+      "watchlist": [
+        {
+          "abilityId": "Pyromancer:5OAK",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "5OAK",
+          "label": "Pyromancer ULT: Supernova",
+          "uses": 204,
+          "opportunities": 204,
+          "pickRate": 1,
+          "opportunityRate": 0.012922024450497244,
+          "expected": 1729.6994708720906,
+          "actual": 2245,
+          "evEff": 2.5259829859211242,
+          "evEffCi": [
+            2.084929076117654,
+            2.9670368957245943
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.8235294117647058,
+          "uplift": 0.23302941176470582,
+          "upliftCi": [
+            0.17487754903013542,
+            0.2792214879287793
+          ],
+          "buckets": [
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 21,
+              "opportunities": 21,
+              "pickRate": 1,
+              "opportunityRate": 0.012544802867383513,
+              "evEff": 2.854414358470144,
+              "evEffCi": [
+                1.6883078262680282,
+                4.02052089067226
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 29,
+              "opportunities": 29,
+              "pickRate": 1,
+              "opportunityRate": 0.011111111111111112,
+              "evEff": 2.038322404447155,
+              "evEffCi": [
+                0.6812983119440894,
+                3.3953464969502205
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 33,
+              "opportunities": 33,
+              "pickRate": 1,
+              "opportunityRate": 0.011344104503265727,
+              "evEff": 2.127141631197417,
+              "evEffCi": [
+                0.918015369088004,
+                3.3362678933068297
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 41,
+              "opportunities": 41,
+              "pickRate": 1,
+              "opportunityRate": 0.014695340501792114,
+              "evEff": 2.3991298056246153,
+              "evEffCi": [
+                1.2678094134000362,
+                3.5304501978491944
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 31,
+              "opportunities": 31,
+              "pickRate": 1,
+              "opportunityRate": 0.014790076335877863,
+              "evEff": 2.392048767072294,
+              "evEffCi": [
+                1.3291780152065307,
+                3.4549195189380573
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 49,
+              "opportunities": 49,
+              "pickRate": 1,
+              "opportunityRate": 0.013214670981661273,
+              "evEff": 3.133325923095994,
+              "evEffCi": [
+                2.429100580372989,
+                3.837551265818999
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": 1.4720430902085269,
+          "variancePenalty": 0.07001400420140048,
+          "nichePenalty": 1,
+          "verdict": "watchlist",
+          "hysteresisLocked": false,
+          "notes": "Ultimátka s nízkym výskytom – sledovať."
+        },
+        {
+          "abilityId": "Pyromancer:LARGE_STRAIGHT",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "LARGE_STRAIGHT",
+          "label": "Pyromancer Inferno",
+          "uses": 25,
+          "opportunities": 25,
+          "pickRate": 1,
+          "opportunityRate": 0.0015835814277570153,
+          "expected": 195.6673609583813,
+          "actual": 245,
+          "evEff": 1.9733055616647481,
+          "evEffCi": [
+            0.7650804170828291,
+            3.181530706246667
+          ],
+          "evEffPValue": 0.001369052761696521,
+          "evEffFdr": 0.0014743645125962533,
+          "winRateAfterUse": 0.92,
+          "uplift": 0.3295,
+          "upliftCi": [
+            0.1598348787704218,
+            0.3872800663089081
+          ],
+          "buckets": [
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 8,
+              "opportunities": 8,
+              "pickRate": 1,
+              "opportunityRate": 0.0030651340996168583,
+              "evEff": 3.1733055616647476,
+              "evEffCi": [
+                2.6494735275164025,
+                3.6971375958130928
+              ],
+              "passesFilter": false
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 5,
+              "opportunities": 5,
+              "pickRate": 1,
+              "opportunityRate": 0.001348435814455232,
+              "evEff": 0.7733055616647476,
+              "evEffCi": [
+                -3.591821698793989,
+                5.138432822123484
+              ],
+              "passesFilter": false
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 4,
+              "opportunities": 4,
+              "pickRate": 1,
+              "opportunityRate": 0.0013750429700928155,
+              "evEff": -0.32669443833525236,
+              "evEffCi": [
+                -5.291597928501667,
+                4.638209051831162
+              ],
+              "passesFilter": false
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 3,
+              "opportunities": 3,
+              "pickRate": 1,
+              "opportunityRate": 0.001075268817204301,
+              "evEff": 2.506638894998081,
+              "evEffCi": [
+                1.1999722283314167,
+                3.8133055616647455
+              ],
+              "passesFilter": false
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 3,
+              "opportunities": 3,
+              "pickRate": 1,
+              "opportunityRate": 0.0017921146953405018,
+              "evEff": 2.506638894998081,
+              "evEffCi": [
+                1.8533055616647522,
+                3.15997222833141
+              ],
+              "passesFilter": false
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 2,
+              "opportunities": 2,
+              "pickRate": 1,
+              "opportunityRate": 0.0009541984732824427,
+              "evEff": 3.1733055616647476,
+              "evEffCi": [
+                3.1733055616647476,
+                3.1733055616647476
+              ],
+              "passesFilter": false
+            }
+          ],
+          "consistency": null,
+          "score": 1.1859790712748142,
+          "variancePenalty": 0.2,
+          "nichePenalty": 1,
+          "verdict": "watchlist",
+          "hysteresisLocked": false,
+          "notes": "Ultimátka s nízkym výskytom – sledovať."
+        },
+        {
+          "abilityId": "Shadow Monk:5OAK",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "5OAK",
+          "label": "Shadow Monk ULT: Dusk Extinction",
+          "uses": 187,
+          "opportunities": 187,
+          "pickRate": 1,
+          "opportunityRate": 0.011978732944718467,
+          "expected": 1571.0726273622136,
+          "actual": 1854,
+          "evEff": 1.512980602341104,
+          "evEffCi": [
+            1.2765024214106786,
+            1.7494587832715296
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.6737967914438503,
+          "uplift": 0.2647967914438504,
+          "upliftCi": [
+            0.1946900527483475,
+            0.3279065467352035
+          ],
+          "buckets": [
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 26,
+              "opportunities": 26,
+              "pickRate": 1,
+              "opportunityRate": 0.012476007677543186,
+              "evEff": 1.1673788007051842,
+              "evEffCi": [
+                0.4910282143359145,
+                1.843729387074454
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 33,
+              "opportunities": 33,
+              "pickRate": 1,
+              "opportunityRate": 0.012114537444933921,
+              "evEff": 1.6165349643927767,
+              "evEffCi": [
+                1.0598712331055078,
+                2.1731986956800453
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 23,
+              "opportunities": 23,
+              "pickRate": 1,
+              "opportunityRate": 0.010167992926613616,
+              "evEff": 1.7283468212134494,
+              "evEffCi": [
+                1.1177142893700562,
+                2.3389793530568426
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 43,
+              "opportunities": 43,
+              "pickRate": 1,
+              "opportunityRate": 0.01225071225071225,
+              "evEff": 1.445785323115935,
+              "evEffCi": [
+                0.9473525536678687,
+                1.9442180925640011
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 25,
+              "opportunities": 25,
+              "pickRate": 1,
+              "opportunityRate": 0.00933184023889511,
+              "evEff": 1.1827814924572977,
+              "evEffCi": [
+                0.40384431455784464,
+                1.9617186703567508
+              ],
+              "passesFilter": false
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 37,
+              "opportunities": 37,
+              "pickRate": 1,
+              "opportunityRate": 0.015731292517006803,
+              "evEff": 1.830799645977379,
+              "evEffCi": [
+                1.375474807438597,
+                2.286124484516161
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": 0.9505316734863356,
+          "variancePenalty": 0.07312724241271307,
+          "nichePenalty": 1,
+          "verdict": "watchlist",
+          "hysteresisLocked": false,
+          "notes": "Ultimátka s nízkym výskytom – sledovať."
+        },
+        {
+          "abilityId": "Shadow Monk:LARGE_STRAIGHT",
+          "heroId": "Shadow Monk",
+          "heroName": "Shadow Monk",
+          "combo": "LARGE_STRAIGHT",
+          "label": "Shadow Monk Weight of Regret",
+          "uses": 558,
+          "opportunities": 558,
+          "pickRate": 1,
+          "opportunityRate": 0.0357440266478765,
+          "expected": 4261.9920775565515,
+          "actual": 4913,
+          "evEff": 1.1666808645939937,
+          "evEffCi": [
+            1.0288153733817693,
+            1.304546355806218
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.6469534050179212,
+          "uplift": 0.23795340501792123,
+          "upliftCi": [
+            0.19741722899030317,
+            0.27647998901562604
+          ],
+          "buckets": [
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 81,
+              "opportunities": 81,
+              "pickRate": 1,
+              "opportunityRate": 0.03580901856763926,
+              "evEff": 1.178175003047306,
+              "evEffCi": [
+                0.8084364001268136,
+                1.5479136059677983
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 76,
+              "opportunities": 76,
+              "pickRate": 1,
+              "opportunityRate": 0.03231292517006803,
+              "evEff": 1.0464785177788627,
+              "evEffCi": [
+                0.6659528214464614,
+                1.427004214111264
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 106,
+              "opportunities": 106,
+              "pickRate": 1,
+              "opportunityRate": 0.039567002612915264,
+              "evEff": 0.9877526093684101,
+              "evEffCi": [
+                0.659239777653404,
+                1.3162654410834163
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 96,
+              "opportunities": 96,
+              "pickRate": 1,
+              "opportunityRate": 0.03524229074889868,
+              "evEff": 1.2619098809647902,
+              "evEffCi": [
+                0.9481906114858846,
+                1.575629150443696
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 83,
+              "opportunities": 83,
+              "pickRate": 1,
+              "opportunityRate": 0.03982725527831094,
+              "evEff": 1.063108265439533,
+              "evEffCi": [
+                0.6785368622776813,
+                1.4476796686013846
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 116,
+              "opportunities": 116,
+              "pickRate": 1,
+              "opportunityRate": 0.03304843304843305,
+              "evEff": 1.3962092124850893,
+              "evEffCi": [
+                1.1165408105919505,
+                1.6758776143782281
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": 0.671846433291877,
+          "variancePenalty": 0.04233337566673017,
+          "nichePenalty": 1,
+          "verdict": "watchlist",
+          "hysteresisLocked": false,
+          "notes": "Ultimátka s nízkym výskytom – sledovať."
+        }
+      ],
+      "niche": [
+        {
+          "abilityId": "Pyromancer:FULL_HOUSE",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "FULL_HOUSE",
+          "label": "Pyromancer Full House",
+          "uses": 1445,
+          "opportunities": 1445,
+          "pickRate": 1,
+          "opportunityRate": 0.09153100652435549,
+          "expected": 7539.71564226296,
+          "actual": 8878,
+          "evEff": 0.9261483444546993,
+          "evEffCi": [
+            0.811815885029249,
+            1.0404808038801496
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.7038062283737024,
+          "uplift": 0.11330622837370241,
+          "upliftCi": [
+            0.0892492208197937,
+            0.13628245248389936
+          ],
+          "buckets": [
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 340,
+              "opportunities": 340,
+              "pickRate": 1,
+              "opportunityRate": 0.09169363538295577,
+              "evEff": 1.1145566489529695,
+              "evEffCi": [
+                0.8913013075977598,
+                1.337811990308179
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 218,
+              "opportunities": 218,
+              "pickRate": 1,
+              "opportunityRate": 0.08352490421455938,
+              "evEff": 0.6812862765838378,
+              "evEffCi": [
+                0.3762520717322516,
+                0.986320481435424
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 177,
+              "opportunities": 177,
+              "pickRate": 1,
+              "opportunityRate": 0.1057347670250896,
+              "evEff": 0.9912432557990974,
+              "evEffCi": [
+                0.6765099731246621,
+                1.3059765384735327
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 273,
+              "opportunities": 273,
+              "pickRate": 1,
+              "opportunityRate": 0.09384668270883464,
+              "evEff": 0.771214696787488,
+              "evEffCi": [
+                0.4859486352970538,
+                1.0564807582779223
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 254,
+              "opportunities": 254,
+              "pickRate": 1,
+              "opportunityRate": 0.0910394265232975,
+              "evEff": 1.0499202432095696,
+              "evEffCi": [
+                0.7930444277500412,
+                1.3067960586690979
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 183,
+              "opportunities": 183,
+              "pickRate": 1,
+              "opportunityRate": 0.08730916030534351,
+              "evEff": 0.864170920891253,
+              "evEffCi": [
+                0.5345859710597236,
+                1.1937558707227824
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": 0.17700604852090235,
+          "variancePenalty": 0.02630668208823282,
+          "nichePenalty": 1,
+          "verdict": "niche",
+          "hysteresisLocked": false,
+          "notes": "Nízka opportunity rate, verdikt len informačný."
+        },
+        {
+          "abilityId": "Pyromancer:SMALL_STRAIGHT",
+          "heroId": "Pyromancer",
+          "heroName": "Pyromancer",
+          "combo": "SMALL_STRAIGHT",
+          "label": "Pyromancer Small straight + Burn",
+          "uses": 780,
+          "opportunities": 805,
+          "pickRate": 0.968944099378882,
+          "opportunityRate": 0.05099132197377589,
+          "expected": 3052.4108309507483,
+          "actual": 3440,
+          "evEff": 0.4969091910887843,
+          "evEffCi": [
+            0.38068042152198506,
+            0.6131379606555836
+          ],
+          "evEffPValue": 0,
+          "evEffFdr": 0,
+          "winRateAfterUse": 0.7141025641025641,
+          "uplift": 0.1236025641025641,
+          "upliftCi": [
+            0.09090379975343399,
+            0.15420269931474517
+          ],
+          "buckets": [
+            {
+              "key": "second:hp_0_10",
+              "initiative": "second",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 100,
+              "opportunities": 102,
+              "pickRate": 0.9803921568627451,
+              "opportunityRate": 0.04866412213740458,
+              "evEff": 0.16665278083237411,
+              "evEffCi": [
+                -0.20573158885555837,
+                0.5390371505203067
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_11_20",
+              "initiative": "first",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 119,
+              "opportunities": 127,
+              "pickRate": 0.937007874015748,
+              "opportunityRate": 0.04865900383141762,
+              "evEff": 0.5572410161264916,
+              "evEffCi": [
+                0.2551170081552636,
+                0.8593650240977195
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_0_10",
+              "initiative": "first",
+              "hpBinId": "hp_0_10",
+              "hpLabel": "HP 0-10",
+              "uses": 93,
+              "opportunities": 96,
+              "pickRate": 0.96875,
+              "opportunityRate": 0.05734767025089606,
+              "evEff": 0.17267428620871814,
+              "evEffCi": [
+                -0.22108101211187128,
+                0.5664295845293076
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "first:hp_21_plus",
+              "initiative": "first",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 181,
+              "opportunities": 186,
+              "pickRate": 0.9731182795698925,
+              "opportunityRate": 0.05016181229773463,
+              "evEff": 0.5507411786224292,
+              "evEffCi": [
+                0.30004316761437594,
+                0.8014391896304824
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_21_plus",
+              "initiative": "second",
+              "hpBinId": "hp_21_plus",
+              "hpLabel": "HP 21+",
+              "uses": 135,
+              "opportunities": 138,
+              "pickRate": 0.9782608695652174,
+              "opportunityRate": 0.04946236559139785,
+              "evEff": 0.5681342623138553,
+              "evEffCi": [
+                0.3133414701252772,
+                0.8229270545024334
+              ],
+              "passesFilter": true
+            },
+            {
+              "key": "second:hp_11_20",
+              "initiative": "second",
+              "hpBinId": "hp_11_20",
+              "hpLabel": "HP 11-20",
+              "uses": 152,
+              "opportunities": 156,
+              "pickRate": 0.9743589743589743,
+              "opportunityRate": 0.053626675833619804,
+              "evEff": 0.7379685703060584,
+              "evEffCi": [
+                0.5415421684503843,
+                0.9343949721617326
+              ],
+              "passesFilter": true
+            }
+          ],
+          "consistency": 1,
+          "score": -0.07455083782930735,
+          "variancePenalty": 0.03580574370197165,
+          "nichePenalty": 1,
+          "verdict": "niche",
+          "hysteresisLocked": false,
+          "notes": "Nízka opportunity rate, verdikt len informačný."
+        }
+      ]
+    },
+    "initiativeBreakdown": {
+      "first": {
+        "dpr": {
+          "attackOnly": 5.372435560231457,
+          "actual": 3.936198993011197
+        },
+        "mitigation": {
+          "blockedPercent": 0.258904424880603,
+          "preventedPercent": 0.04770124863340813
+        },
+        "statuses": {
+          "evasive": {
+            "applied": 1875,
+            "damage": 0,
+            "mitigation": 3316,
+            "avgLifetime": null
+          },
+          "chi": {
+            "applied": 3424,
+            "damage": 0,
+            "mitigation": 2780,
+            "avgLifetime": null
+          },
+          "burn": {
+            "applied": 1270,
+            "damage": 2435,
+            "mitigation": 0,
+            "avgLifetime": null
+          },
+          "purify": {
+            "applied": 216,
+            "damage": 0,
+            "mitigation": 0,
+            "avgLifetime": null
+          }
+        }
+      },
+      "second": {
+        "dpr": {
+          "attackOnly": 5.375994802663635,
+          "actual": 3.9144063667370474
+        },
+        "mitigation": {
+          "blockedPercent": 0.2550579191800566,
+          "preventedPercent": 0.0459216356162921
+        },
+        "statuses": {
+          "chi": {
+            "applied": 3082,
+            "damage": 0,
+            "mitigation": 2417,
+            "avgLifetime": null
+          },
+          "evasive": {
+            "applied": 1801,
+            "damage": 0,
+            "mitigation": 3441,
+            "avgLifetime": null
+          },
+          "burn": {
+            "applied": 1393,
+            "damage": 2296,
+            "mitigation": 0,
+            "avgLifetime": null
+          },
+          "purify": {
+            "applied": 288,
+            "damage": 0,
+            "mitigation": 0,
+            "avgLifetime": null
+          }
+        }
+      }
+    },
+    "winRateCi": {
+      "lower": 0.5687949465785327,
+      "upper": 0.6118580551357745
+    },
+    "convergence": [
+      {
+        "games": 100,
+        "winRate": 0.66
+      },
+      {
+        "games": 200,
+        "winRate": 0.66
+      },
+      {
+        "games": 300,
+        "winRate": 0.6333333333333333
+      },
+      {
+        "games": 400,
+        "winRate": 0.6125
+      },
+      {
+        "games": 500,
+        "winRate": 0.614
+      },
+      {
+        "games": 600,
+        "winRate": 0.6166666666666667
+      },
+      {
+        "games": 700,
+        "winRate": 0.6114285714285714
+      },
+      {
+        "games": 800,
+        "winRate": 0.605
+      },
+      {
+        "games": 900,
+        "winRate": 0.61
+      },
+      {
+        "games": 1000,
+        "winRate": 0.607
+      },
+      {
+        "games": 1100,
+        "winRate": 0.6090909090909091
+      },
+      {
+        "games": 1200,
+        "winRate": 0.6108333333333333
+      },
+      {
+        "games": 1300,
+        "winRate": 0.6123076923076923
+      },
+      {
+        "games": 1400,
+        "winRate": 0.6085714285714285
+      },
+      {
+        "games": 1500,
+        "winRate": 0.606
+      },
+      {
+        "games": 1600,
+        "winRate": 0.6025
+      },
+      {
+        "games": 1700,
+        "winRate": 0.5982352941176471
+      },
+      {
+        "games": 1800,
+        "winRate": 0.5933333333333334
+      },
+      {
+        "games": 1900,
+        "winRate": 0.5905263157894737
+      },
+      {
+        "games": 2000,
+        "winRate": 0.5905
+      }
+    ]
+  },
+  "sample": {
+    "winner": "you",
+    "rounds": 8,
+    "turns": 15,
+    "meta": {
+      "firstPlayer": "you",
+      "heroBySide": {
+        "you": "Pyromancer",
+        "ai": "Shadow Monk"
+      }
+    },
+    "hp": {
+      "you": 4,
+      "ai": 0
+    },
+    "history": [
+      {
+        "side": "you",
+        "round": 1,
+        "dice": [
+          4,
+          4,
+          4,
+          3,
+          3
+        ],
+        "defenseDice": [
+          4,
+          4,
+          2,
+          3,
+          3
+        ],
+        "attackerHpBefore": 30,
+        "attackerHpAfter": 30,
+        "abilityId": "Pyromancer:FULL_HOUSE",
+        "combo": "FULL_HOUSE",
+        "opportunities": [
+          "FULL_HOUSE",
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 30,
+        "defenderHpAfter": 23,
+        "baseDamage": 8,
+        "modifiedDamage": 8,
+        "damageDealt": 7,
+        "damageBlocked": 1,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": "Shadow Monk:PAIR_PAIR",
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {
+          "chi": 1
+        },
+        "notes": []
+      },
+      {
+        "side": "ai",
+        "round": 1,
+        "dice": [
+          1,
+          2,
+          4,
+          2,
+          4
+        ],
+        "defenseDice": [
+          3,
+          2,
+          3,
+          5,
+          5
+        ],
+        "attackerHpBefore": 23,
+        "attackerHpAfter": 23,
+        "abilityId": "Shadow Monk:PAIR_PAIR",
+        "combo": "PAIR_PAIR",
+        "opportunities": [
+          "PAIR_PAIR"
+        ],
+        "attackerHeroId": "Shadow Monk",
+        "defenderHeroId": "Pyromancer",
+        "defenderHpBefore": 30,
+        "defenderHpAfter": 27,
+        "baseDamage": 3,
+        "modifiedDamage": 4,
+        "damageDealt": 3,
+        "damageBlocked": 1,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 1,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": "Pyromancer:PAIR_PAIR",
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {},
+        "notes": [
+          "Spent 1 Chi for +1 damage."
+        ]
+      },
+      {
+        "side": "you",
+        "round": 2,
+        "dice": [
+          2,
+          5,
+          5,
+          1,
+          5
+        ],
+        "defenseDice": [
+          4,
+          3,
+          3,
+          2,
+          1
+        ],
+        "attackerHpBefore": 27,
+        "attackerHpAfter": 27,
+        "abilityId": "Pyromancer:3OAK",
+        "combo": "3OAK",
+        "opportunities": [
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 23,
+        "defenderHpAfter": 20,
+        "baseDamage": 5,
+        "modifiedDamage": 5,
+        "damageDealt": 3,
+        "damageBlocked": 2,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 1,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": "Shadow Monk:SMALL_STRAIGHT",
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {
+          "chi": -1,
+          "evasive": 1
+        },
+        "notes": [
+          "Defender spends 1 Chi for +1 block."
+        ]
+      },
+      {
+        "side": "ai",
+        "round": 2,
+        "dice": [
+          4,
+          2,
+          2,
+          3,
+          2
+        ],
+        "defenseDice": [
+          3,
+          6,
+          6,
+          5,
+          1
+        ],
+        "attackerHpBefore": 20,
+        "attackerHpAfter": 20,
+        "abilityId": "Shadow Monk:3OAK",
+        "combo": "3OAK",
+        "opportunities": [
+          "3OAK"
+        ],
+        "attackerHeroId": "Shadow Monk",
+        "defenderHeroId": "Pyromancer",
+        "defenderHpBefore": 27,
+        "defenderHpAfter": 23,
+        "baseDamage": 4,
+        "modifiedDamage": 4,
+        "damageDealt": 4,
+        "damageBlocked": 0,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {},
+        "notes": []
+      },
+      {
+        "side": "you",
+        "round": 3,
+        "dice": [
+          1,
+          2,
+          1,
+          1,
+          2
+        ],
+        "defenseDice": [
+          1,
+          1,
+          5,
+          4,
+          4
+        ],
+        "attackerHpBefore": 23,
+        "attackerHpAfter": 23,
+        "abilityId": "Pyromancer:FULL_HOUSE",
+        "combo": "FULL_HOUSE",
+        "opportunities": [
+          "FULL_HOUSE",
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 20,
+        "defenderHpAfter": 13,
+        "baseDamage": 8,
+        "modifiedDamage": 8,
+        "damageDealt": 7,
+        "damageBlocked": 1,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": true,
+        "evasiveSuccess": false,
+        "defenseAbilityId": "Shadow Monk:PAIR_PAIR",
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {
+          "evasive": -1,
+          "chi": 1
+        },
+        "notes": []
+      },
+      {
+        "side": "ai",
+        "round": 3,
+        "dice": [
+          2,
+          2,
+          2,
+          2,
+          4
+        ],
+        "defenseDice": [
+          4,
+          4,
+          5,
+          6,
+          1
+        ],
+        "attackerHpBefore": 13,
+        "attackerHpAfter": 13,
+        "abilityId": "Shadow Monk:4OAK",
+        "combo": "4OAK",
+        "opportunities": [
+          "4OAK",
+          "3OAK"
+        ],
+        "attackerHeroId": "Shadow Monk",
+        "defenderHeroId": "Pyromancer",
+        "defenderHpBefore": 23,
+        "defenderHpAfter": 16,
+        "baseDamage": 6,
+        "modifiedDamage": 7,
+        "damageDealt": 7,
+        "damageBlocked": 0,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 1,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {},
+        "notes": [
+          "Spent 1 Chi for +1 damage."
+        ]
+      },
+      {
+        "side": "you",
+        "round": 4,
+        "dice": [
+          6,
+          6,
+          6,
+          4,
+          4
+        ],
+        "defenseDice": [
+          3,
+          3,
+          1,
+          3,
+          4
+        ],
+        "attackerHpBefore": 16,
+        "attackerHpAfter": 16,
+        "abilityId": "Pyromancer:FULL_HOUSE",
+        "combo": "FULL_HOUSE",
+        "opportunities": [
+          "FULL_HOUSE",
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 13,
+        "defenderHpAfter": 7,
+        "baseDamage": 8,
+        "modifiedDamage": 8,
+        "damageDealt": 6,
+        "damageBlocked": 2,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 1,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": "Shadow Monk:3OAK",
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {
+          "chi": -1
+        },
+        "notes": [
+          "Defender spends 1 Chi for +1 block."
+        ]
+      },
+      {
+        "side": "ai",
+        "round": 4,
+        "dice": [
+          3,
+          5,
+          6,
+          2,
+          2
+        ],
+        "defenseDice": [
+          1,
+          1,
+          3,
+          4,
+          4
+        ],
+        "attackerHpBefore": 7,
+        "attackerHpAfter": 7,
+        "abilityId": null,
+        "combo": null,
+        "opportunities": [],
+        "attackerHeroId": "Shadow Monk",
+        "defenderHeroId": "Pyromancer",
+        "defenderHpBefore": 16,
+        "defenderHpAfter": 16,
+        "baseDamage": null,
+        "modifiedDamage": null,
+        "damageDealt": 0,
+        "damageBlocked": 0,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {},
+        "notes": [
+          "No combo available."
+        ]
+      },
+      {
+        "side": "you",
+        "round": 5,
+        "dice": [
+          5,
+          3,
+          1,
+          3,
+          3
+        ],
+        "defenseDice": [
+          5,
+          1,
+          1,
+          3,
+          5
+        ],
+        "attackerHpBefore": 16,
+        "attackerHpAfter": 16,
+        "abilityId": "Pyromancer:3OAK",
+        "combo": "3OAK",
+        "opportunities": [
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 7,
+        "defenderHpAfter": 3,
+        "baseDamage": 5,
+        "modifiedDamage": 5,
+        "damageDealt": 4,
+        "damageBlocked": 1,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": "Shadow Monk:PAIR_PAIR",
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {
+          "chi": 1
+        },
+        "notes": []
+      },
+      {
+        "side": "ai",
+        "round": 5,
+        "dice": [
+          4,
+          4,
+          5,
+          2,
+          3
+        ],
+        "defenseDice": [
+          3,
+          6,
+          1,
+          2,
+          3
+        ],
+        "attackerHpBefore": 3,
+        "attackerHpAfter": 3,
+        "abilityId": "Shadow Monk:SMALL_STRAIGHT",
+        "combo": "SMALL_STRAIGHT",
+        "opportunities": [
+          "SMALL_STRAIGHT"
+        ],
+        "attackerHeroId": "Shadow Monk",
+        "defenderHeroId": "Pyromancer",
+        "defenderHpBefore": 16,
+        "defenderHpAfter": 10,
+        "baseDamage": 5,
+        "modifiedDamage": 6,
+        "damageDealt": 6,
+        "damageBlocked": 0,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 1,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {
+          "chi": -1,
+          "evasive": 1
+        },
+        "defenderStatusDiff": {},
+        "notes": [
+          "Spent 1 Chi for +1 damage."
+        ]
+      },
+      {
+        "side": "you",
+        "round": 6,
+        "dice": [
+          3,
+          6,
+          6,
+          6,
+          5
+        ],
+        "defenseDice": [
+          3,
+          1,
+          4,
+          1,
+          2
+        ],
+        "attackerHpBefore": 10,
+        "attackerHpAfter": 10,
+        "abilityId": "Pyromancer:3OAK",
+        "combo": "3OAK",
+        "opportunities": [
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 3,
+        "defenderHpAfter": 3,
+        "baseDamage": 5,
+        "modifiedDamage": 5,
+        "damageDealt": 0,
+        "damageBlocked": 5,
+        "damagePrevented": 5,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": true,
+        "evasiveSuccess": true,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {
+          "evasive": -1
+        },
+        "notes": [
+          "Evasive roll 5 negates attack."
+        ]
+      },
+      {
+        "side": "ai",
+        "round": 6,
+        "dice": [
+          4,
+          3,
+          1,
+          4,
+          2
+        ],
+        "defenseDice": [
+          5,
+          1,
+          5,
+          2,
+          6
+        ],
+        "attackerHpBefore": 3,
+        "attackerHpAfter": 3,
+        "abilityId": "Shadow Monk:SMALL_STRAIGHT",
+        "combo": "SMALL_STRAIGHT",
+        "opportunities": [
+          "SMALL_STRAIGHT"
+        ],
+        "attackerHeroId": "Shadow Monk",
+        "defenderHeroId": "Pyromancer",
+        "defenderHpBefore": 10,
+        "defenderHpAfter": 5,
+        "baseDamage": 5,
+        "modifiedDamage": 5,
+        "damageDealt": 5,
+        "damageBlocked": 0,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {
+          "evasive": 1
+        },
+        "defenderStatusDiff": {},
+        "notes": []
+      },
+      {
+        "side": "you",
+        "round": 7,
+        "dice": [
+          5,
+          2,
+          2,
+          2,
+          5
+        ],
+        "defenseDice": [
+          6,
+          2,
+          1,
+          5,
+          5
+        ],
+        "attackerHpBefore": 5,
+        "attackerHpAfter": 5,
+        "abilityId": "Pyromancer:FULL_HOUSE",
+        "combo": "FULL_HOUSE",
+        "opportunities": [
+          "FULL_HOUSE",
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 3,
+        "defenderHpAfter": 3,
+        "baseDamage": 8,
+        "modifiedDamage": 8,
+        "damageDealt": 0,
+        "damageBlocked": 8,
+        "damagePrevented": 8,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": true,
+        "evasiveSuccess": true,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {
+          "evasive": -1
+        },
+        "notes": [
+          "Evasive roll 5 negates attack."
+        ]
+      },
+      {
+        "side": "ai",
+        "round": 7,
+        "dice": [
+          4,
+          4,
+          4,
+          6,
+          1
+        ],
+        "defenseDice": [
+          2,
+          1,
+          3,
+          1,
+          4
+        ],
+        "attackerHpBefore": 3,
+        "attackerHpAfter": 3,
+        "abilityId": "Shadow Monk:3OAK",
+        "combo": "3OAK",
+        "opportunities": [
+          "3OAK"
+        ],
+        "attackerHeroId": "Shadow Monk",
+        "defenderHeroId": "Pyromancer",
+        "defenderHpBefore": 5,
+        "defenderHpAfter": 4,
+        "baseDamage": 4,
+        "modifiedDamage": 4,
+        "damageDealt": 1,
+        "damageBlocked": 3,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": "Pyromancer:SMALL_STRAIGHT",
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {},
+        "notes": []
+      },
+      {
+        "side": "you",
+        "round": 8,
+        "dice": [
+          3,
+          6,
+          3,
+          2,
+          3
+        ],
+        "defenseDice": [
+          3,
+          5,
+          1,
+          2,
+          2
+        ],
+        "attackerHpBefore": 4,
+        "attackerHpAfter": 4,
+        "abilityId": "Pyromancer:3OAK",
+        "combo": "3OAK",
+        "opportunities": [
+          "3OAK"
+        ],
+        "attackerHeroId": "Pyromancer",
+        "defenderHeroId": "Shadow Monk",
+        "defenderHpBefore": 3,
+        "defenderHpAfter": 0,
+        "baseDamage": 5,
+        "modifiedDamage": 5,
+        "damageDealt": 5,
+        "damageBlocked": 0,
+        "damagePrevented": 0,
+        "reflected": 0,
+        "chiAttackBonus": 0,
+        "chiBlock": 0,
+        "evasiveUsed": false,
+        "evasiveSuccess": false,
+        "defenseAbilityId": null,
+        "attackerStatusDiff": {},
+        "defenderStatusDiff": {},
+        "notes": []
+      }
+    ],
+    "statusStats": {
+      "applied": {
+        "chi": 3,
+        "evasive": 3
+      },
+      "damage": {
+        "chi": 3
+      },
+      "mitigation": {
+        "chi": 2,
+        "evasive": 13
+      },
+      "lifetimes": {
+        "chi": [
+          1,
+          1,
+          1
+        ],
+        "evasive": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    "roundDamage": {
+      "1": {
+        "you": 7,
+        "ai": 3
+      },
+      "2": {
+        "you": 3,
+        "ai": 4
+      },
+      "3": {
+        "you": 7,
+        "ai": 7
+      },
+      "4": {
+        "you": 6,
+        "ai": 0
+      },
+      "5": {
+        "you": 4,
+        "ai": 6
+      },
+      "6": {
+        "you": 0,
+        "ai": 5
+      },
+      "7": {
+        "you": 0,
+        "ai": 1
+      },
+      "8": {
+        "you": 5,
+        "ai": 0
+      }
+    },
+    "lethalShots": [
+      {
+        "side": "you",
+        "defenderHpBefore": 3
+      }
+    ],
+    "statusDamageEvents": []
+  },
+  "elasticity": [
+    {
+      "metric": "damage",
+      "delta": -1,
+      "winRate": 0.3585,
+      "winRateDelta": -0.23200000000000004,
+      "lethal5": 0.21938232161874335,
+      "lethal5Delta": -0.02264901279508702
+    },
+    {
+      "metric": "damage",
+      "delta": 1,
+      "winRate": 0.7585,
+      "winRateDelta": 0.16799999999999993,
+      "lethal5": 0.30640818524501884,
+      "lethal5Delta": 0.06437685083118846
+    },
+    {
+      "metric": "block",
+      "delta": -1,
+      "winRate": 0.4645,
+      "winRateDelta": -0.126,
+      "lethal5": 0.26481580352375866,
+      "lethal5Delta": 0.02278446910992829
+    },
+    {
+      "metric": "block",
+      "delta": 1,
+      "winRate": 0.8075,
+      "winRateDelta": 0.21699999999999997,
+      "lethal5": 0.20638414969730326,
+      "lethal5Delta": -0.035647184716527114
+    }
+  ]
+}

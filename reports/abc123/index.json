@@ -1,0 +1,84 @@
+{
+  "reports": [
+    {
+      "path": "reports\\abc123\\1762693270174_pyromancer_vs_shadow-monk_2000.json",
+      "timestamp": 1762693270174,
+      "youHeroId": "Pyromancer",
+      "aiHeroId": "Shadow Monk",
+      "policyId": "baseline/v0",
+      "games": 2000,
+      "abilityVerdicts": {
+        "Pyromancer:5OAK": {
+          "verdict": "watchlist",
+          "evEff": 2.5259829859211242,
+          "score": 1.4720430902085269
+        },
+        "Pyromancer:LARGE_STRAIGHT": {
+          "verdict": "watchlist",
+          "evEff": 1.9733055616647481,
+          "score": 1.1859790712748142
+        },
+        "Shadow Monk:5OAK": {
+          "verdict": "watchlist",
+          "evEff": 1.512980602341104,
+          "score": 0.9505316734863356
+        },
+        "Shadow Monk:LARGE_STRAIGHT": {
+          "verdict": "watchlist",
+          "evEff": 1.1666808645939937,
+          "score": 0.671846433291877
+        },
+        "Pyromancer:FULL_HOUSE": {
+          "verdict": "niche",
+          "evEff": 0.9261483444546993,
+          "score": 0.17700604852090235
+        },
+        "Pyromancer:4OAK": {
+          "verdict": "neutral",
+          "evEff": 0.7082962203000722,
+          "score": 0.003311463418084526
+        },
+        "Shadow Monk:FULL_HOUSE": {
+          "verdict": "neutral",
+          "evEff": 0.4641543484018896,
+          "score": -0.028685016876788066
+        },
+        "Pyromancer:SMALL_STRAIGHT": {
+          "verdict": "niche",
+          "evEff": 0.4969091910887843,
+          "score": -0.07455083782930735
+        },
+        "Shadow Monk:4OAK": {
+          "verdict": "neutral",
+          "evEff": 0.20191474964914216,
+          "score": -0.28117077697141624
+        },
+        "Pyromancer:PAIR_PAIR": {
+          "verdict": "neutral",
+          "evEff": -0.06828602133246857,
+          "score": -0.6246431241079516
+        },
+        "Pyromancer:3OAK": {
+          "verdict": "neutral",
+          "evEff": 0.21069276369932868,
+          "score": -0.6478516686139041
+        },
+        "Shadow Monk:PAIR_PAIR": {
+          "verdict": "neutral",
+          "evEff": -0.3934488057731055,
+          "score": -0.7518310680593968
+        },
+        "Shadow Monk:SMALL_STRAIGHT": {
+          "verdict": "neutral",
+          "evEff": -0.04837598719283409,
+          "score": -0.7740596529543389
+        },
+        "Shadow Monk:3OAK": {
+          "verdict": "neutral",
+          "evEff": -0.20395203387492897,
+          "score": -0.9330384408859776
+        }
+      }
+    }
+  ]
+}

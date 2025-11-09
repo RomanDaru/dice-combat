@@ -78,6 +78,17 @@ vi.mock("../../context/GameContext", () => ({
   },
 }));
 
+vi.mock("../../context/StatsContext", () => ({
+  useStatsTracker: () => ({
+    beginGame: vi.fn(),
+    recordRoll: vi.fn(),
+    recordTurn: vi.fn(),
+    finalizeGame: vi.fn(),
+    getSnapshot: vi.fn(),
+    recordStatusSnapshot: vi.fn(() => ({})),
+  }),
+}));
+
 const pushLog = vi.fn();
 const animateDefenseDie = vi.fn<(cb: (roll: number) => void) => void>();
 const restoreDiceAfterDefense = vi.fn();

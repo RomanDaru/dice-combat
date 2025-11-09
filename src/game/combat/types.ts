@@ -91,6 +91,14 @@ export type AttackResolution = {
     negated: boolean;
     attackerDefeated: boolean;
     defenderDefeated: boolean;
+    baseDamage: number;
+    modifiedBaseDamage: number;
+    attackDamage: number;
+    baseBlock: number;
+    totalBlock: number;
+    defenseAbilityId: string | null;
+    attackerStatusDiff: Record<string, number>;
+    defenderStatusDiff: Record<string, number>;
   };
 };
 

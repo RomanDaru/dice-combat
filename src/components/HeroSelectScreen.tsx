@@ -156,17 +156,13 @@ export default function HeroSelectScreen({
       return null;
     }
     if (!selectedHeroOption) {
-      const randomIndex = Math.floor(Math.random() * heroOptions.length);
-      return heroOptions[randomIndex];
+      return heroOptions[0];
     }
-    const remaining = heroOptions.filter(
-      (option) => option.hero.id !== selectedHeroOption.hero.id
+    return (
+      heroOptions.find(
+        (option) => option.hero.id !== selectedHeroOption.hero.id
+      ) ?? selectedHeroOption
     );
-    if (!remaining.length) {
-      return selectedHeroOption;
-    }
-    const randomIndex = Math.floor(Math.random() * remaining.length);
-    return remaining[randomIndex];
   }, [heroOptions, selectedHeroOption]);
 
   const handleSelectHero = (heroId: string) => {

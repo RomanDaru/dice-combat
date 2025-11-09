@@ -1,7 +1,7 @@
 import { Hero, HeroId, OffensiveAbility, DefensiveAbility } from "./types";
 import type { EffectId } from "./effects";
 import { defaultAiStrategy, monkAiStrategy, pyroAiStrategy } from "./ai";
-import { HERO_SKIN_IDS } from "./visuals";
+import { HERO_SKIN_IDS } from "./heroSkinIds";
 
 export const HEROES: Record<HeroId, Hero> = {
   Pyromancer: {

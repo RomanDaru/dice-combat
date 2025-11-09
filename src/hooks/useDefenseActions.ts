@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { StatusId } from "../engine/status";
 import { useGame } from "../context/GameContext";
@@ -10,6 +10,9 @@ import {
   usePlayerDefenseController,
   type PlayerDefenseState,
 } from "./usePlayerDefenseController";
+import { detectCombos } from "../game/combos";
+import { useStatsTracker } from "../context/StatsContext";
+import type { PhaseDamage, StatsTurnInput, StatusRemovalReason } from "../stats/types";
 import type { GameFlowEvent } from "./useTurnController";
 import type { GameState } from "../game/state";
 import type {
@@ -25,6 +28,13 @@ import type { TurnEndResolution } from "../game/flow/turnEnd";
 import type { Cue } from "../game/flow/cues";
 type UseDefenseActionsArgs = {
   turn: Side;
+  round: number;
+  turnId: string;
+  getAttackDecisionLatency: () => number | null;
+  getDefenseDecisionLatency: () => number | null;
+  clearDefenseDecisionLatency: () => void;
+  consumeUpkeepDamage: (side: Side, turnId: string) => number;
+  recordPlayerTurn: (entry: StatsTurnInput) => void;
   rolling: boolean[];
   ability: OffensiveAbility | null;
   dice: number[];
@@ -95,6 +105,12 @@ type UseDefenseActionsArgs = {
 
 export function useDefenseActions({
   turn,
+  round,
+  turnId,
+  getAttackDecisionLatency,
+  getDefenseDecisionLatency,
+  clearDefenseDecisionLatency,
+  consumeUpkeepDamage,
   rolling,
   ability,
   dice,
@@ -131,12 +147,84 @@ export function useDefenseActions({
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
   const pendingDefenseSpendsRef = useRef<StatusSpendSummary[]>([]);
+  const stats = useStatsTracker();
+  const pendingTurnStatsRef = useRef<StatsTurnInput | null>(null);
 
   const resetDefenseRequests = useCallback(() => {
     pendingDefenseSpendsRef.current = [];
     clearDefenseStatusRequests();
   }, [clearDefenseStatusRequests]);
   const aiStatusReactionRef = useRef<StatusId | null>(null);
+  const prepareTurnSnapshot = useCallback(
+    (snapshot: StatsTurnInput) => {
+      pendingTurnStatsRef.current = snapshot;
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!pendingAttack) {
+      pendingTurnStatsRef.current = null;
+      return;
+    }
+    const state = latestState.current;
+    const attackerState = state.players[pendingAttack.attacker];
+    const defenderState = state.players[pendingAttack.defender];
+    if (!attackerState || !defenderState) {
+      pendingTurnStatsRef.current = null;
+      return;
+    }
+    const combos = detectCombos(pendingAttack.dice);
+    const combosTriggered: Record<string, number> = {};
+    let opportunityCount = 0;
+    Object.entries(combos).forEach(([comboId, active]) => {
+      if (active) {
+        opportunityCount += 1;
+        combosTriggered[comboId] = (combosTriggered[comboId] ?? 0) + 1;
+      }
+    });
+    const attackLatency =
+      pendingAttack.attacker === "you" ? getAttackDecisionLatency() : null;
+    const attackPromptMs =
+      pendingAttack.attacker === "you" && attackLatency != null
+        ? attackLatency
+        : undefined;
+    const upkeepDot = consumeUpkeepDamage(pendingAttack.attacker, turnId);
+    const ability = pendingAttack.ability ?? null;
+    const abilityKey = ability
+      ? `${attackerState.hero.id}:${ability.combo}`
+      : null;
+    prepareTurnSnapshot({
+      turnId,
+      round: Math.max(1, round || 1),
+      attackerSide: pendingAttack.attacker,
+      defenderSide: pendingAttack.defender,
+      abilityId: abilityKey,
+      combo: ability?.combo ?? null,
+      expectedDamage: pendingAttack.baseDamage,
+      attackDice: [...pendingAttack.dice],
+      opportunityCount,
+      pickCount: ability ? 1 : 0,
+      combosTriggered:
+        Object.keys(combosTriggered).length > 0 ? combosTriggered : undefined,
+      phaseDamage: {
+        attack: 0,
+        counter: 0,
+        upkeepDot,
+        collateral: 0,
+      },
+      rollEndToAbilitySelectMs: attackPromptMs,
+      attackPromptToChoiceMs: attackPromptMs,
+    });
+  }, [
+    getAttackDecisionLatency,
+    consumeUpkeepDamage,
+    latestState,
+    pendingAttack,
+    round,
+    prepareTurnSnapshot,
+    turnId,
+  ]);
 
   const setPhase = useCallback(
     (phase: GameState["phase"]) => {
@@ -194,7 +282,7 @@ export function useDefenseActions({
     [dispatch]
   );
 
-  const { resolveDefenseWithEvents } = useDefenseResolution({
+  const { resolveDefenseWithEvents: baseResolveDefense } = useDefenseResolution({
     enqueueCue,
     interruptCue,
     scheduleCallback,
@@ -208,12 +296,159 @@ export function useDefenseActions({
     pushLog,
     setPlayer,
   });
+  const resolveDefenseWithEvents = useCallback(
+    (
+      resolution: Parameters<typeof baseResolveDefense>[0],
+      context: Parameters<typeof baseResolveDefense>[1]
+    ) => {
+      const draft = pendingTurnStatsRef.current;
+      if (draft && resolution.summary) {
+        pendingTurnStatsRef.current = null;
+        const summary = resolution.summary;
+        const damageWithoutBlock = summary.damageDealt + summary.blocked;
+        const defenseChoiceMs =
+          draft.defenderSide === "you"
+            ? getDefenseDecisionLatency()
+            : null;
+        const applied: Record<string, number> = {};
+        const expired: Record<string, number> = {};
+        const applyDiff = (diff: Record<string, number>) => {
+          Object.entries(diff).forEach(([id, delta]) => {
+            if (delta > 0) {
+              applied[id] = (applied[id] ?? 0) + delta;
+            } else if (delta < 0) {
+              expired[id] = (expired[id] ?? 0) + Math.abs(delta);
+            }
+          });
+        };
+        applyDiff(summary.attackerStatusDiff ?? {});
+        applyDiff(summary.defenderStatusDiff ?? {});
+        const attackerExpired = stats.recordStatusSnapshot(
+          context.attackerSide,
+          resolution.updatedAttacker.tokens,
+          draft.round
+        );
+        const defenderExpired = stats.recordStatusSnapshot(
+          context.defenderSide,
+          resolution.updatedDefender.tokens,
+          draft.round
+        );
+        const lifetimeTurns: Record<string, number[]> = {};
+        const removalReasons: Record<
+          string,
+          Record<StatusRemovalReason, number>
+        > = {};
+        const accumulateLifetime = (
+          expiredMap: Record<
+            string,
+            { lifetime: number; reason: StatusRemovalReason }
+          >
+        ) => {
+          Object.entries(expiredMap).forEach(([statusId, payload]) => {
+            if (!lifetimeTurns[statusId]) lifetimeTurns[statusId] = [];
+            lifetimeTurns[statusId].push(payload.lifetime);
+            if (!removalReasons[statusId]) {
+              removalReasons[statusId] = {
+                natural: 0,
+                cleanse: 0,
+                transfer: 0,
+                cap: 0,
+              };
+            }
+            removalReasons[statusId][payload.reason] += 1;
+          });
+        };
+        accumulateLifetime(attackerExpired);
+        accumulateLifetime(defenderExpired);
+
+        const attackPreMit = summary.damageDealt + summary.blocked;
+        const preventedAmount = summary.negated
+          ? attackPreMit
+          : Math.max(0, attackPreMit - summary.damageDealt);
+        const blockedAmount = summary.negated ? 0 : summary.blocked;
+        const basePhaseDamage = draft.phaseDamage ?? {
+          attack: 0,
+          counter: 0,
+          upkeepDot: 0,
+          collateral: 0,
+        };
+        const phaseDamage: PhaseDamage = {
+          attack: attackPreMit,
+          counter: summary.reflected,
+          upkeepDot: basePhaseDamage.upkeepDot ?? 0,
+          collateral: basePhaseDamage.collateral ?? 0,
+        };
+        const attackAfterMit = Math.max(
+          0,
+          phaseDamage.attack + phaseDamage.collateral - blockedAmount - preventedAmount
+        );
+        const actualDamage = attackAfterMit;
+
+        stats.recordTurn({
+          ...draft,
+          actualDamage,
+          damageBlocked: blockedAmount,
+          damageWithoutBlock: attackPreMit,
+          damagePrevented: preventedAmount,
+          counterDamage: summary.reflected,
+          phaseDamage,
+          defenseAbilityId: summary.defenseAbilityId ?? null,
+          defenseDice:
+            resolution.defense?.selection.roll.dice ?? undefined,
+          defensePromptToChoiceMs:
+            draft.defenderSide === "you" && defenseChoiceMs != null
+              ? defenseChoiceMs
+              : undefined,
+          statusLifetimeTurns:
+            Object.keys(lifetimeTurns).length > 0 ? lifetimeTurns : undefined,
+          statusRemovalReasons:
+            Object.keys(removalReasons).length > 0
+              ? removalReasons
+              : undefined,
+          statusApplied:
+            Object.keys(applied).length > 0 ? applied : undefined,
+          statusExpired:
+            Object.keys(expired).length > 0 ? expired : undefined,
+          attackerStatusDiff:
+            summary.attackerStatusDiff &&
+            Object.keys(summary.attackerStatusDiff).length > 0
+              ? summary.attackerStatusDiff
+              : undefined,
+          defenderStatusDiff:
+            summary.defenderStatusDiff &&
+            Object.keys(summary.defenderStatusDiff).length > 0
+              ? summary.defenderStatusDiff
+              : undefined,
+          defenseEfficacy: {
+            defenseAbilityId: summary.defenseAbilityId ?? null,
+            incomingAbilityId: draft.abilityId ?? null,
+            blocked: blockedAmount,
+            prevented: preventedAmount,
+            reflected: summary.reflected,
+          },
+        });
+        if (draft.defenderSide === "you") {
+          clearDefenseDecisionLatency();
+        }
+      }
+      baseResolveDefense(resolution, context);
+    },
+    [
+      baseResolveDefense,
+      clearDefenseDecisionLatency,
+      getDefenseDecisionLatency,
+      stats,
+    ]
+  );
 
   const { onConfirmAttack } = useAttackExecution({
     turn,
     rolling,
     ability,
     dice,
+    turnId,
+    round: Math.max(1, round || 1),
+    prepareTurnSnapshot,
     you,
     attackStatusRequests,
     clearAttackStatusRequests,

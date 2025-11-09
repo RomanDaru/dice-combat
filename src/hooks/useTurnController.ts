@@ -23,6 +23,13 @@ type UseGameFlowArgs = {
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
   onTransitionChange: (transition: ActiveTransition | null) => void;
   onCueChange: (cue: ActiveCue | null) => void;
+  onTurnStart?: (payload: {
+    side: Side;
+    round: number;
+    statusDamage: number;
+    hpBefore: number;
+    hpAfter: number;
+  }) => void;
 };
 
 type TransitionSchedulerDeps = {
@@ -182,6 +189,7 @@ export function useGameFlow({
   popDamage,
   onTransitionChange,
   onCueChange,
+  onTurnStart,
 }: UseGameFlowArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
@@ -290,14 +298,37 @@ export function useGameFlow({
     [dispatch]
   );
 
+  const roundAnchorRef = useRef<Side | null>(null);
+  const seedRef = useRef<number>(state.rngSeed);
+
+  useEffect(() => {
+    if (seedRef.current !== state.rngSeed) {
+      seedRef.current = state.rngSeed;
+      roundAnchorRef.current = null;
+    }
+  }, [state.rngSeed]);
+
   const startTurn = useCallback(
     (next: Side, afterReady?: () => void): boolean => {
       const snapshot = latestState.current;
       const prevTurn = snapshot.turn;
-      const turnResult = resolveTurnStart(snapshot, next);
       const prevRound = snapshot.round;
+      const turnResult = resolveTurnStart(snapshot, next);
+      const beforePlayer = snapshot.players[next];
       const prevLogLength = snapshot.log?.length ?? 0;
       const upkeepCueDurations: number[] = [];
+      if (!roundAnchorRef.current) {
+        roundAnchorRef.current = next;
+      }
+      let computedRound = prevRound;
+      if (prevRound <= 0) {
+        computedRound = 1;
+      } else if (next === roundAnchorRef.current) {
+        computedRound = prevRound + 1;
+      }
+      if (computedRound !== prevRound) {
+        dispatch({ type: "SET_ROUND", round: computedRound });
+      }
 
       dispatch({ type: "SET_TURN", turn: next });
       dispatch({ type: "SET_PHASE", phase: "upkeep" });
@@ -376,26 +407,22 @@ export function useGameFlow({
       const lines = turnResult.logLines;
 
       if (next === "you") {
-        let newRound = prevRound;
-        let shouldLogRound = false;
-
-        if (prevRound <= 0) {
-          newRound = 1;
-          shouldLogRound = true;
-        } else if (prevTurn !== "you") {
-          newRound = prevRound + 1;
-          shouldLogRound = true;
-        }
+        const shouldLogRound =
+          roundAnchorRef.current === "you"
+            ? true
+            : prevRound <= 0 || prevTurn === "ai";
 
         if (shouldLogRound) {
           const shouldAddGap = prevRound > 0 || prevLogLength > 1;
-          dispatch({ type: "SET_ROUND", round: newRound });
-          pushLog(`--- Kolo ${newRound} ---`, { blankLineBefore: shouldAddGap });
+          pushLog(`--- Kolo ${computedRound} ---`, {
+            blankLineBefore: shouldAddGap,
+          });
         }
 
         if (lines.length) {
           pushLog(lines, {
-            blankLineBefore: !shouldLogRound && (prevRound > 0 || prevLogLength > 1),
+            blankLineBefore:
+              !shouldLogRound && (prevRound > 0 || prevLogLength > 1),
           });
         }
       } else if (next === "ai") {
@@ -424,6 +451,18 @@ export function useGameFlow({
         schedulePhaseChange("roll", rollDelayMs, afterReady);
       }
 
+      if (onTurnStart) {
+        onTurnStart({
+          side: next,
+          round: computedRound,
+          statusDamage: turnResult.statusDamage,
+          hpBefore:
+            beforePlayer?.hp ??
+            turnResult.updatedPlayer.hp + turnResult.statusDamage,
+          hpAfter: turnResult.updatedPlayer.hp,
+        });
+      }
+
       return true;
     },
     [
@@ -435,6 +474,7 @@ export function useGameFlow({
       resetRoll,
       latestState,
       schedulePhaseChange,
+      onTurnStart,
     ]
   );
 

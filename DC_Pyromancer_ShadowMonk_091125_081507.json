@@ -1,0 +1,38 @@
+{
+  "gameStats": {
+    "id": "game_mhrdp7ee_eblg9c",
+    "schemaVersion": "1.0.0",
+    "sessionId": "session_mhrd0r5n_fv8lff",
+    "heroId": "Pyromancer",
+    "opponentHeroId": "Shadow Monk",
+    "heroVersion": {
+      "Pyromancer": "0.7.2",
+      "Shadow Monk": "0.2.1"
+    },
+    "rulesVersion": "0.9.3",
+    "buildHash": "abc123",
+    "seed": 1734775418,
+    "startedAt": 1762672507574,
+    "metadata": {},
+    "endedAt": 1762672507575,
+    "winner": "you",
+    "resultType": "win",
+    "roundsPlayed": 5,
+    "hpRemainingWinner": 5,
+    "hpRemainingLoser": 0,
+    "integrity": {
+      "ok": false,
+      "recomputedHpYou": 30,
+      "recomputedHpAi": 30,
+      "hpDriftYou": 25,
+      "hpDriftAi": 30,
+      "log": "you drift 25; ai drift 30"
+    },
+    "tempoSeconds": 0.001,
+    "roundsPerMinute": 300000,
+    "maxDamageSingleTurn": 0,
+    "dprNet": 0
+  },
+  "turnStats": [],
+  "rollStats": []
+}

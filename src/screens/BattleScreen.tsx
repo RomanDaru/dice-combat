@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { PlayerAbilityList } from "../components/PlayerAbilityList";
 import { PlayerPanel } from "../components/PlayerPanel";
@@ -8,11 +8,13 @@ import TurnProgress from "../components/TurnProgress";
 import { OpponentAbilityList } from "../components/OpponentAbilityList";
 import { AiPreviewPanel } from "../components/AiPreviewPanel";
 import ArtButton from "../components/ArtButton";
+import { HowToPlayModal } from "../components/HowToPlayModal";
 import {
   GameController,
   useGameController,
   useGameData,
 } from "../context/GameController";
+import { StatsProvider, useStatsTracker } from "../context/StatsContext";
 import { CueOverlay } from "../components/CueOverlay";
 import { useGame } from "../context/GameContext";
 import TableBackground from "../assets/defualtTableBg.png";
@@ -28,11 +30,17 @@ type BattleScreenProps = {
 type SettingsMenuProps = {
   onReset: () => void;
   onHeroSelect: () => void;
+  onOpenHowToPlay: () => void;
 };
 
-const SettingsMenu = ({ onReset, onHeroSelect }: SettingsMenuProps) => {
+const SettingsMenu = ({
+  onReset,
+  onHeroSelect,
+  onOpenHowToPlay,
+}: SettingsMenuProps) => {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const stats = useStatsTracker();
 
   useEffect(() => {
     if (!open) return;
@@ -65,6 +73,42 @@ const SettingsMenu = ({ onReset, onHeroSelect }: SettingsMenuProps) => {
     setOpen(false);
   };
 
+  const handleExportStats = useCallback(() => {
+    const snapshot = stats.getSnapshot();
+    if (!snapshot?.gameStats) {
+      window.alert("Finish a match before exporting stats.");
+      return;
+    }
+    const normalize = (value: string | null | undefined) =>
+      (value ?? "Unknown").replace(/\s+/g, "");
+    const dateSource =
+      typeof snapshot.gameStats.endedAt === "number"
+        ? new Date(snapshot.gameStats.endedAt)
+        : new Date();
+    const two = (value: number) => value.toString().padStart(2, "0");
+    const dateSegment = `${two(dateSource.getDate())}${two(
+      dateSource.getMonth() + 1
+    )}${dateSource.getFullYear().toString().slice(-2)}`;
+    const timeSegment = `${two(dateSource.getHours())}${two(
+      dateSource.getMinutes()
+    )}${two(dateSource.getSeconds())}`;
+    const fileName = `DC_${normalize(snapshot.gameStats.heroId)}_${normalize(
+      snapshot.gameStats.opponentHeroId
+    )}_${dateSegment}_${timeSegment}`;
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${fileName}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    setOpen(false);
+  }, [stats]);
+
   return (
     <div className={styles.settingsMenu} ref={menuRef}>
       <button
@@ -90,6 +134,80 @@ const SettingsMenu = ({ onReset, onHeroSelect }: SettingsMenuProps) => {
             onClick={() => handleAction(onHeroSelect)}>
             Hero Select
           </button>
+          <button
+            type='button'
+            className={styles.settingsItem}
+            onClick={() => handleAction(onOpenHowToPlay)}>
+            How to Play
+          </button>
+          <button
+            type='button'
+            className={styles.settingsItem}
+            onClick={handleExportStats}>
+            Export Stats
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const MatchSummaryPanel = () => {
+  const stats = useStatsTracker();
+  const snapshot = stats.getSnapshot();
+  const gameStats = snapshot?.gameStats;
+  if (!gameStats) return null;
+  const topAbilityDamage =
+    gameStats.abilityDamage &&
+    Object.entries(gameStats.abilityDamage)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+
+  return (
+    <div className={styles.summaryPanel}>
+      <h3>Match Stats</h3>
+      <div className={styles.summaryGrid}>
+        <div>
+          <span className={styles.summaryLabel}>DPRₙₑₜ</span>
+          <span className={styles.summaryValue}>
+            {gameStats.dprNet?.toFixed(2) ?? "—"}
+          </span>
+        </div>
+        <div>
+          <span className={styles.summaryLabel}>Tempo</span>
+          <span className={styles.summaryValue}>
+            {(() => {
+              const rpm =
+                gameStats.roundsPerMinute ?? gameStats.matchTempo ?? null;
+              return rpm != null
+                ? `${rpm.toFixed(1)} rounds/min`
+                : "–";
+            })()}
+          </span>
+        </div>
+        <div>
+          <span className={styles.summaryLabel}>Max Burst</span>
+          <span className={styles.summaryValue}>
+            {gameStats.maxDamageSingleTurn ?? "—"}
+          </span>
+        </div>
+      </div>
+      {topAbilityDamage && topAbilityDamage.length > 0 && (
+        <div className={styles.summaryList}>
+          <span className={styles.summaryLabel}>Top Abilities</span>
+          <ul>
+            {topAbilityDamage.map(([abilityId, totalDamage]) => {
+              const [, combo] = abilityId.split(":");
+              const hits = gameStats.abilityHits?.[abilityId] ?? 0;
+              return (
+                <li key={abilityId}>
+                  <strong>{combo ?? abilityId}</strong>
+                  <span>{totalDamage.toFixed(1)} dmg</span>
+                  <span className={styles.summaryPick}>{hits} hits</span>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
     </div>
@@ -122,6 +240,7 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
       ? ai.hero.name
       : null;
 
+  const [howToPlayOpen, setHowToPlayOpen] = useState(false);
   const [displayRolls, setDisplayRolls] = useState<{
     you: number | null;
     ai: number | null;
@@ -249,6 +368,9 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
     winnerName && styles.boardContentWinner
   );
 
+  const openHowToPlay = () => setHowToPlayOpen(true);
+  const closeHowToPlay = () => setHowToPlayOpen(false);
+
   const renderStandoffDie = (
     label: string,
     value: number | null,
@@ -287,66 +409,61 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
     );
   };
 
-  if (phase === "standoff") {
-    return (
-      <div className={styles.root}>
-        <div className={styles.main}>
-          <div className={styles.boardColumn}>
-            <div
-              className={styles.boardWrap}
-              style={{ backgroundImage: `url(${TableBackground})` }}>
-              <DiceTrayOverlay
-                trayImage={playerTrayImage}
-                diceImages={playerDiceFaces}
-              />
-              <div className={standoffContentClassName}>
-                <div className={styles.standoffShell}>
-                  <div className={styles.standoffCard}>
-                    <p>{standoffMessage}</p>
-                    <div className={styles.standoffDiceRow}>
-                      {renderStandoffDie("You", displayRolls.you, playerDiceFaces)}
-                      {renderStandoffDie("AI", displayRolls.ai, opponentDiceFaces)}
-                    </div>
-                    <div className={styles.standoffActions}>
+  const mainContent =
+    phase === "standoff" ? (
+      <div className={styles.main}>
+        <div className={styles.boardColumn}>
+          <div
+            className={styles.boardWrap}
+            style={{ backgroundImage: `url(${TableBackground})` }}>
+            <DiceTrayOverlay
+              trayImage={playerTrayImage}
+              diceImages={playerDiceFaces}
+            />
+            <div className={standoffContentClassName}>
+              <div className={styles.standoffShell}>
+                <div className={styles.standoffCard}>
+                  <p>{standoffMessage}</p>
+                  <div className={styles.standoffDiceRow}>
+                    {renderStandoffDie("You", displayRolls.you, playerDiceFaces)}
+                    {renderStandoffDie("AI", displayRolls.ai, opponentDiceFaces)}
+                  </div>
+                  <div className={styles.standoffActions}>
+                    <ArtButton
+                      variant='medium'
+                      onClick={startInitialRoll}
+                      disabled={rollButtonDisabled}
+                      className={styles.standoffButton}>
+                      {rollButtonLabel}
+                    </ArtButton>
+                    {showConfirm && (
                       <ArtButton
                         variant='medium'
-                        onClick={startInitialRoll}
-                        disabled={rollButtonDisabled}
+                        onClick={confirmInitialRoll}
                         className={styles.standoffButton}>
-                        {rollButtonLabel}
+                        Start the battle
                       </ArtButton>
-                      {showConfirm && (
-                        <ArtButton
-                          variant='medium'
-                          onClick={confirmInitialRoll}
-                          className={styles.standoffButton}>
-                          Start the battle
-                        </ArtButton>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <aside className={styles.utilityColumn}>
+        </div>
+        <aside className={styles.utilityColumn}>
             <SettingsMenu
               onReset={handleReset}
               onHeroSelect={onBackToHeroSelect}
+              onOpenHowToPlay={openHowToPlay}
             />
-            <div className={styles.utilityStack}>
-              <div className={clsx(styles.utilityItem, styles.utilityItemLog)}>
-                <CombatLogPanel />
-              </div>
+          <div className={styles.utilityStack}>
+            <div className={clsx(styles.utilityItem, styles.utilityItemLog)}>
+              <CombatLogPanel />
             </div>
-          </aside>
-        </div>
+          </div>
+        </aside>
       </div>
-    );
-  }
-
-  return (
-    <div className={styles.root}>
+    ) : (
       <div className={styles.main}>
         <div className={styles.boardColumn}>
           <div
@@ -377,6 +494,7 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
                       Hero Select
                     </ArtButton>
                   </div>
+                  <MatchSummaryPanel />
                 </div>
               ) : (
                 <div className={styles.boardSplit}>
@@ -457,6 +575,7 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
           <SettingsMenu
             onReset={handleReset}
             onHeroSelect={onBackToHeroSelect}
+            onOpenHowToPlay={openHowToPlay}
           />
           <div className={styles.utilityStack}>
             <div className={clsx(styles.utilityItem, styles.utilityItemLog)}>
@@ -465,14 +584,22 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
           </div>
         </aside>
       </div>
-    </div>
+    );
+
+  return (
+    <>
+      <div className={styles.root}>{mainContent}</div>
+      <HowToPlayModal open={howToPlayOpen} onClose={closeHowToPlay} />
+    </>
   );
 };
 
 export function BattleScreen({ onBackToHeroSelect }: BattleScreenProps) {
   return (
-    <GameController>
-      <BattleContent onBackToHeroSelect={onBackToHeroSelect} />
-    </GameController>
+    <StatsProvider>
+      <GameController>
+        <BattleContent onBackToHeroSelect={onBackToHeroSelect} />
+      </GameController>
+    </StatsProvider>
   );
 }

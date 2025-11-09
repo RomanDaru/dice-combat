@@ -13,6 +13,7 @@ type UseRollAnimatorArgs = {
   rng: Rng;
   durationMs?: number;
   intervalMs?: number;
+  onRollComplete?: (dice: number[]) => void;
 };
 
 export function useRollAnimator({
@@ -23,6 +24,7 @@ export function useRollAnimator({
   rng,
   durationMs = 1300,
   intervalMs = 100,
+  onRollComplete,
 }: UseRollAnimatorArgs) {
   const timerRef = useRef<(() => void) | null>(null);
 
@@ -55,9 +57,11 @@ export function useRollAnimator({
           workingDice = workingDice.map((value, index) =>
             mask[index] ? rollDie(rng) : value
           );
-          setDice([...workingDice]);
+          const finalDice = [...workingDice];
+          setDice(finalDice);
           setRolling(mask.map(() => false));
           setRollsLeft((prev) => prev - 1);
+          onRollComplete?.(finalDice);
         }
       }, intervalMs);
     },
@@ -70,6 +74,7 @@ export function useRollAnimator({
       setRollsLeft,
       stateRef,
       stopTimer,
+      onRollComplete,
     ]
   );
 

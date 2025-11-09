@@ -7,6 +7,7 @@ import { indentLog } from "./useCombatLog";
 import { useGame } from "../context/GameContext";
 import type { GameFlowEvent } from "./useTurnController";
 import { useLatest } from "./useLatest";
+import { useStatsTracker } from "../context/StatsContext";
 
 type UseStatusManagerArgs = {
   pushLog: (
@@ -38,6 +39,7 @@ export function useStatusManager({
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
   const timersRef = useRef(new Set<() => void>());
+  const stats = useStatsTracker();
 
   useEffect(
     () => () => {
@@ -162,15 +164,18 @@ export function useStatusManager({
             tokens: updatedOwnerTokens,
           };
           setPlayer(side, ownerUpdate);
+          stats.recordStatusSnapshot(side, ownerUpdate.tokens, snapshot.round, "transfer");
           if (
             success &&
             (transferCfg.mode ?? "transfer") === "transfer" &&
             amountTransferred > 0
           ) {
-            setPlayer(targetSide, {
+            const targetUpdate: PlayerState = {
               ...opponentState,
               tokens: updatedOpponentTokens,
-            });
+            };
+            setPlayer(targetSide, targetUpdate);
+            stats.recordStatusSnapshot(targetSide, targetUpdate.tokens, snapshot.round, "transfer");
           }
           const targetName = definition?.name ?? currentStatus.status;
           const sourceName = sourceDef?.name ?? currentStatus.sourceStatus;
@@ -242,6 +247,7 @@ export function useStatusManager({
           tokens: nextTokens,
         };
         setPlayer(side, updatedPlayer);
+        stats.recordStatusSnapshot(side, updatedPlayer.tokens, snapshot.round, "cleanse");
         if (result.log) {
           pushLog(indentLog(result.log));
         }
@@ -284,6 +290,7 @@ export function useStatusManager({
       setPlayer,
       latestState,
       resumePendingStatus,
+      stats,
     ]
   );
 

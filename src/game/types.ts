@@ -1,5 +1,5 @@
 import type { GameDispatch, GameState } from "./state";
-import type { HeroSkinId } from "./visuals";
+import type { HeroSkinId } from "./heroSkinIds";
 
 export type Combo =
   | "5OAK" | "4OAK" | "FULL_HOUSE" | "3OAK" | "PAIR_PAIR" | "SMALL_STRAIGHT" | "LARGE_STRAIGHT";
@@ -17,6 +17,7 @@ export type OffensiveAbility = AbilityPresentation & {
   combo: Combo;
   damage: number;
   ultimate?: boolean;
+  abilityPoolId?: string;
   applyPreDamage?: AbilityApplyMap;
   applyPostDamage?: AbilityApplyMap;
   /**
@@ -31,6 +32,7 @@ export type DefensiveAbility = AbilityPresentation & {
   block?: number;
   reflect?: number;
   heal?: number;
+  abilityPoolId?: string;
   retaliatePercent?: number;
   apply?: AbilityApplyMap;
 };

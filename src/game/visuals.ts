@@ -27,15 +27,7 @@ import TrainingDummyDiceFace3 from "../assets/TrainingDummy_Dices/TrainingDummy_
 import TrainingDummyDiceFace4 from "../assets/TrainingDummy_Dices/TrainingDummy_Dice_4.png";
 import TrainingDummyDiceFace5 from "../assets/TrainingDummy_Dices/TrainingDummy_Dice_5.png";
 import TrainingDummyDiceFace6 from "../assets/TrainingDummy_Dices/TrainingDummy_Dice_6.png";
-
-export const HERO_SKIN_IDS = {
-  DEFAULT: "default",
-  PYROMANCER_DEFAULT: "pyromancer-default",
-  SHADOW_MONK_DEFAULT: "shadow-monk-default",
-  TRAINING_DUMMY_DEFAULT: "training-dummy-default",
-} as const;
-
-export type HeroSkinId = (typeof HERO_SKIN_IDS)[keyof typeof HERO_SKIN_IDS];
+import { HERO_SKIN_IDS, type HeroSkinId } from "./heroSkinIds";
 
 export type HeroDiceSkin = {
   sprite?: string;

@@ -60,6 +60,8 @@ import {
 } from "../game/flow/turnEnd";
 import { getAbilityIcon } from "../assets/abilityIconMap";
 import { getCueDuration } from "../config/cueDurations";
+import { useStatsTracker } from "./StatsContext";
+import { BUILD_HASH, HERO_VERSION_MAP, RULES_VERSION } from "../config/buildInfo";
 
 const DEF_DIE_INDEX = 2;
 const ROLL_ANIM_MS = 1300;
@@ -67,6 +69,8 @@ const AI_ROLL_ANIM_MS = 900;
 const AI_STEP_MS = 2000;
 const AI_PASS_FOLLOW_UP_MS = 450;
 const AI_PASS_EVENT_DURATION_MS = 600;
+const createTurnId = () =>
+  `turn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
 type PlayerDefenseState = {
   roll: DefenseRollResult;
@@ -155,6 +159,43 @@ const GameControllerContext = createContext<ControllerContext | null>(null);
 
 export const GameController = ({ children }: { children: ReactNode }) => {
   const { state, dispatch } = useGame();
+  const stats = useStatsTracker();
+  const statsSeedRef = useRef<number | null>(null);
+  const statsFinalizedRef = useRef(false);
+  const currentTurnIdRef = useRef(createTurnId());
+  const pendingUpkeepRef = useRef<Record<Side, { turnId: string; amount: number }>>({
+    you: { turnId: currentTurnIdRef.current, amount: 0 },
+    ai: { turnId: currentTurnIdRef.current, amount: 0 },
+  });
+  const firstPlayerRef = useRef<Side | null>(null);
+  const turnSignatureRef = useRef({ side: state.turn, phase: state.phase, round: state.round });
+  const lastRollEndRef = useRef<number | null>(null);
+  const decisionLatencyRef = useRef<number | null>(null);
+  const defensePromptAtRef = useRef<number | null>(null);
+  const defenseDecisionLatencyRef = useRef<number | null>(null);
+  const getAttackDecisionLatency = useCallback(
+    () => decisionLatencyRef.current,
+    []
+  );
+  const getDefenseDecisionLatency = useCallback(
+    () => defenseDecisionLatencyRef.current,
+    []
+  );
+  const clearDefenseDecisionLatency = useCallback(() => {
+    defensePromptAtRef.current = null;
+    defenseDecisionLatencyRef.current = null;
+  }, []);
+  const consumeUpkeepDamage = useCallback(
+    (side: Side, turnId: string) => {
+      const record = pendingUpkeepRef.current[side];
+      if (!record || record.turnId !== turnId) {
+        return 0;
+      }
+      pendingUpkeepRef.current[side] = { turnId, amount: 0 };
+      return record.amount;
+    },
+    []
+  );
   const rngRef = useRef<{ seed: number; rng: Rng }>({
     seed: state.rngSeed,
     rng: makeRng(state.rngSeed),
@@ -204,6 +245,51 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const [activeTransition, setActiveTransition] =
     useState<ActiveTransition | null>(null);
   const [activeCue, setActiveCue] = useState<ActiveCue | null>(null);
+  const handleTurnStartStats = useCallback(
+    ({
+      side,
+      round,
+      statusDamage,
+      hpAfter,
+    }: {
+      side: Side;
+      round: number;
+      statusDamage: number;
+      hpAfter: number;
+    }) => {
+      const nextTurnId = createTurnId();
+      currentTurnIdRef.current = nextTurnId;
+      pendingUpkeepRef.current[side] = { turnId: nextTurnId, amount: statusDamage };
+      if (statusDamage > 0 && hpAfter <= 0) {
+        stats.recordTurn({
+          turnId: nextTurnId,
+          round: Math.max(1, round || 1),
+          attackerSide: side,
+          defenderSide: side,
+          abilityId: null,
+          combo: null,
+          pass: true,
+          phaseDamage: {
+            attack: 0,
+            counter: 0,
+            upkeepDot: statusDamage,
+            collateral: 0,
+          },
+          damageWithoutBlock: 0,
+          damageBlocked: 0,
+          damagePrevented: 0,
+          counterDamage: 0,
+          actualDamage: 0,
+        });
+        pendingUpkeepRef.current[side] = { turnId: nextTurnId, amount: 0 };
+      }
+      if (firstPlayerRef.current === null) {
+        firstPlayerRef.current = side;
+        stats.updateGameMeta({ firstPlayer: side });
+      }
+    },
+    [stats]
+  );
   const openDiceTray = useCallback(() => {
     setDefenseStatusMessage(null);
     setDefenseStatusRoll(null);
@@ -365,6 +451,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const {
     players,
     turn,
+    round,
     dice,
     held,
     rolling,
@@ -373,6 +460,54 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     pendingAttack,
     pendingStatusClear,
   } = state;
+  const phase = state.phase;
+
+  useEffect(() => {
+    if (statsSeedRef.current === state.rngSeed) {
+      return;
+    }
+    statsSeedRef.current = state.rngSeed;
+    statsFinalizedRef.current = false;
+    currentTurnIdRef.current = createTurnId();
+    pendingUpkeepRef.current = {
+      you: { turnId: currentTurnIdRef.current, amount: 0 },
+      ai: { turnId: currentTurnIdRef.current, amount: 0 },
+    };
+    firstPlayerRef.current = null;
+    const youHeroId = players.you.hero.id;
+    const aiHeroId = players.ai.hero.id;
+    const youVersion = HERO_VERSION_MAP[youHeroId] ?? "0.0.0";
+    const aiVersion = HERO_VERSION_MAP[aiHeroId] ?? "0.0.0";
+    stats.beginGame({
+      heroId: youHeroId,
+      opponentHeroId: aiHeroId,
+      seed: state.rngSeed,
+      heroVersion: {
+        [youHeroId]: youVersion,
+        [aiHeroId]: aiVersion,
+      },
+      rulesVersion: RULES_VERSION,
+      buildHash: BUILD_HASH,
+      firstPlayer: state.turn,
+    });
+  }, [players.ai.hero.id, players.you.hero.id, state.rngSeed, state.turn, stats]);
+
+  useEffect(() => {
+    turnSignatureRef.current = { side: turn, phase, round };
+  }, [phase, round, turn]);
+
+  useEffect(() => {
+    if (pendingAttack) {
+      if (pendingAttack.defender === "you") {
+        defensePromptAtRef.current = Date.now();
+        defenseDecisionLatencyRef.current = null;
+      } else {
+        clearDefenseDecisionLatency();
+      }
+    } else {
+      clearDefenseDecisionLatency();
+    }
+  }, [pendingAttack, clearDefenseDecisionLatency]);
 
   const setDice = useCallback(
     (value: number[] | ((prev: number[]) => number[])) => {
@@ -414,6 +549,11 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     [dispatch]
   );
 
+  const handlePlayerRollComplete = useCallback(() => {
+    lastRollEndRef.current = Date.now();
+    decisionLatencyRef.current = null;
+  }, []);
+
   const { animateRoll: animatePlayerRoll } = useRollAnimator({
     stateRef: latestState,
     setDice,
@@ -421,6 +561,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     setRollsLeft,
     rng,
     durationMs: ROLL_ANIM_MS,
+    onRollComplete: handlePlayerRollComplete,
   });
 
   const setFloatDamage = useCallback(
@@ -515,7 +656,6 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   }, [state.phase, turn]);
   const isDefenseTurn = !!pendingAttack && pendingAttack.defender === "you";
   const initialRoll = state.initialRoll;
-  const phase = state.phase;
   const defenseBaseBlock = playerDefenseState?.baseResolution.baseBlock ?? 0;
   useEffect(() => {
     if (!playerDefenseState || defenseBaseBlock > 0) return;
@@ -564,6 +704,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     popDamage,
     onTransitionChange: setActiveTransition,
     onCueChange: setActiveCue,
+    onTurnStart: handleTurnStartStats,
   });
   scheduleCallbackRef.current = scheduleCallback;
 
@@ -737,10 +878,16 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     onConfirmAttack,
     onUserDefenseRoll,
     onChooseDefenseOption,
-    onConfirmDefense,
+    onConfirmDefense: baseOnConfirmDefense,
     onUserStatusReaction,
   } = useDefenseActions({
     turn,
+    round,
+    turnId: currentTurnIdRef.current,
+    getAttackDecisionLatency,
+    getDefenseDecisionLatency,
+    clearDefenseDecisionLatency,
+    consumeUpkeepDamage,
     rolling,
     ability,
     dice,
@@ -774,6 +921,13 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     interruptCue,
     scheduleCallback,
   });
+
+  const onConfirmDefense = useCallback(() => {
+    if (pendingAttack?.defender === "you" && defensePromptAtRef.current) {
+      defenseDecisionLatencyRef.current = Date.now() - defensePromptAtRef.current;
+    }
+    baseOnConfirmDefense();
+  }, [baseOnConfirmDefense, pendingAttack]);
 
   const handleAbilityControllerAction = useCallback(
     (
@@ -814,15 +968,36 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     if (turn !== "you" || rollsLeft <= 0 || statusActive || isDefenseTurn) {
       return;
     }
+    const attemptIndex = Math.max(0, 3 - rollsLeft);
+    const combosAvailable = Object.entries(readyForActing)
+      .filter(([, ok]) => ok)
+      .map(([combo]) => combo);
+    stats.recordRoll({
+      turnId: currentTurnIdRef.current,
+      side: turn,
+      round: Math.max(1, round || 1),
+      attemptIndex,
+      diceBeforeHold: [...dice],
+      holdsUsed: held.filter(Boolean).length,
+      combosAvailable,
+      selectedCombo: playerAttackSelection,
+      firstRollHit: attemptIndex === 0 && combosAvailable.length > 0,
+      startedAt: Date.now(),
+    });
     openDiceTray();
     const mask = held.map((h) => !h);
     animatePlayerRoll(mask);
   }, [
     animatePlayerRoll,
+    dice,
     held,
     isDefenseTurn,
     openDiceTray,
+    playerAttackSelection,
+    readyForActing,
+    round,
     rollsLeft,
+    stats,
     statusActive,
     turn,
   ]);
@@ -841,6 +1016,13 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     (combo: Combo | null) => {
       if (turn !== "you" || statusActive || isDefenseTurn) return;
       setPlayerAttackSelection(combo);
+      if (
+        combo &&
+        lastRollEndRef.current &&
+        decisionLatencyRef.current === null
+      ) {
+        decisionLatencyRef.current = Date.now() - lastRollEndRef.current;
+      }
     },
     [isDefenseTurn, statusActive, turn]
   );
@@ -869,6 +1051,15 @@ export const GameController = ({ children }: { children: ReactNode }) => {
 
   const handleReset = useCallback(() => {
     const current = latestState.current;
+    if (!statsFinalizedRef.current) {
+      stats.finalizeGame({
+        winner: null,
+        resultType: "abandon",
+        roundsPlayed: Math.max(1, current.round || 1),
+        hp: { you: current.players.you.hp, ai: current.players.ai.hp },
+      });
+      statsFinalizedRef.current = true;
+    }
     clearCues();
     dispatch({
       type: "RESET",
@@ -879,13 +1070,25 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       },
     });
     resetRoll();
-  }, [clearCues, dispatch, resetRoll]);
+  }, [clearCues, dispatch, resetRoll, stats, latestState]);
 
   useEffect(() => {
-    if (players.you.hp <= 0 || players.ai.hp <= 0) {
+    const youDefeated = players.you.hp <= 0;
+    const aiDefeated = players.ai.hp <= 0;
+    if (youDefeated || aiDefeated) {
       clearCues();
+      if (!statsFinalizedRef.current) {
+        statsFinalizedRef.current = true;
+        const winner: Side | "draw" | null = youDefeated && aiDefeated ? "draw" : youDefeated ? "ai" : "you";
+        stats.finalizeGame({
+          winner,
+          resultType: winner === "you" ? "win" : winner === "ai" ? "loss" : "draw",
+          roundsPlayed: Math.max(1, state.round || 1),
+          hp: { you: players.you.hp, ai: players.ai.hp },
+        });
+      }
     }
-  }, [clearCues, players.ai.hp, players.you.hp]);
+  }, [clearCues, players.ai.hp, players.you.hp, state.round, stats]);
 
   const initialStartRef = useRef(false);
   const initialStartTimersRef = useRef<{
