@@ -1,3 +1,4 @@
+import { assertDefenseSchemaValid } from "../defense/validation";
 import { Hero, HeroId, OffensiveAbility, DefensiveAbility } from "./types";
 import type { EffectId } from "./effects";
 import { defaultAiStrategy, monkAiStrategy, pyroAiStrategy } from "./ai";
@@ -9,6 +10,7 @@ export const HEROES: Record<HeroId, Hero> = {
     skin: HERO_SKIN_IDS.PYROMANCER_DEFAULT,
     name: "Pyromancer",
     maxHp: 30,
+    defenseVersion: "v1",
     offensiveBoard: {
       FULL_HOUSE: {
         combo: "FULL_HOUSE",
@@ -92,6 +94,7 @@ export const HEROES: Record<HeroId, Hero> = {
     skin: HERO_SKIN_IDS.SHADOW_MONK_DEFAULT,
     name: "Shadow Monk",
     maxHp: 30,
+    defenseVersion: "v1",
     offensiveBoard: {
       FULL_HOUSE: {
         combo: "FULL_HOUSE",
@@ -194,6 +197,7 @@ export const HEROES: Record<HeroId, Hero> = {
     skin: HERO_SKIN_IDS.TRAINING_DUMMY_DEFAULT,
     name: "Training Dummy",
     maxHp: 50,
+    defenseVersion: "v1",
     offensiveBoard: {
       "5OAK": { combo: "5OAK", damage: 13, label: "Crushing Finale" },
       LARGE_STRAIGHT: {
@@ -233,6 +237,20 @@ export const HEROES: Record<HeroId, Hero> = {
     },
   },
 };
+
+Object.values(HEROES).forEach((hero) => {
+  if (hero.defenseVersion === "v2" && !hero.defenseSchema) {
+    throw new Error(
+      `Hero "${hero.id}" is flagged for defense v2 but is missing defenseSchema`
+    );
+  }
+  if (hero.defenseSchema) {
+    const validation = assertDefenseSchemaValid(hero.id, hero.defenseSchema);
+    hero.defenseSchemaHash = validation.fieldsHash;
+  } else {
+    hero.defenseSchemaHash = null;
+  }
+});
 
 export const getHeroEffectIds = (hero: Hero): EffectId[] => {
   const effectIds = new Set<EffectId>();

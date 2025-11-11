@@ -1,0 +1,199 @@
+export type DefenseVersion = "v1" | "v2";
+
+export type DefenseDieValue = 1 | 2 | 3 | 4 | 5 | 6;
+
+export type DefenseFieldId = string;
+
+export type DefenseField = {
+  id: DefenseFieldId;
+  faces: DefenseDieValue[];
+  label?: string;
+};
+
+export type DefenseStatusUsablePhase =
+  | "immediate"
+  | "nextAttack"
+  | "nextTurn";
+
+export type DefenseStatusExpiry =
+  | { type: "nextAttack" }
+  | { type: "endOfRound" }
+  | { type: "endOfYourNextTurn" }
+  | { type: "afterNTurns"; turns: number };
+
+export type DefenseRuleMetadata = {
+  allowReroll?: boolean;
+  target?: DefenseEffectTarget;
+  conditions?: Record<string, unknown>;
+};
+
+export type DefenseSchema = {
+  dice: number;
+  fields: DefenseField[];
+  rules: DefenseRule[];
+  /**
+   * When true, unused faces in the partition will only emit a warning instead
+   * of being treated as a validation failure.
+   */
+  allowIdleFaces?: boolean;
+};
+
+export type DefenseRule = {
+  id: string;
+  label?: string;
+  matcher: DefenseMatcherConfig;
+  effects: DefenseEffectConfig[];
+  metadata?: DefenseRuleMetadata;
+};
+
+export type DefenseMatcherConfig =
+  | CountFieldMatcherConfig
+  | PairsFieldMatcherConfig
+  | ExactFaceMatcherConfig
+  | ComboMatcherConfig;
+
+export type CountFieldMatcherConfig = {
+  type: "countField";
+  fieldId: DefenseFieldId;
+  per?: number;
+  cap?: number;
+  min?: number;
+};
+
+export type PairsFieldRequirement = {
+  fieldId: DefenseFieldId;
+  pairs: number;
+};
+
+export type PairsFieldMatcherConfig = {
+  type: "pairsField";
+  requirements: PairsFieldRequirement[];
+  allowExtra?: boolean;
+  cap?: number;
+};
+
+export type ExactFaceMatcherConfig = {
+  type: "exactFace";
+  face: DefenseDieValue;
+  count: number;
+};
+
+export type ComboMatcherFieldRequirement = {
+  id: DefenseFieldId;
+  min: number;
+};
+
+export type ComboMatcherConfig = {
+  type: "combo";
+  fields: ComboMatcherFieldRequirement[];
+  allowExtra?: boolean;
+};
+
+export type DefenseEffectTarget = "self" | "opponent" | "ally";
+
+export type DefenseEffectCommon = {
+  id?: string;
+  target?: DefenseEffectTarget;
+  owner?: "self" | "opponent";
+  conditions?: Record<string, unknown>;
+};
+
+export type DealPerEffectConfig = DefenseEffectCommon & {
+  type: "dealPer";
+  amount: number;
+  cap?: number;
+};
+
+export type FlatBlockEffectConfig = DefenseEffectCommon & {
+  type: "flatBlock";
+  amount?: number;
+  perMatch?: number;
+  cap?: number;
+};
+
+export type BlockPerEffectConfig = DefenseEffectCommon & {
+  type: "blockPer";
+  amount: number;
+  cap?: number;
+};
+
+export type ReflectEffectConfig = DefenseEffectCommon & {
+  type: "reflect";
+  amount: number;
+  cap?: number;
+};
+
+export type GainStatusEffectConfig = DefenseEffectCommon & {
+  type: "gainStatus";
+  status: string;
+  stacks?: number;
+  amount?: number;
+  stackCap?: number;
+  usablePhase?: DefenseStatusUsablePhase;
+  expires?: DefenseStatusExpiry;
+  cleansable?: boolean;
+};
+
+export type ApplyStatusToOpponentEffectConfig = DefenseEffectCommon & {
+  type: "applyStatusToOpponent";
+  status: string;
+  stacks?: number;
+  amount?: number;
+  stackCap?: number;
+  usablePhase?: DefenseStatusUsablePhase;
+  expires?: DefenseStatusExpiry;
+};
+
+export type BuffNextAttackEffectConfig = DefenseEffectCommon & {
+  type: "buffNextAttack";
+  amount: number;
+  stacks?: number;
+  cap?: number;
+  payload?: Record<string, unknown>;
+};
+
+export type HealEffectConfig = DefenseEffectCommon & {
+  type: "heal";
+  amount: number;
+};
+
+export type CleanseEffectConfig = DefenseEffectCommon & {
+  type: "cleanse";
+  statuses?: string[];
+  amount?: number;
+};
+
+export type TransferStatusEffectConfig = DefenseEffectCommon & {
+  type: "transferStatus";
+  status: string;
+  amount?: number;
+  from: "self" | "opponent";
+  to: "self" | "opponent";
+};
+
+export type RerollSelectionPolicy =
+  | "highestNonMatching"
+  | "lowest"
+  | "highest"
+  | "random"
+  | "custom";
+
+export type RerollDiceEffectConfig = DefenseEffectCommon & {
+  type: "rerollDice";
+  count: number;
+  fields?: DefenseFieldId[];
+  selectionPolicy?: RerollSelectionPolicy | { type: string; [key: string]: unknown };
+};
+
+export type DefenseEffectConfig =
+  | DealPerEffectConfig
+  | FlatBlockEffectConfig
+  | BlockPerEffectConfig
+  | ReflectEffectConfig
+  | GainStatusEffectConfig
+  | ApplyStatusToOpponentEffectConfig
+  | BuffNextAttackEffectConfig
+  | HealEffectConfig
+  | CleanseEffectConfig
+  | TransferStatusEffectConfig
+  | RerollDiceEffectConfig;

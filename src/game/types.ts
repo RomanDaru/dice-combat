@@ -1,3 +1,4 @@
+import type { DefenseSchema, DefenseVersion } from "../defense/types";
 import type { GameDispatch, GameState } from "./state";
 import type { HeroSkinId } from "./heroSkinIds";
 
@@ -54,6 +55,9 @@ export interface Hero {
   name: string;
   maxHp: number;
   skin?: HeroSkinId;
+  defenseVersion?: DefenseVersion;
+  defenseSchema?: DefenseSchema | null;
+  defenseSchemaHash?: string | null;
   offensiveBoard: OffensiveAbilityBoard;
   defensiveBoard: DefensiveAbilityBoard;
   ai: {
