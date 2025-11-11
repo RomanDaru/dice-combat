@@ -19,6 +19,22 @@ export type StatusWindowId =
   | "turn:preEnd"
   | "turn:postEnd";
 
+export type StatusTimingPhase =
+  | "immediate"
+  | "turnStart"
+  | "upkeep"
+  | "preOffenseRoll"
+  | "postOffenseRoll"
+  | "preDefenseRoll"
+  | "postDefenseRoll"
+  | "preDamageCalc"
+  | "preApplyDamage"
+  | "postDamageApply"
+  | "turnEnd"
+  | "roundEnd"
+  | "nextAttackCommit"
+  | "nextDefenseCommit";
+
 export type StatusBehaviorId =
   | "bonus_pool"
   | "pre_defense_reaction"

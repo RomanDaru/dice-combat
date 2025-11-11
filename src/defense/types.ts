@@ -1,3 +1,5 @@
+import type { StatusTimingPhase } from "../engine/status/types";
+
 export type DefenseVersion = "v1" | "v2";
 
 export type DefenseDieValue = 1 | 2 | 3 | 4 | 5 | 6;
@@ -9,11 +11,6 @@ export type DefenseField = {
   faces: DefenseDieValue[];
   label?: string;
 };
-
-export type DefenseStatusUsablePhase =
-  | "immediate"
-  | "nextAttack"
-  | "nextTurn";
 
 export type DefenseStatusExpiry =
   | { type: "nextAttack" }
@@ -126,7 +123,7 @@ export type GainStatusEffectConfig = DefenseEffectCommon & {
   stacks?: number;
   amount?: number;
   stackCap?: number;
-  usablePhase?: DefenseStatusUsablePhase;
+  usablePhase?: StatusTimingPhase;
   expires?: DefenseStatusExpiry;
   cleansable?: boolean;
 };
@@ -143,7 +140,7 @@ export type ApplyStatusToOpponentEffectConfig = DefenseEffectCommon & {
 export type PreventHalfEffectConfig = DefenseEffectCommon & {
   type: "preventHalf";
   stacks?: number;
-  usablePhase?: DefenseStatusUsablePhase;
+  usablePhase?: StatusTimingPhase;
   expires?: DefenseStatusExpiry;
 };
 

@@ -109,7 +109,7 @@ defenseSchema: {
   - `flatBlock(amount, cap?)` for absolute mitigation plus `blockPer(matchCount, amount, cap?)` for match-scaled mitigation.
   - `reflect(amount)`.
   - `gainStatus` / `applyStatusToOpponent` (status metadata includes `stackCap`, `usablePhase`, `expires`, `statusKind`). Prevent-half and prevent-all live exclusively inside statuses or the dedicated `preventHalf` effect below.
-  - `preventHalf(stacks, usablePhase, expires)` shorthand for awarding prevent-half stacks.
+  - `preventHalf(stacks, usablePhase = "preApplyDamage", expires)` shorthand for awarding prevent-half stacks right before damage locks in.
   - `buffNextAttack`.
   - `heal`, `cleanse`, `transferStatus`.
   - `rerollDice(count, fields?: fieldId[])`.
@@ -127,15 +127,16 @@ defenseSchema: {
    - Apply non-mitigation effects immediately (status gains, buffs, rerolls).
 3. **Player Reaction Window**:
    - Players may spend statuses (Chi, Evasive, Prevent Half, Prevent All, etc.) using existing UI.
-   - Default rule: newly gained statuses/buffs cannot be spent in the same roll unless the effect explicitly sets `usablePhase: "immediate" | "nextAttack" | "nextTurn"`.
+   - Default rule: newly gained statuses/buffs cannot be spent in the same roll unless the effect explicitly sets a `usablePhase` from the global status timetable (e.g., `preDefenseRoll`, `preApplyDamage`, `nextAttackCommit`).
+   - `preApplyDamage` acts as the final interrupt window; if a player wants to spend Evasive or similar statuses after seeing block/prevent numbers, this is the deterministic place to do it.
 4. **Mitigation Aggregation**:
    - Combine results following strict order:
      1. Raw attack damage.
-     2. Flat reductions (block output straight from defense roll results).
-     3. Percent prevent (only via statuses; Prevent Half = `ceil(remainingDamage / 2)`, Prevent All = `remainingDamage`).
-     4. Additional block (Chi, armor buffs, or other post-prevent block sources).
-     5. Reflect damage (based solely on damage the defender actually took after block/prevent, enabling deterministic double-KO scenarios).
-   - Capture telemetry checkpoints (`rawDamage`, `afterFlat`, `afterPrevent`, `afterBlock`, `afterReflect`) for forensic debugging.
+     2. Flat reductions (all block output sourced from the defense roll or queued buffs).
+     3. Prevent-half stacks (only via statuses; `ceil(remaining / 2)` with `floor>=0`). Full-negate statuses still fire at their declared phases (e.g., `preApplyDamage`).
+     4. Reflect damage (based solely on damage the defender actually took after block/prevent, enabling deterministic double-KO scenarios).
+     5. Apply net damage (with a `preApplyDamage` hook that allows final status spends such as Evasive).
+   - Capture telemetry checkpoints (`rawDamage`, `afterFlat`, `afterPrevent`, `afterReflect`, `finalDamage`) for forensic debugging.
    - Clamp final result to `>= 0` and log when clamping occurs.
 5. **Damage Application**:
    - Apply net damage simultaneously to both sides (allow double KO -> draw).
@@ -171,7 +172,14 @@ defenseSchema: {
   - Consumed automatically at trigger (e.g., next attack) or cleaned up on expiry.
   - Logs on creation, consumption, or expiry (even if unused).
   - `carryOverOnKO` controls whether a buff persists if owner/opponent is KO'd during the turn.
-- `usablePhase` metadata determines when buffs/statuses can be consumed next (default `nextTurn`).
+- `usablePhase` metadata determines when buffs/statuses can be consumed next (default `nextTurn`). Valid values come from the shared status timing table:
+  - `turnStart`, `upkeep`
+  - `preOffenseRoll`, `postOffenseRoll`
+  - `preDefenseRoll`, `postDefenseRoll`
+  - `preDamageCalc`, `preApplyDamage`, `postDamageApply`
+  - `turnEnd`, `roundEnd`
+  - `nextAttackCommit`, `nextDefenseCommit`
+  - `immediate` (consume as soon as it’s granted)
 - Prevent-half and prevent-all statuses are stack-based; defense rules can grant them, and players can spend multiple stacks per combat as long as they have them.
 - Status application metadata must include source (offensive ability, defensive rule, status effect). Useful for debugging/logs.
 
