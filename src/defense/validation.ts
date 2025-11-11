@@ -6,11 +6,11 @@ import {
   DefenseField,
   DefenseFieldId,
   DefenseMatcherConfig,
-  DefenseRule,
   DefenseSchema,
   DefenseVersion,
   ExactFaceMatcherConfig,
   PairsFieldMatcherConfig,
+  PreventHalfEffectConfig,
   RerollDiceEffectConfig,
 } from "./types";
 
@@ -90,7 +90,8 @@ const validateCountFieldMatcher = (
   matcher: CountFieldMatcherConfig,
   ruleId: string,
   fieldExists: (fieldId: DefenseFieldId) => boolean,
-  errors: DefenseSchemaValidationIssue[]
+  errors: DefenseSchemaValidationIssue[],
+  warnings: DefenseSchemaValidationIssue[]
 ): MatcherValidationSummary => {
   if (!matcher.fieldId) {
     error(errors, {
@@ -129,6 +130,17 @@ const validateCountFieldMatcher = (
       ruleId,
     });
   }
+  if (
+    matcher.cap !== undefined &&
+    matcher.min !== undefined &&
+    matcher.cap < matcher.min
+  ) {
+    warn(warnings, {
+      code: "matcher.capLessThanMin",
+      message: "countField.cap is less than min; rule can never match",
+      ruleId,
+    });
+  }
   return { referencedFields: [matcher.fieldId], referencedFaces: [] };
 };
 
@@ -138,41 +150,29 @@ const validatePairsFieldMatcher = (
   fieldExists: (fieldId: DefenseFieldId) => boolean,
   errors: DefenseSchemaValidationIssue[]
 ): MatcherValidationSummary => {
-  if (!matcher.requirements || matcher.requirements.length === 0) {
+  if (!matcher.fieldId) {
     error(errors, {
-      code: "matcher.missingRequirements",
-      message: "pairsField matcher requires at least one requirement",
+      code: "matcher.pairsField.missingFieldId",
+      message: "pairsField matcher requires fieldId",
       ruleId,
     });
     return { referencedFields: [], referencedFaces: [] };
   }
-  const referencedFields: DefenseFieldId[] = [];
-  matcher.requirements.forEach((requirement) => {
-    if (!requirement.fieldId) {
-      error(errors, {
-        code: "matcher.requirement.missingFieldId",
-        message: "pairsField requirement missing fieldId",
-        ruleId,
-      });
-      return;
-    }
-    if (!fieldExists(requirement.fieldId)) {
-      error(errors, {
-        code: "matcher.requirement.unknownField",
-        message: `pairsField requirement references unknown field "${requirement.fieldId}"`,
-        ruleId,
-      });
-      return;
-    }
-    if (!isPositiveInteger(requirement.pairs)) {
-      error(errors, {
-        code: "matcher.requirement.invalidPairs",
-        message: "pairsField requirement.pairs must be a positive integer",
-        ruleId,
-      });
-    }
-    referencedFields.push(requirement.fieldId);
-  });
+  if (!fieldExists(matcher.fieldId)) {
+    error(errors, {
+      code: "matcher.pairsField.unknownField",
+      message: `pairsField matcher references unknown field "${matcher.fieldId}"`,
+      ruleId,
+    });
+  }
+  const pairs = matcher.pairs ?? 1;
+  if (!isPositiveInteger(pairs)) {
+    error(errors, {
+      code: "matcher.pairsField.invalidPairs",
+      message: "pairsField.pairs must be a positive integer",
+      ruleId,
+    });
+  }
 
   if (matcher.cap !== undefined && !isNonNegativeNumber(matcher.cap)) {
     error(errors, {
@@ -182,7 +182,7 @@ const validatePairsFieldMatcher = (
     });
   }
 
-  return { referencedFields, referencedFaces: [] };
+  return { referencedFields: [matcher.fieldId], referencedFaces: [] };
 };
 
 const validateExactFaceMatcher = (
@@ -269,7 +269,13 @@ const validateMatcher = (
 ): MatcherValidationSummary => {
   switch (matcher.type) {
     case "countField":
-      return validateCountFieldMatcher(matcher, ruleId, fieldExists, errors);
+      return validateCountFieldMatcher(
+        matcher,
+        ruleId,
+        fieldExists,
+        errors,
+        warnings
+      );
     case "pairsField":
       return validatePairsFieldMatcher(matcher, ruleId, fieldExists, errors);
     case "exactFace":
@@ -308,6 +314,22 @@ const validateRerollEffectFields = (
   });
 };
 
+const validatePreventHalfEffect = (
+  effect: PreventHalfEffectConfig,
+  context: EffectValidationContext
+) => {
+  if (
+    effect.stacks !== undefined &&
+    !isPositiveInteger(effect.stacks)
+  ) {
+    error(context.errors, {
+      code: "effect.preventHalf.invalidStacks",
+      message: "preventHalf.stacks must be a positive integer",
+      ruleId: context.ruleId,
+    });
+  }
+};
+
 const validateEffect = (
   effect: DefenseEffectConfig,
   context: EffectValidationContext
@@ -330,33 +352,10 @@ const validateEffect = (
       }
       break;
     case "flatBlock":
-      if (
-        effect.amount === undefined &&
-        effect.perMatch === undefined
-      ) {
-        error(context.errors, {
-          code: "effect.flatBlock.missingAmount",
-          message: "flatBlock requires amount or perMatch",
-          ruleId: context.ruleId,
-        });
-      }
-      if (
-        effect.amount !== undefined &&
-        !isNonNegativeNumber(effect.amount)
-      ) {
+      if (!isNonNegativeNumber(effect.amount)) {
         error(context.errors, {
           code: "effect.flatBlock.invalidAmount",
           message: "flatBlock.amount must be a non-negative number",
-          ruleId: context.ruleId,
-        });
-      }
-      if (
-        effect.perMatch !== undefined &&
-        !isNonNegativeNumber(effect.perMatch)
-      ) {
-        error(context.errors, {
-          code: "effect.flatBlock.invalidPerMatch",
-          message: "flatBlock.perMatch must be a non-negative number",
           ruleId: context.ruleId,
         });
       }
@@ -414,6 +413,9 @@ const validateEffect = (
           ruleId: context.ruleId,
         });
       }
+      break;
+    case "preventHalf":
+      validatePreventHalfEffect(effect, context);
       break;
     case "buffNextAttack":
       if (!isNonNegativeNumber(effect.amount)) {

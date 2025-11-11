@@ -45,17 +45,14 @@ defenseSchema: {
     {
       id: "cinder_block",
       matcher: { type: "countField", fieldId: "F1" },
-      effects: [{ type: "flatBlock", perMatch: 1, cap: 3 }],
+      effects: [{ type: "flatBlock", amount: 3 }],
     },
     {
       id: "smolder_status",
       matcher: {
         type: "pairsField",
-        requirements: [
-          { fieldId: "F2", pairs: 1 },
-          { fieldId: "F4", pairs: 1 },
-        ],
-        allowExtra: true,
+        fieldId: "F2",
+        pairs: 1,
       },
       effects: [{ type: "gainStatus", status: "prevent_half", stacks: 1 }],
     },
@@ -85,7 +82,7 @@ defenseSchema: {
 - All matchers operate on field partitions (with optional direct face inspection).
 - Initial matcher kinds:
   - `countField(fieldId, per = 1, cap?)`: counts occurrences in a field, multiplies by `per`, optionally clamps to `cap`.
-  - `pairsField(requirements, allowExtra = true, cap?)`: `requirements` is an array of `{ fieldId: string; pairs: number }`. Each referenced field must contribute at least the requested number of pairs (`floor(fieldCount / 2)`); when `allowExtra` is `false`, extra dice from those fields invalidate the match. Supports multi-field recipes such as “one pair from {1,2,3} and one pair from {4,5}”.
+  - `pairsField(fieldId, pairs = 1, cap?)`: counts pairs inside a single field and requires at least `pairs` matches; `cap` limits how many pairs contribute to `matchCount`.
   - `exactFace(face, count)`: literal face matcher (useful for "two sixes" even if the face shares a field).
   - `combo(fields: { id: string; min: number }[], allowExtra = true)`: requires a recipe across fields for non-pair logic; when `allowExtra` is `false`, extra dice from those fields invalidate the match.
 - Matchers emit structured payloads (`matchCount`, `fieldTotals`, `matchedDiceIndexes`, etc.) consumed by effects/logging.
@@ -109,14 +106,15 @@ defenseSchema: {
   - Optional conditions (e.g., requires opponent Burn).
 - Initial effect types (enumerated, deterministic):
   - `dealPer(matchCount, amount)` with optional `cap`.
-  - `flatBlock(amount | perMatch, cap?)` / `blockPer(matchCount, amount, cap?)` for unit damage mitigation sourced from the defense roll.
+  - `flatBlock(amount, cap?)` for absolute mitigation plus `blockPer(matchCount, amount, cap?)` for match-scaled mitigation.
   - `reflect(amount)`.
-  - `gainStatus` / `applyStatusToOpponent` (status metadata includes `stackCap`, `usablePhase`, `expires`, `statusKind`). Prevent-half and prevent-all live exclusively inside statuses, never as direct effects.
+  - `gainStatus` / `applyStatusToOpponent` (status metadata includes `stackCap`, `usablePhase`, `expires`, `statusKind`). Prevent-half and prevent-all live exclusively inside statuses or the dedicated `preventHalf` effect below.
+  - `preventHalf(stacks, usablePhase, expires)` shorthand for awarding prevent-half stacks.
   - `buffNextAttack`.
   - `heal`, `cleanse`, `transferStatus`.
   - `rerollDice(count, fields?: fieldId[])`.
 - Effects can have caps (e.g., block per face limited by dice count or status stacks).
-- Conditions allow gating (e.g., requires opponent Burn); rejected effects log the reason.
+- Conditions allow gating via a small, enumerated set (e.g., `requiresOpponentStatus`, `requiresSelfStatus`); rejected effects log the reason to keep telemetry deterministic.
 - Reroll effects must specify dice-selection policy (`highestNonMatching`, `lowest`, `random(seed)`, etc.) so AI behavior stays deterministic.
 - Limit reroll cascades via `maxRerollsPerDefense` (configurable) to prevent infinite loops.
 - Effects exposing player choice must annotate `selectionPolicy`; AI uses deterministic policy, players act manually, RNG stream remains isolated for rerolls.
@@ -238,7 +236,7 @@ defenseSchema: {
    - Add unit/integration tests for new defense flow, status interactions, and buff lifecycle.
    - Golden tests:
      - Prevent-half rounding (1,2,3,... damage).
-     - `pairsField` multi-field requirements.
+     - `pairsField` single-field requirements.
      - `gainStatus` honoring `stackCap`, `usablePhase`, and UI surfacing.
      - Validation failure -> schema error surfaced (report flag + QA alert).
      - Reroll cascade with re-evaluation.
@@ -252,13 +250,13 @@ defenseSchema: {
    - Implement JSON/TS loaders for `defenseSchema`, field disjoint verification, rule references, and `allowIdleFaces` linting.
    - Surface validation errors at build/load time, block invalid heroes, and emit `schemaValidationErrors` telemetry counters.
    - Add unit tests + fuzz coverage for overlapping fields, missing faces, and invalid matcher/effect configs.
-2. [ ] **Matcher Registry MVP**
-   - Build `countField` and multi-field `pairsField` resolvers with cached `fieldCounts` payloads.
+2. [x] **Matcher Registry MVP**
+   - Build `countField` and single-field `pairsField` resolvers with cached `fieldCounts` payloads.
    - Enforce deterministic outputs (`matchCount`, `matchedDiceIndexes`) and double-count protections.
    - Document matcher DSL and create golden tests for representative dice pools.
 3. [ ] **Effect Registry MVP**
-   - Implement `flatBlock`, `blockPer`, `dealPer`, and `gainStatus` with caps, ownership, and `usablePhase` metadata.
-   - Wire `gainStatus` into the existing status store (including Prevent Half/All stack handling) and log sources.
+   - Implement `flatBlock`, `blockPer`, `dealPer`, `preventHalf`, and `gainStatus` with caps plus `usablePhase` metadata where applicable.
+   - Wire `gainStatus`/`preventHalf` into the existing status store (including Prevent Half/All stack handling) and log sources.
    - Stub remaining effect types (reflect, reroll, buffs) with TODO guards so future work plugs in cleanly.
 4. [ ] **Defense Resolver & Pipeline**
    - Integrate schema + registries into the combat loop: roll dice, evaluate rules once, dispatch effects.
@@ -280,11 +278,12 @@ defenseSchema: {
 ## Phase 1 (MVP) Scope
 To keep the initial rollout focused, Phase 1 implements the minimal viable subset below while leaving the rest of this document as the full end-state reference.
 
-- **Matchers**: only `countField` and `pairsField` (with multi-field requirements). No combos or rerolls yet.
+- **Matchers**: only `countField` and `pairsField` (single field). No combos or rerolls yet.
 - **Effects**:
   - `dealPer` with optional `cap`.
   - `flatBlock`/`blockPer` driven solely by defense roll output.
   - `gainStatus` (issuing Prevent Half / Prevent All / other defense statuses) with `stackCap` and default `usablePhase = "nextTurn"`.
+  - `preventHalf` shorthand for granting prevent-half stacks (default `usablePhase = "nextTurn"`).
   - _Everything else (reflect, reroll policies, buffs applied to attacks, transfer, etc.) deferred to post-MVP._
 - **Pipeline**: `rawDamage -> flatBlock -> percentPrevent (status) -> floor>=0`. Reflect and post-prevent block sources land post-MVP.
 - **Fields & Validation**: disjoint partition required; failure raises a schema error and blocks the hero (no automatic v1 fallback).
@@ -296,7 +295,7 @@ To keep the initial rollout focused, Phase 1 implements the minimal viable subse
 - **Kill-switch & Hero flag**: fully wired from day one so we can toggle between v1/v2, but goal is to ship v2 as the default once MVP passes QA.
 - **Tests**:
   - Prevent-half rounding (odd/even incoming damage) via statuses granted during defense.
-  - `pairsField` counting accuracy for single-field and multi-field requirements.
+  - `pairsField` counting accuracy for single-field requirements.
   - `gainStatus` honoring `stackCap` and `usablePhase`.
   - Validation failure -> schema error path (report flag + v1 disabled).
 

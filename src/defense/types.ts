@@ -21,12 +21,6 @@ export type DefenseStatusExpiry =
   | { type: "endOfYourNextTurn" }
   | { type: "afterNTurns"; turns: number };
 
-export type DefenseRuleMetadata = {
-  allowReroll?: boolean;
-  target?: DefenseEffectTarget;
-  conditions?: Record<string, unknown>;
-};
-
 export type DefenseSchema = {
   dice: number;
   fields: DefenseField[];
@@ -43,7 +37,6 @@ export type DefenseRule = {
   label?: string;
   matcher: DefenseMatcherConfig;
   effects: DefenseEffectConfig[];
-  metadata?: DefenseRuleMetadata;
 };
 
 export type DefenseMatcherConfig =
@@ -60,15 +53,10 @@ export type CountFieldMatcherConfig = {
   min?: number;
 };
 
-export type PairsFieldRequirement = {
-  fieldId: DefenseFieldId;
-  pairs: number;
-};
-
 export type PairsFieldMatcherConfig = {
   type: "pairsField";
-  requirements: PairsFieldRequirement[];
-  allowExtra?: boolean;
+  fieldId: DefenseFieldId;
+  pairs?: number;
   cap?: number;
 };
 
@@ -94,8 +82,18 @@ export type DefenseEffectTarget = "self" | "opponent" | "ally";
 export type DefenseEffectCommon = {
   id?: string;
   target?: DefenseEffectTarget;
-  owner?: "self" | "opponent";
-  conditions?: Record<string, unknown>;
+  conditions?: DefenseEffectConditions;
+};
+
+export type DefenseEffectConditions = {
+  requiresOpponentStatus?: {
+    status: string;
+    minStacks?: number;
+  };
+  requiresSelfStatus?: {
+    status: string;
+    minStacks?: number;
+  };
 };
 
 export type DealPerEffectConfig = DefenseEffectCommon & {
@@ -106,8 +104,7 @@ export type DealPerEffectConfig = DefenseEffectCommon & {
 
 export type FlatBlockEffectConfig = DefenseEffectCommon & {
   type: "flatBlock";
-  amount?: number;
-  perMatch?: number;
+  amount: number;
   cap?: number;
 };
 
@@ -140,6 +137,12 @@ export type ApplyStatusToOpponentEffectConfig = DefenseEffectCommon & {
   stacks?: number;
   amount?: number;
   stackCap?: number;
+  expires?: DefenseStatusExpiry;
+};
+
+export type PreventHalfEffectConfig = DefenseEffectCommon & {
+  type: "preventHalf";
+  stacks?: number;
   usablePhase?: DefenseStatusUsablePhase;
   expires?: DefenseStatusExpiry;
 };
@@ -192,6 +195,7 @@ export type DefenseEffectConfig =
   | ReflectEffectConfig
   | GainStatusEffectConfig
   | ApplyStatusToOpponentEffectConfig
+  | PreventHalfEffectConfig
   | BuffNextAttackEffectConfig
   | HealEffectConfig
   | CleanseEffectConfig
