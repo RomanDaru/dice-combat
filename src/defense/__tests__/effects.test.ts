@@ -40,7 +40,7 @@ describe("executeDefenseEffects", () => {
     expect(damage).toHaveLength(1);
     expect(damage[0]).toMatchObject({
       amount: 5,
-      target: "self",
+      target: "opponent",
     });
 
     expect(blocks).toHaveLength(1);
@@ -104,4 +104,3 @@ describe("executeDefenseEffects", () => {
     });
   });
 });
-

@@ -6,6 +6,10 @@ import {
   selectHighestBlockOption,
 } from "../game/combat/defenseBoard";
 import { buildDefensePlan } from "../game/combat/defensePipeline";
+import {
+  isDefenseSchemaEnabled,
+  resolveDefenseSchemaRoll,
+} from "../game/combat/defenseSchemaRuntime";
 import { listPreDefenseReactions } from "../game/combat/preDefenseReactions";
 import { resolveAttack } from "../engine/resolveAttack";
 import {
@@ -154,7 +158,8 @@ export function useAiDefenseResponse({
       const resolveAfterDefense = (
         defenderState: PlayerState,
         defenseResolution: ReturnType<typeof buildDefensePlan>["defense"] | null,
-        additionalSpends: StatusSpendSummary[] = []
+        additionalSpends: StatusSpendSummary[] = [],
+        attackerOverride?: PlayerState
       ) => {
         scheduleCallback(600, () => {
           closeDiceTray();
@@ -168,7 +173,7 @@ export function useAiDefenseResponse({
             source: attackerSide === "you" ? "player" : "ai",
             attackerSide,
             defenderSide,
-            attacker,
+            attacker: attackerOverride ?? attacker,
             defender: defenderState,
             ability: effectiveAbility,
             baseDamage,
@@ -184,7 +189,7 @@ export function useAiDefenseResponse({
           resolveDefenseWithEvents(resolution, {
             attackerSide,
             defenderSide,
-            attackerName: attacker.hero.name,
+            attackerName: (attackerOverride ?? attacker).hero.name,
             defenderName: defenderState.hero.name,
             abilityName: formatAbilityName(effectiveAbility),
             defenseAbilityName,
@@ -202,8 +207,82 @@ export function useAiDefenseResponse({
         if (showTray) {
           openDiceTray();
         }
+        const useSchema = isDefenseSchemaEnabled(defenderState.hero);
         animateDefenseRoll(
           (rolledDice) => {
+            if (useSchema && defenderState.hero.defenseSchema) {
+              const schemaOutcome = resolveDefenseSchemaRoll({
+                hero: defenderState.hero,
+                dice: rolledDice,
+                attacker,
+                defender: defenderState,
+                incomingDamage: effectiveAbility.damage,
+              });
+
+              const defenderAfterSchema = schemaOutcome.updatedDefender;
+              if (defenderAfterSchema !== defenderState) {
+                setPlayer(defenderSide, defenderAfterSchema);
+              }
+              if (schemaOutcome.updatedAttacker !== attacker) {
+                setPlayer(attackerSide, schemaOutcome.updatedAttacker);
+              }
+
+              const defenseSpendRequests = buildDefenseSpendRequests(
+                defenderAfterSchema,
+                effectiveAbility.damage,
+                schemaOutcome.baseResolution.baseBlock,
+                defenderSide,
+                getStatusBudget
+              );
+              const defensePlan = buildDefensePlan({
+                defender: defenderAfterSchema,
+                incomingDamage: effectiveAbility.damage,
+                baseResolution: schemaOutcome.baseResolution,
+                spendRequests: defenseSpendRequests,
+              });
+              const defenseTotals = aggregateStatusSpendSummaries(
+                defensePlan.defense.statusSpends
+              );
+              const totalBlock =
+                defensePlan.defense.baseBlock + defenseTotals.bonusBlock;
+
+              patchAiDefense({
+                inProgress: false,
+                defenseDice: rolledDice,
+                defenseCombo: null,
+                defenseRoll: totalBlock,
+              });
+
+              let updatedDefender = defensePlan.defenderAfter;
+              defensePlan.defense.statusSpends.forEach((spend) => {
+                if (spend.stacksSpent <= 0) return;
+                if (getStatus(spend.id)?.spend?.turnLimited) {
+                  consumeStatusBudget(defenderSide, spend.id, spend.stacksSpent);
+                }
+              });
+              if (updatedDefender !== defenderAfterSchema) {
+                setPlayer(defenderSide, updatedDefender);
+              }
+
+              if (schemaOutcome.logs.length) {
+                pushLog(
+                  [
+                    `[Defense] ${defenderState.hero.name} resolves defense schema:`,
+                    ...schemaOutcome.logs,
+                  ],
+                  { blankLineBefore: true }
+                );
+              }
+
+              resolveAfterDefense(
+                updatedDefender,
+                defensePlan.defense,
+                [],
+                schemaOutcome.updatedAttacker
+              );
+              return;
+            }
+
             const defenseRollResult = evaluateDefenseRoll(
               defenderState.hero,
               rolledDice

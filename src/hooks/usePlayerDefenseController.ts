@@ -10,6 +10,10 @@ import type {
   BaseDefenseResolution,
   DefenseRollResult,
 } from "../game/combat/types";
+import {
+  isDefenseSchemaEnabled,
+  resolveDefenseSchemaRoll,
+} from "../game/combat/defenseSchemaRuntime";
 import { resolveAttack } from "../engine/resolveAttack";
 import {
   aggregateStatusSpendSummaries,
@@ -114,6 +118,118 @@ export function usePlayerDefenseController({
   resolveDefenseWithEvents,
   scheduleCallback,
 }: UsePlayerDefenseControllerArgs) {
+  const runDefenseResolution = useCallback(
+    ({
+      attacker,
+      defender,
+      baseResolution,
+      schemaLogs,
+    }: {
+      attacker: PlayerState;
+      defender: PlayerState;
+      baseResolution: BaseDefenseResolution;
+      schemaLogs?: string[];
+    }) => {
+      if (!pendingAttack) return;
+
+      const incomingDamage =
+        pendingAttack.baseDamage ?? pendingAttack.ability.damage;
+
+      const defensePlan = buildDefensePlan({
+        defender,
+        incomingDamage,
+        baseResolution,
+        spendRequests: defenseStatusRequests,
+      });
+
+      let updatedDefender = defensePlan.defenderAfter;
+      defensePlan.defense.statusSpends.forEach((spend) => {
+        if (spend.stacksSpent <= 0) return;
+        if (getStatus(spend.id)?.spend?.turnLimited) {
+          consumeStatusBudget(pendingAttack.defender, spend.id, spend.stacksSpent);
+        }
+      });
+
+      setPlayer(pendingAttack.defender, updatedDefender);
+
+      const currentAttacker =
+        latestState.current.players[pendingAttack.attacker];
+      if (currentAttacker && currentAttacker !== attacker) {
+        setPlayer(pendingAttack.attacker, attacker);
+      }
+
+      const attackStatusSpends = pendingAttack.modifiers?.statusSpends ?? [];
+      const attackBonusDamage = attackStatusSpends.reduce(
+        (sum, spend) => sum + spend.bonusDamage,
+        0
+      );
+      const baseAttackDamage =
+        pendingAttack.baseDamage ??
+        Math.max(0, pendingAttack.ability.damage - attackBonusDamage);
+
+      const pendingDefenseSpends = pendingDefenseSpendsRef.current;
+      pendingDefenseSpendsRef.current = [];
+      const mergedDefense = combineDefenseSpends(
+        defensePlan.defense,
+        pendingDefenseSpends
+      );
+
+      if (schemaLogs?.length) {
+        pushLog(
+          [
+            `[Defense] ${defender.hero.name} resolves defense schema:`,
+            ...schemaLogs,
+          ],
+          { blankLineBefore: true }
+        );
+      }
+
+      const resolution = resolveAttack({
+        source: "ai",
+        attackerSide: pendingAttack.attacker,
+        defenderSide: pendingAttack.defender,
+        attacker,
+        defender: updatedDefender,
+        ability: pendingAttack.ability,
+        baseDamage: baseAttackDamage,
+        attackStatusSpends,
+        defense: {
+          resolution: mergedDefense,
+        },
+      });
+
+      resetDefenseRequests();
+      setPendingAttack(null);
+      setPlayerDefenseState(null);
+      closeDiceTray();
+      const defenseAbilityName = extractDefenseAbilityName(
+        mergedDefense as DefenseSelectionCarrier | null
+      );
+      resolveDefenseWithEvents(resolution, {
+        attackerSide: pendingAttack.attacker,
+        defenderSide: pendingAttack.defender,
+        attackerName: attacker.hero.name,
+        defenderName: updatedDefender.hero.name,
+        abilityName: formatAbilityName(pendingAttack.ability),
+        defenseAbilityName,
+      });
+    },
+    [
+      closeDiceTray,
+      consumeStatusBudget,
+      defenseStatusRequests,
+      latestState,
+      pendingAttack,
+      pendingDefenseSpendsRef,
+      pushLog,
+      resetDefenseRequests,
+      resolveDefenseWithEvents,
+      setPendingAttack,
+      setPlayer,
+      setPlayerDefenseState,
+    ]
+  );
+
   const onUserDefenseRoll = useCallback(() => {
     if (!pendingAttack || pendingAttack.defender !== "you") return;
     if (playerDefenseState) return;
@@ -129,7 +245,25 @@ export function usePlayerDefenseController({
     }
 
     setPhase("defense");
+    const useSchema = isDefenseSchemaEnabled(defender.hero);
     animateDefenseRoll((rolledDice) => {
+      if (useSchema && defender.hero.defenseSchema) {
+        const schemaOutcome = resolveDefenseSchemaRoll({
+          hero: defender.hero,
+          dice: rolledDice,
+          attacker,
+          defender,
+          incomingDamage:
+            pendingAttack.baseDamage ?? pendingAttack.ability.damage,
+        });
+        runDefenseResolution({
+          attacker: schemaOutcome.updatedAttacker,
+          defender: schemaOutcome.updatedDefender,
+          baseResolution: schemaOutcome.baseResolution,
+          schemaLogs: schemaOutcome.logs,
+        });
+        return;
+      }
       const rollResult = evaluateDefenseRoll(defender.hero, rolledDice);
       if (rollResult.options.length === 0) {
         pushLog(
@@ -176,7 +310,7 @@ export function usePlayerDefenseController({
       });
     },
     [setPlayerDefenseState]
-  );
+  ]);
 
   const onConfirmDefense = useCallback(() => {
     if (!pendingAttack || pendingAttack.defender !== "you") return;
@@ -196,81 +330,16 @@ export function usePlayerDefenseController({
       defenseState.selectedCombo ?? null
     );
     const baseResolution = resolveDefenseSelection(selection);
-
-    const defensePlan = buildDefensePlan({
-      defender,
-      incomingDamage: pendingAttack.ability.damage,
-      baseResolution,
-      spendRequests: defenseStatusRequests,
-    });
-
-    defender = defensePlan.defenderAfter;
-    defensePlan.defense.statusSpends.forEach((spend) => {
-      if (spend.stacksSpent <= 0) return;
-      if (getStatus(spend.id)?.spend?.turnLimited) {
-        consumeStatusBudget("you", spend.id, spend.stacksSpent);
-      }
-    });
-    setPlayer("you", defender);
-
-    const attackStatusSpends = pendingAttack.modifiers?.statusSpends ?? [];
-    const attackBonusDamage = attackStatusSpends.reduce(
-      (sum, spend) => sum + spend.bonusDamage,
-      0
-    );
-    const baseAttackDamage =
-      pendingAttack.baseDamage ??
-      Math.max(0, pendingAttack.ability.damage - attackBonusDamage);
-
-    const pendingDefenseSpends = pendingDefenseSpendsRef.current;
-    pendingDefenseSpendsRef.current = [];
-    const mergedDefense = combineDefenseSpends(
-      defensePlan.defense,
-      pendingDefenseSpends
-    );
-
-    const resolution = resolveAttack({
-      source: "ai",
-      attackerSide: pendingAttack.attacker,
-      defenderSide: pendingAttack.defender,
+    runDefenseResolution({
       attacker,
       defender,
-      ability: pendingAttack.ability,
-      baseDamage: baseAttackDamage,
-      attackStatusSpends,
-      defense: {
-        resolution: mergedDefense,
-      },
-    });
-
-    resetDefenseRequests();
-    setPendingAttack(null);
-    setPlayerDefenseState(null);
-    closeDiceTray();
-    const defenseAbilityName = extractDefenseAbilityName(
-      mergedDefense as DefenseSelectionCarrier | null
-    );
-    resolveDefenseWithEvents(resolution, {
-      attackerSide: pendingAttack.attacker,
-      defenderSide: pendingAttack.defender,
-      attackerName: attacker.hero.name,
-      defenderName: defender.hero.name,
-      abilityName: formatAbilityName(pendingAttack.ability),
-      defenseAbilityName,
+      baseResolution,
     });
   }, [
     closeDiceTray,
-    consumeStatusBudget,
-    defenseStatusRequests,
-    getStatusBudget,
     latestState,
     pendingAttack,
-    pendingDefenseSpendsRef,
     playerDefenseState,
-    resetDefenseRequests,
-    resolveDefenseWithEvents,
-    setPendingAttack,
-    setPlayer,
     setPlayerDefenseState,
   ]);
 
@@ -441,3 +510,4 @@ export function usePlayerDefenseController({
     onUserStatusReaction,
   };
 }
+

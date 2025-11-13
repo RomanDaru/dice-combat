@@ -8,6 +8,7 @@ import type {
 } from "../types";
 import type { GameState } from "../state";
 import type { StatusSpendSummary } from "../../engine/status";
+import type { DefenseSchemaResolution } from "../../defense/resolver";
 
 export type AttackSource = "player" | "ai";
 
@@ -20,6 +21,7 @@ export type DefenseRollResult = {
   dice: number[];
   combos: Combo[];
   options: DefenseBoardOption[];
+  schema?: DefenseSchemaResolution;
 };
 
 export type DefenseSelection = {

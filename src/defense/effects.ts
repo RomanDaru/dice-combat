@@ -16,6 +16,17 @@ import type {
 } from "../engine/status";
 
 const DEFAULT_TARGET: DefenseEffectTarget = "self";
+
+const defaultTargetForEffect = (
+  effectType: DefenseEffectConfig["type"]
+): DefenseEffectTarget => {
+  switch (effectType) {
+    case "dealPer":
+      return "opponent";
+    default:
+      return DEFAULT_TARGET;
+  }
+};
 const DEFAULT_GAIN_STATUS_PHASE: StatusTimingPhase = "nextTurn";
 const DEFAULT_PREVENT_PHASE: StatusTimingPhase = "preApplyDamage";
 
@@ -282,7 +293,7 @@ export const executeDefenseEffects = ({
       effectIndex,
       effectType: effect.type,
     };
-    const target = effect.target ?? DEFAULT_TARGET;
+    const target = effect.target ?? defaultTargetForEffect(effect.type);
     const conditionCheck = evaluateConditions(effect, participants);
     if (!conditionCheck.allowed) {
       recordTrace(result.traces, source, target, "skipped", {
@@ -316,4 +327,3 @@ export const executeDefenseEffects = ({
 
   return result;
 };
-
