@@ -23,6 +23,7 @@ export type StatusTimingPhase =
   | "immediate"
   | "turnStart"
   | "upkeep"
+  | "nextTurn"
   | "preOffenseRoll"
   | "postOffenseRoll"
   | "preDefenseRoll"
