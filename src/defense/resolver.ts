@@ -42,6 +42,7 @@ export type DefenseSchemaResolution = {
   totalBlock: number;
   totalDamage: number;
   statusGrants: DefenseStatusGrant[];
+  schemaHash?: string | null;
   logs: string[];
 };
 
@@ -51,6 +52,7 @@ export type ResolveDefenseSchemaArgs = {
   incomingDamage: number;
   selfStatuses?: StatusStacks;
   opponentStatuses?: StatusStacks;
+  schemaHash?: string | null;
 };
 
 const asParticipantSnapshot = (
@@ -182,6 +184,7 @@ export const resolveDefenseSchema = ({
   incomingDamage,
   selfStatuses,
   opponentStatuses,
+  schemaHash,
 }: ResolveDefenseSchemaArgs): DefenseSchemaResolution => {
   const diceValues: DefenseDieValue[] = [...dice];
   const stats = createDefenseRollStats(schema, diceValues);
@@ -218,7 +221,7 @@ export const resolveDefenseSchema = ({
     totalBlock,
     totalDamage,
     statusGrants: flattenStatusGrants(rules),
+    schemaHash,
     logs,
   };
 };
-

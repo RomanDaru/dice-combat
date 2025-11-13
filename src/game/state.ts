@@ -9,6 +9,7 @@ import {
   OffensiveAbility,
   Tokens,
   Combo,
+  PendingDefenseBuff,
 } from "./types";
 import { normalizeSeed } from "../engine/rng";
 
@@ -94,6 +95,7 @@ export type GameState = {
   savedDefenseDice: number[] | null;
   fx: FxState;
   initialRoll: InitialRollState;
+  pendingDefenseBuffs: PendingDefenseBuff[];
 };
 
 const MAX_LOG = 80;
@@ -161,6 +163,7 @@ export function createInitialState(
       tie: false,
       awaitingConfirmation: false,
     },
+    pendingDefenseBuffs: [],
   };
 }
 
@@ -218,7 +221,11 @@ export type GameAction =
       type: "RESOLVE_INITIAL_ROLL";
       payload: { you: number; ai: number; winner: Side | null };
     }
-  | { type: "CONFIRM_INITIAL_ROLL" };
+  | { type: "CONFIRM_INITIAL_ROLL" }
+  | {
+      type: "SET_PENDING_DEFENSE_BUFFS";
+      buffs: PendingDefenseBuff[];
+    };
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "RESET":
@@ -352,6 +359,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ...state.initialRoll,
           awaitingConfirmation: false,
         },
+      };
+    case "SET_PENDING_DEFENSE_BUFFS":
+      return {
+        ...state,
+        pendingDefenseBuffs: action.buffs,
       };
     default:
       return state;

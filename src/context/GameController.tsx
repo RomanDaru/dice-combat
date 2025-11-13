@@ -10,13 +10,27 @@ import React, {
 } from "react";
 import { useGame } from "./GameContext";
 import type { GameState, InitialRollState } from "../game/state";
-import type { OffensiveAbility, Phase, Side, Combo } from "../game/types";
+import type {
+  OffensiveAbility,
+  Phase,
+  Side,
+  Combo,
+  PlayerState,
+  PendingDefenseBuff,
+} from "../game/types";
 import type {
   BaseDefenseResolution,
   CombatEvent,
   DefenseRollResult,
 } from "../game/combat/types";
-import { getStatus, getStacks, listStatuses, type StatusId } from "../engine/status";
+import {
+  getStatus,
+  getStacks,
+  listStatuses,
+  setStacks,
+  type StatusId,
+  type StatusTimingPhase,
+} from "../engine/status";
 import {
   consumeTurnStatusBudgetValue,
   createEmptyTurnStatusBudgets,
@@ -53,6 +67,12 @@ import type {
   ActiveAbilityContext,
   ActiveAbilityOutcome,
 } from "../game/types";
+import type { DefenseStatusGrant } from "../defense/effects";
+import {
+  buildPendingDefenseBuffsFromGrants,
+  partitionPendingDefenseBuffs,
+} from "../game/defenseBuffs";
+import type { PendingDefenseBuffTrigger } from "../game/defenseBuffs";
 import {
   resolvePassTurn,
   TURN_TRANSITION_DELAY_MS,
@@ -61,7 +81,14 @@ import {
 import { getAbilityIcon } from "../assets/abilityIconMap";
 import { getCueDuration } from "../config/cueDurations";
 import { useStatsTracker } from "./StatsContext";
-import { BUILD_HASH, HERO_VERSION_MAP, RULES_VERSION } from "../config/buildInfo";
+import {
+  BUILD_HASH,
+  HERO_VERSION_MAP,
+  RULES_VERSION,
+  DEFENSE_DSL_VERSION,
+  DEFENSE_SCHEMA_VERSION,
+} from "../config/buildInfo";
+import { ENABLE_DEFENSE_V2 } from "../config/featureFlags";
 
 const DEF_DIE_INDEX = 2;
 const ROLL_ANIM_MS = 1300;
@@ -159,6 +186,12 @@ const GameControllerContext = createContext<ControllerContext | null>(null);
 
 export const GameController = ({ children }: { children: ReactNode }) => {
   const { state, dispatch } = useGame();
+  const setPlayer = useCallback(
+    (side: Side, player: PlayerState) => {
+      dispatch({ type: "SET_PLAYER", side, player });
+    },
+    [dispatch]
+  );
   const stats = useStatsTracker();
   const statsSeedRef = useRef<number | null>(null);
   const statsFinalizedRef = useRef(false);
@@ -208,6 +241,42 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   }
   const rng = rngRef.current.rng;
   const latestState = useLatest(state);
+
+  const enqueuePendingDefenseGrants = useCallback(
+    ({
+      grants,
+      attackerSide,
+      defenderSide,
+    }: {
+      grants: DefenseStatusGrant[];
+      attackerSide: Side;
+      defenderSide: Side;
+    }) => {
+      if (!grants || grants.length === 0) return;
+      const entries = buildPendingDefenseBuffsFromGrants(grants, {
+        attackerSide,
+        defenderSide,
+        round: state.round,
+        turnId: currentTurnIdRef.current,
+      });
+      if (entries.length === 0) return;
+      const snapshot = latestState.current;
+      dispatch({
+        type: "SET_PENDING_DEFENSE_BUFFS",
+        buffs: [...snapshot.pendingDefenseBuffs, ...entries],
+      });
+      entries.forEach((entry) => {
+        const owner = snapshot.players[entry.owner];
+        if (!owner) return;
+        pushLog(
+          `[Defense] ${owner.hero.name} primes ${entry.statusId} (${entry.stacks} stack${
+            entry.stacks === 1 ? "" : "s"
+          }) for ${entry.usablePhase}.`
+        );
+      });
+    },
+    [dispatch, latestState, pushLog, state.round]
+  );
   const aiPlayRef = useRef<() => void>(() => {});
   const [attackStatusRequests, setAttackStatusRequests] = useState<
     Record<StatusId, number>
@@ -242,6 +311,59 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     label: string | null;
     outcome: "success" | "failure" | null;
   } | null>(null);
+  const applyPendingDefenseBuff = useCallback(
+    (buff: PendingDefenseBuff) => {
+      if (buff.kind !== "status") return;
+      const snapshot = latestState.current;
+      const player = snapshot.players[buff.owner];
+      if (!player) return;
+      const currentStacks = getStacks(player.tokens, buff.statusId, 0);
+      let nextStacks = currentStacks + buff.stacks;
+      if (typeof buff.stackCap === "number") {
+        nextStacks = Math.min(nextStacks, buff.stackCap);
+      }
+      const statusDef = getStatus(buff.statusId);
+      if (typeof statusDef?.maxStacks === "number") {
+        nextStacks = Math.min(nextStacks, statusDef.maxStacks);
+      }
+      if (nextStacks === currentStacks) return;
+      const nextTokens = setStacks(player.tokens, buff.statusId, nextStacks);
+      setPlayer(buff.owner, { ...player, tokens: nextTokens });
+      pushLog(
+        `[Defense] ${player.hero.name} readies ${buff.statusId} (${nextStacks} stack${
+          nextStacks === 1 ? "" : "s"
+        }).`
+      );
+    },
+    [latestState, pushLog, setPlayer]
+  );
+
+  const releasePendingDefenseBuffs = useCallback(
+    (trigger: PendingDefenseBuffTrigger) => {
+      const snapshot = latestState.current;
+      if (!snapshot.pendingDefenseBuffs.length) return;
+      const { ready, pending } = partitionPendingDefenseBuffs(
+        snapshot.pendingDefenseBuffs,
+        trigger
+      );
+      if (!ready.length) return;
+      ready.forEach(applyPendingDefenseBuff);
+      dispatch({ type: "SET_PENDING_DEFENSE_BUFFS", buffs: pending });
+    },
+    [applyPendingDefenseBuff, dispatch, latestState]
+  );
+
+  const triggerDefenseBuffs = useCallback(
+    (phase: StatusTimingPhase, owner: Side) => {
+      releasePendingDefenseBuffs({
+        phase,
+        owner,
+        turnId: currentTurnIdRef.current,
+        round: state.round,
+      });
+    },
+    [releasePendingDefenseBuffs, state.round]
+  );
   const [activeTransition, setActiveTransition] =
     useState<ActiveTransition | null>(null);
   const [activeCue, setActiveCue] = useState<ActiveCue | null>(null);
@@ -283,12 +405,24 @@ export const GameController = ({ children }: { children: ReactNode }) => {
         });
         pendingUpkeepRef.current[side] = { turnId: nextTurnId, amount: 0 };
       }
+      releasePendingDefenseBuffs({
+        phase: "nextTurn",
+        owner: side,
+        turnId: nextTurnId,
+        round,
+      });
+      releasePendingDefenseBuffs({
+        phase: "turnStart",
+        owner: side,
+        turnId: nextTurnId,
+        round,
+      });
       if (firstPlayerRef.current === null) {
         firstPlayerRef.current = side;
         stats.updateGameMeta({ firstPlayer: side });
       }
     },
-    [stats]
+    [releasePendingDefenseBuffs, stats]
   );
   const openDiceTray = useCallback(() => {
     setDefenseStatusMessage(null);
@@ -478,6 +612,14 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     const aiHeroId = players.ai.hero.id;
     const youVersion = HERO_VERSION_MAP[youHeroId] ?? "0.0.0";
     const aiVersion = HERO_VERSION_MAP[aiHeroId] ?? "0.0.0";
+    const heroDefenseVersion = {
+      [youHeroId]: players.you.hero.defenseVersion ?? "v1",
+      [aiHeroId]: players.ai.hero.defenseVersion ?? "v1",
+    };
+    const heroSchemaHash = {
+      [youHeroId]: players.you.hero.defenseSchemaHash ?? null,
+      [aiHeroId]: players.ai.hero.defenseSchemaHash ?? null,
+    };
     stats.beginGame({
       heroId: youHeroId,
       opponentHeroId: aiHeroId,
@@ -489,6 +631,13 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       rulesVersion: RULES_VERSION,
       buildHash: BUILD_HASH,
       firstPlayer: state.turn,
+      defenseMeta: {
+        enableDefenseV2: ENABLE_DEFENSE_V2,
+        defenseDslVersion: DEFENSE_DSL_VERSION,
+        defenseSchemaVersion: DEFENSE_SCHEMA_VERSION,
+        heroDefenseVersion,
+        heroSchemaHash,
+      },
     });
   }, [players.ai.hero.id, players.you.hero.id, state.rngSeed, state.turn, stats]);
 
@@ -917,6 +1066,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     applyTurnEndResolution,
     setDefenseStatusMessage,
     setDefenseStatusRollDisplay: setDefenseStatusRoll,
+    queuePendingDefenseGrants: enqueuePendingDefenseGrants,
+    triggerDefenseBuffs,
     enqueueCue,
     interruptCue,
     scheduleCallback,

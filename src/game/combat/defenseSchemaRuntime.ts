@@ -99,6 +99,24 @@ const applyStatusGrants = (
   return { updatedAttacker, updatedDefender, logs };
 };
 
+const splitStatusGrantsByTiming = (
+  grants: DefenseStatusGrant[]
+): {
+  immediate: DefenseStatusGrant[];
+  pending: DefenseStatusGrant[];
+} => {
+  const immediate: DefenseStatusGrant[] = [];
+  const pending: DefenseStatusGrant[] = [];
+  grants.forEach((grant) => {
+    if (grant.usablePhase === "immediate") {
+      immediate.push(grant);
+    } else {
+      pending.push(grant);
+    }
+  });
+  return { immediate, pending };
+};
+
 const coerceDice = (dice: number[]): DefenseDieValue[] =>
   dice.map((value) => {
     if (value < 1 || value > 6) {
@@ -114,6 +132,7 @@ export type SchemaDefenseRollOutcome = {
   updatedDefender: PlayerState;
   schema: DefenseSchemaResolution;
   logs: string[];
+  pendingStatusGrants: DefenseStatusGrant[];
 };
 
 export const resolveDefenseSchemaRoll = ({
@@ -136,13 +155,15 @@ export const resolveDefenseSchemaRoll = ({
     incomingDamage,
     selfStatuses: defender.tokens,
     opponentStatuses: attacker.tokens,
+    schemaHash: hero.defenseSchemaHash ?? null,
   });
 
-  const { updatedAttacker, updatedDefender, logs: statusLogs } = applyStatusGrants(
-    attacker,
-    defender,
-    schema.statusGrants
-  );
+  const { immediate, pending } = splitStatusGrantsByTiming(schema.statusGrants);
+  const {
+    updatedAttacker,
+    updatedDefender,
+    logs: statusLogs,
+  } = applyStatusGrants(attacker, defender, immediate);
 
   const selection: DefenseSelection = {
     roll: {
@@ -170,6 +191,6 @@ export const resolveDefenseSchemaRoll = ({
     updatedDefender,
     schema,
     logs: [...schema.logs, ...statusLogs],
+    pendingStatusGrants: pending,
   };
 };
-

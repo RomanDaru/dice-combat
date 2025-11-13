@@ -1,6 +1,11 @@
-import type { DefenseSchema, DefenseVersion } from "../defense/types";
+import type {
+  DefenseSchema,
+  DefenseVersion,
+  DefenseStatusExpiry,
+} from "../defense/types";
 import type { GameDispatch, GameState } from "./state";
 import type { HeroSkinId } from "./heroSkinIds";
+import type { StatusId, StatusTimingPhase } from "../engine/status/types";
 
 export type Combo =
   | "5OAK" | "4OAK" | "FULL_HOUSE" | "3OAK" | "PAIR_PAIR" | "SMALL_STRAIGHT" | "LARGE_STRAIGHT";
@@ -121,6 +126,25 @@ export type ActiveAbility = {
   cost?: ActiveAbilityCost;
   canUse: (context: ActiveAbilityContext) => boolean;
   execute: (context: ActiveAbilityContext) => ActiveAbilityOutcome | void;
+};
+
+export type PendingDefenseBuff = {
+  id: string;
+  owner: Side;
+  kind: "status";
+  statusId: StatusId;
+  stacks: number;
+  usablePhase: StatusTimingPhase;
+  stackCap?: number;
+  expires?: DefenseStatusExpiry;
+  createdAt: {
+    round: number;
+    turnId: string;
+  };
+  source?: {
+    ruleId: string;
+    effectId?: string;
+  };
 };
 
 

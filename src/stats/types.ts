@@ -1,4 +1,5 @@
 import type { HeroId, Side } from "../game/types";
+import type { DefenseVersion } from "../defense/types";
 
 export const STATS_SCHEMA_VERSION = "1.0.0" as const;
 
@@ -50,6 +51,36 @@ export type RollStat = {
   missedDefenseRoll?: boolean;
 };
 
+
+export type DefenseRuleEffectLog = {
+  type: string;
+  target: string;
+  outcome: "applied" | "skipped";
+  value?: number;
+  reason?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type DefenseRuleHitLog = {
+  id: string;
+  label?: string;
+  matched: boolean;
+  matchCount: number;
+  effects: DefenseRuleEffectLog[];
+};
+
+export type DefenseSchemaLog = {
+  schemaHash?: string | null;
+  dice: number[];
+  checkpoints: {
+    rawDamage: number;
+    afterFlatBlock: number;
+    afterPrevent: number;
+    finalDamage: number;
+  };
+  rulesHit: DefenseRuleHitLog[];
+};
+
 export type TurnStat = {
   id: string;
   gameId: string;
@@ -96,6 +127,17 @@ export type TurnStat = {
     prevented: number;
     reflected: number;
   };
+  defenseVersion?: DefenseVersion;
+  defenseSchema?: DefenseSchemaLog;
+};
+
+export type DefenseMeta = {
+  enableDefenseV2: boolean;
+  defenseDslVersion: string;
+  defenseSchemaVersion?: string;
+  heroDefenseVersion?: Partial<Record<HeroId, DefenseVersion | undefined>>;
+  heroSchemaHash?: Partial<Record<HeroId, string | null | undefined>>;
+  turnsByVersion?: Partial<Record<DefenseVersion, number>>;
 };
 
 export type GameStat = {
@@ -143,6 +185,7 @@ export type GameStat = {
   matchTempo?: number;
   integrity?: StatsIntegrity;
   metadata?: Record<string, unknown>;
+  defenseMeta?: DefenseMeta;
 };
 
 export type StatsSnapshot = {
@@ -160,6 +203,7 @@ export type StatsGameInit = {
   seed: number;
   sessionId?: string;
   firstPlayer?: Side;
+  defenseMeta?: DefenseMeta;
 };
 
 export type StatsRollInput = Omit<RollStat, "id" | "gameId">;

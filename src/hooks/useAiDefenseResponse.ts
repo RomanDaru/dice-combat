@@ -20,6 +20,7 @@ import {
   type StatusId,
   type StatusSpendSummary,
 } from "../engine/status";
+import type { StatusTimingPhase } from "../engine/status/types";
 import type { GameState } from "../game/state";
 import type { OffensiveAbility, PlayerState, Side } from "../game/types";
 import {
@@ -70,6 +71,12 @@ type UseAiDefenseResponseArgs = {
   pendingDefenseSpendsRef: MutableRefObject<StatusSpendSummary[]>;
   resolveDefenseWithEvents: DefenseResolutionHandler;
   setPlayer: (side: Side, player: PlayerState) => void;
+  queuePendingDefenseGrants: (payload: {
+    grants: DefenseStatusGrant[];
+    attackerSide: Side;
+    defenderSide: Side;
+  }) => void;
+  triggerDefenseBuffs: (phase: StatusTimingPhase, owner: Side) => void;
 };
 
 type AiDefenseRequest = {
@@ -143,6 +150,8 @@ export function useAiDefenseResponse({
   pendingDefenseSpendsRef,
   resolveDefenseWithEvents,
   setPlayer,
+  queuePendingDefenseGrants,
+  triggerDefenseBuffs,
 }: UseAiDefenseResponseArgs) {
   const handleAiDefenseResponse = useCallback(
     ({
@@ -161,6 +170,7 @@ export function useAiDefenseResponse({
         additionalSpends: StatusSpendSummary[] = [],
         attackerOverride?: PlayerState
       ) => {
+        triggerDefenseBuffs("preApplyDamage", defenderSide);
         scheduleCallback(600, () => {
           closeDiceTray();
           const pendingSpends = pendingDefenseSpendsRef.current;
@@ -201,6 +211,7 @@ export function useAiDefenseResponse({
         defenderState: PlayerState,
         { showTray = false }: { showTray?: boolean } = {}
       ) => {
+        triggerDefenseBuffs("preDefenseRoll", defenderSide);
         setDefenseStatusMessage(null);
         setDefenseStatusRollDisplay(null);
         setPhase("defense");
@@ -211,13 +222,20 @@ export function useAiDefenseResponse({
         animateDefenseRoll(
           (rolledDice) => {
             if (useSchema && defenderState.hero.defenseSchema) {
-              const schemaOutcome = resolveDefenseSchemaRoll({
-                hero: defenderState.hero,
-                dice: rolledDice,
-                attacker,
-                defender: defenderState,
-                incomingDamage: effectiveAbility.damage,
-              });
+            const schemaOutcome = resolveDefenseSchemaRoll({
+              hero: defenderState.hero,
+              dice: rolledDice,
+              attacker,
+              defender: defenderState,
+              incomingDamage: effectiveAbility.damage,
+            });
+              if (schemaOutcome.pendingStatusGrants.length) {
+                queuePendingDefenseGrants({
+                  grants: schemaOutcome.pendingStatusGrants,
+                  attackerSide,
+                  defenderSide,
+                });
+              }
 
               const defenderAfterSchema = schemaOutcome.updatedDefender;
               if (defenderAfterSchema !== defenderState) {
@@ -353,6 +371,7 @@ export function useAiDefenseResponse({
         availableReactions.find((reaction) => reaction.id === reactionStatusId);
       const reactionDescriptor = preferredReaction ?? availableReactions[0] ?? null;
       if (reactionDescriptor) {
+        triggerDefenseBuffs("preDefenseRoll", defenderSide);
         const reactionToUse = reactionDescriptor.id;
         const buildFrame = (value?: number) =>
           Array.from({ length: reactionDescriptor.diceCount }, () =>
@@ -466,15 +485,17 @@ export function useAiDefenseResponse({
       patchAiDefense,
       pendingDefenseSpendsRef,
       pushLog,
+      queuePendingDefenseGrants,
       resolveDefenseWithEvents,
-      scheduleCallback,
-      setDefenseStatusMessage,
-      setDefenseStatusRollDisplay,
-      setPhase,
-      setPlayer,
-      getStatusBudget,
-    ]
-  );
+    scheduleCallback,
+    setDefenseStatusMessage,
+    setDefenseStatusRollDisplay,
+    setPhase,
+    setPlayer,
+    getStatusBudget,
+    triggerDefenseBuffs,
+  ]
+);
 
   return { handleAiDefenseResponse };
 }

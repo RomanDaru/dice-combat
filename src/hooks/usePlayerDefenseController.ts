@@ -24,6 +24,8 @@ import {
   type StatusId,
   type StatusSpendSummary,
 } from "../engine/status";
+import type { StatusTimingPhase } from "../engine/status/types";
+import type { DefenseStatusGrant } from "../defense/effects";
 import type { GameState } from "../game/state";
 import type {
   Combo,
@@ -93,6 +95,12 @@ type UsePlayerDefenseControllerArgs = {
   setPendingAttack: (attack: GameState["pendingAttack"]) => void;
   resolveDefenseWithEvents: DefenseResolutionHandler;
   scheduleCallback: (durationMs: number, callback: () => void) => () => void;
+  queuePendingDefenseGrants: (payload: {
+    grants: DefenseStatusGrant[];
+    attackerSide: Side;
+    defenderSide: Side;
+  }) => void;
+  triggerDefenseBuffs: (phase: StatusTimingPhase, owner: Side) => void;
 };
 
 export function usePlayerDefenseController({
@@ -117,6 +125,8 @@ export function usePlayerDefenseController({
   setPendingAttack,
   resolveDefenseWithEvents,
   scheduleCallback,
+  queuePendingDefenseGrants,
+  triggerDefenseBuffs,
 }: UsePlayerDefenseControllerArgs) {
   const runDefenseResolution = useCallback(
     ({
@@ -184,6 +194,7 @@ export function usePlayerDefenseController({
         );
       }
 
+      triggerDefenseBuffs("preApplyDamage", pendingAttack.defender);
       const resolution = resolveAttack({
         source: "ai",
         attackerSide: pendingAttack.attacker,
@@ -227,6 +238,7 @@ export function usePlayerDefenseController({
       setPendingAttack,
       setPlayer,
       setPlayerDefenseState,
+      triggerDefenseBuffs,
     ]
   );
 
@@ -234,6 +246,7 @@ export function usePlayerDefenseController({
     if (!pendingAttack || pendingAttack.defender !== "you") return;
     if (playerDefenseState) return;
 
+    triggerDefenseBuffs("preDefenseRoll", pendingAttack.defender);
     setDefenseStatusMessage(null);
     setDefenseStatusRollDisplay(null);
     openDiceTray();
@@ -256,6 +269,13 @@ export function usePlayerDefenseController({
           incomingDamage:
             pendingAttack.baseDamage ?? pendingAttack.ability.damage,
         });
+        if (schemaOutcome.pendingStatusGrants.length) {
+          queuePendingDefenseGrants({
+            grants: schemaOutcome.pendingStatusGrants,
+            attackerSide: pendingAttack.attacker,
+            defenderSide: pendingAttack.defender,
+          });
+        }
         runDefenseResolution({
           attacker: schemaOutcome.updatedAttacker,
           defender: schemaOutcome.updatedDefender,
@@ -289,11 +309,13 @@ export function usePlayerDefenseController({
     pendingAttack,
     playerDefenseState,
     pushLog,
+    queuePendingDefenseGrants,
     setDefenseStatusRollDisplay,
     setPhase,
     setPlayerDefenseState,
     setDefenseStatusMessage,
     openDiceTray,
+    triggerDefenseBuffs,
   ]);
 
   const onChooseDefenseOption = useCallback(
@@ -357,6 +379,7 @@ export function usePlayerDefenseController({
       const reaction = getPreDefenseReactionDescriptor(statusId);
       if (!reaction) return;
 
+      triggerDefenseBuffs("preDefenseRoll", pendingAttack.defender);
       const buildFrame = (value?: number) =>
         Array.from({ length: reaction.diceCount }, () =>
           typeof value === "number"
@@ -424,6 +447,7 @@ export function usePlayerDefenseController({
             const reactionDefense = combineDefenseSpends(null, [
               reactionSummary,
             ]);
+            triggerDefenseBuffs("preApplyDamage", pendingAttack.defender);
             const resolution = resolveAttack({
               source: "ai",
               attackerSide: pendingAttack.attacker,
@@ -494,15 +518,16 @@ export function usePlayerDefenseController({
       pendingDefenseSpendsRef,
       resolveDefenseWithEvents,
       resetDefenseRequests,
-      scheduleCallback,
-      setDefenseStatusMessage,
-      setDefenseStatusRollDisplay,
-      setPendingAttack,
-      setPhase,
-      setPlayer,
-      setPlayerDefenseState,
-    ]
-  );
+    scheduleCallback,
+    setDefenseStatusMessage,
+    setDefenseStatusRollDisplay,
+    setPendingAttack,
+    setPhase,
+    setPlayer,
+    setPlayerDefenseState,
+    triggerDefenseBuffs,
+  ]
+);
   return {
     onUserDefenseRoll,
     onChooseDefenseOption,

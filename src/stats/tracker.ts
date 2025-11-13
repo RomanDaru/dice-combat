@@ -1,4 +1,5 @@
 import type { Side, Tokens } from "../game/types";
+import type { DefenseVersion } from "../defense/types";
 import { HEROES } from "../game/heroes";
 import { STATS_SCHEMA_VERSION, type GameStat, type RollStat, type StatsFinalizeInput, type StatsGameInit, type StatsSnapshot, type StatsTurnInput, type TurnStat, type StatsRollInput, type StatusRemovalReason, type StatsIntegrity } from "./types";
 
@@ -39,6 +40,17 @@ const cloneTurn = (turn: TurnStat): TurnStat => ({
   defenseEfficacy: turn.defenseEfficacy
     ? { ...turn.defenseEfficacy }
     : undefined,
+  defenseSchema: turn.defenseSchema
+    ? {
+        schemaHash: turn.defenseSchema.schemaHash,
+        dice: [...turn.defenseSchema.dice],
+        checkpoints: { ...turn.defenseSchema.checkpoints },
+        rulesHit: turn.defenseSchema.rulesHit.map((rule) => ({
+          ...rule,
+          effects: rule.effects.map((effect) => ({ ...effect })),
+        })),
+      }
+    : undefined,
 });
 
 export class StatsTracker {
@@ -49,9 +61,11 @@ export class StatsTracker {
     you: {},
     ai: {},
   };
+  private defenseTurnCounts: Record<DefenseVersion, number> = { v1: 0, v2: 0 };
 
   beginGame(meta: StatsGameInit) {
     const gameId = createId("game");
+    this.defenseTurnCounts = { v1: 0, v2: 0 };
     this.game = {
       id: gameId,
       schemaVersion: STATS_SCHEMA_VERSION,
@@ -64,6 +78,12 @@ export class StatsTracker {
       seed: meta.seed,
       startedAt: Date.now(),
       metadata: {},
+      defenseMeta: meta.defenseMeta
+        ? {
+            ...meta.defenseMeta,
+            turnsByVersion: { ...this.defenseTurnCounts },
+          }
+        : undefined,
     };
     this.turns = [];
     this.rolls = [];
@@ -88,6 +108,18 @@ export class StatsTracker {
       ...entry,
     };
     this.turns = [...this.turns, turn];
+    if (entry.defenseVersion) {
+      this.defenseTurnCounts[entry.defenseVersion] += 1;
+      if (this.game.defenseMeta) {
+        this.game = {
+          ...this.game,
+          defenseMeta: {
+            ...this.game.defenseMeta,
+            turnsByVersion: { ...this.defenseTurnCounts },
+          },
+        };
+      }
+    }
   }
 
   recordStatusSnapshot(
@@ -167,8 +199,20 @@ export class StatsTracker {
   }
 
   getSnapshot(): StatsSnapshot {
+    const gameStats = this.game
+      ? {
+          ...this.game,
+          metadata: this.game.metadata ? { ...this.game.metadata } : undefined,
+          defenseMeta: this.game.defenseMeta
+            ? {
+                ...this.game.defenseMeta,
+                turnsByVersion: { ...this.defenseTurnCounts },
+              }
+            : undefined,
+        }
+      : null;
     return {
-      gameStats: this.game ? { ...this.game, metadata: this.game.metadata ? { ...this.game.metadata } : undefined } : null,
+      gameStats,
       turnStats: this.turns.map(cloneTurn),
       rollStats: this.rolls.map(cloneRoll),
     };
