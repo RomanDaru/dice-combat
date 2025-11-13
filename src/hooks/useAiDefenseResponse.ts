@@ -22,7 +22,7 @@ import {
 } from "../engine/status";
 import type { StatusTimingPhase } from "../engine/status/types";
 import type { GameState } from "../game/state";
-import type { OffensiveAbility, PlayerState, Side } from "../game/types";
+import type { OffensiveAbility, PlayerState, Side, Hero } from "../game/types";
 import {
   combineDefenseSpends,
   extractDefenseAbilityName,
@@ -77,6 +77,7 @@ type UseAiDefenseResponseArgs = {
     defenderSide: Side;
   }) => void;
   triggerDefenseBuffs: (phase: StatusTimingPhase, owner: Side) => void;
+  applyDefenseVersionOverride: (hero: Hero) => Hero;
 };
 
 type AiDefenseRequest = {
@@ -152,7 +153,12 @@ export function useAiDefenseResponse({
   setPlayer,
   queuePendingDefenseGrants,
   triggerDefenseBuffs,
+  applyDefenseVersionOverride,
 }: UseAiDefenseResponseArgs) {
+  const resolveHeroForDefense = useCallback(
+    (hero: Hero) => applyDefenseVersionOverride(hero),
+    [applyDefenseVersionOverride]
+  );
   const handleAiDefenseResponse = useCallback(
     ({
       attacker,
@@ -204,6 +210,7 @@ export function useAiDefenseResponse({
             abilityName: formatAbilityName(effectiveAbility),
             defenseAbilityName,
           });
+          triggerDefenseBuffs("nextDefenseCommit", defenderSide);
         });
       };
 
@@ -218,12 +225,13 @@ export function useAiDefenseResponse({
         if (showTray) {
           openDiceTray();
         }
-        const useSchema = isDefenseSchemaEnabled(defenderState.hero);
+        const defenseHero = resolveHeroForDefense(defenderState.hero);
+        const useSchema = isDefenseSchemaEnabled(defenseHero);
         animateDefenseRoll(
           (rolledDice) => {
-            if (useSchema && defenderState.hero.defenseSchema) {
+            if (useSchema && defenseHero.defenseSchema) {
             const schemaOutcome = resolveDefenseSchemaRoll({
-              hero: defenderState.hero,
+              hero: defenseHero,
               dice: rolledDice,
               attacker,
               defender: defenderState,
@@ -487,15 +495,16 @@ export function useAiDefenseResponse({
       pushLog,
       queuePendingDefenseGrants,
       resolveDefenseWithEvents,
-    scheduleCallback,
-    setDefenseStatusMessage,
-    setDefenseStatusRollDisplay,
-    setPhase,
-    setPlayer,
-    getStatusBudget,
-    triggerDefenseBuffs,
-  ]
-);
+      scheduleCallback,
+      setDefenseStatusMessage,
+      setDefenseStatusRollDisplay,
+      setPhase,
+      setPlayer,
+      getStatusBudget,
+      triggerDefenseBuffs,
+      resolveHeroForDefense,
+    ]
+  );
 
   return { handleAiDefenseResponse };
 }

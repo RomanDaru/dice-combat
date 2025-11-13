@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import type { StatusId } from "../engine/status";
+import {
+  aggregateStatusSpendSummaries,
+  type StatusId,
+} from "../engine/status";
 import { useGame } from "../context/GameContext";
 import { useActiveAbilities } from "./useActiveAbilities";
 import { useAttackExecution } from "./useAttackExecution";
@@ -17,6 +20,7 @@ import type {
   PhaseDamage,
   StatsTurnInput,
   StatusRemovalReason,
+  DefenseTelemetryTotals,
 } from "../stats/types";
 import type { StatusTimingPhase } from "../engine/status/types";
 import type { GameFlowEvent } from "./useTurnController";
@@ -27,8 +31,13 @@ import type {
   Side,
   ActiveAbilityContext,
   ActiveAbilityOutcome,
+  Hero,
 } from "../game/types";
-import type { CombatEvent } from "../game/combat/types";
+import type {
+  CombatEvent,
+  AttackResolution,
+  ResolvedDefenseState,
+} from "../game/combat/types";
 import type { DefenseStatusGrant } from "../defense/effects";
 import type { DefenseSchemaResolution } from "../defense/resolver";
 import type { DefenseVersion } from "../defense/types";
@@ -117,6 +126,7 @@ type UseDefenseActionsArgs = {
     defenderSide: Side;
   }) => void;
   triggerDefenseBuffs: (phase: StatusTimingPhase, owner: Side) => void;
+  applyDefenseVersionOverride: (hero: Hero) => Hero;
 };
 
 const mapDefenseSchemaLog = (
@@ -141,6 +151,56 @@ const mapDefenseSchemaLog = (
         metadata: effect.metadata,
       })),
     })),
+  };
+};
+
+const PREVENT_HALF_STATUS_ID: StatusId = "prevent_half";
+const PREVENT_ALL_STATUS_ID: StatusId = "prevent_all";
+
+const buildDefenseTelemetryDelta = (
+  defenseState: ResolvedDefenseState | null,
+  summary: AttackResolution["summary"],
+  blockedAmount: number
+): DefenseTelemetryTotals | null => {
+  const baseBlock = defenseState?.baseBlock ?? 0;
+  const statusTotals = defenseState
+    ? aggregateStatusSpendSummaries(defenseState.statusSpends)
+    : null;
+  const statusBlock = statusTotals?.bonusBlock ?? 0;
+  const countEvents = (statusId: StatusId): number =>
+    defenseState?.statusSpends.reduce((sum, spend) => {
+      if (spend.id === statusId) {
+        return sum + spend.successCount;
+      }
+      return sum;
+    }, 0) ?? 0;
+
+  const preventHalfEvents = countEvents(PREVENT_HALF_STATUS_ID);
+  const preventAllEvents = countEvents(PREVENT_ALL_STATUS_ID);
+  const reflectSum = summary.reflected ?? 0;
+  const wastedBlock = Math.max(
+    0,
+    baseBlock + statusBlock - blockedAmount
+  );
+
+  if (
+    baseBlock === 0 &&
+    statusBlock === 0 &&
+    preventHalfEvents === 0 &&
+    preventAllEvents === 0 &&
+    reflectSum === 0 &&
+    wastedBlock === 0
+  ) {
+    return null;
+  }
+
+  return {
+    blockFromDefenseRoll: baseBlock,
+    blockFromStatuses: statusBlock,
+    preventHalfEvents,
+    preventAllEvents,
+    reflectSum,
+    wastedBlockSum: wastedBlock,
   };
 };
 
@@ -186,6 +246,7 @@ export function useDefenseActions({
   scheduleCallback,
   queuePendingDefenseGrants,
   triggerDefenseBuffs,
+  applyDefenseVersionOverride,
 }: UseDefenseActionsArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
@@ -436,6 +497,19 @@ export function useDefenseActions({
           : undefined;
         const defenseSchemaLog = mapDefenseSchemaLog(schemaSnapshot);
 
+        if (summary) {
+          const telemetryDelta = buildDefenseTelemetryDelta(
+            resolution.defense ?? null,
+            summary,
+            blockedAmount
+          );
+          if (telemetryDelta) {
+            stats.updateGameMeta({
+              defenseMeta: { totals: telemetryDelta },
+            });
+          }
+        }
+
         stats.recordTurn({
           ...draft,
           actualDamage,
@@ -530,6 +604,7 @@ export function useDefenseActions({
     aiReactionRequestRef: aiStatusReactionRef,
     queuePendingDefenseGrants,
     triggerDefenseBuffs,
+    applyDefenseVersionOverride,
   });
 
   const {
@@ -561,6 +636,7 @@ export function useDefenseActions({
     scheduleCallback,
     queuePendingDefenseGrants,
     triggerDefenseBuffs,
+    applyDefenseVersionOverride,
   });
 
   return {

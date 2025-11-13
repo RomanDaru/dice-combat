@@ -1,7 +1,7 @@
 import type { Side, Tokens } from "../game/types";
 import type { DefenseVersion } from "../defense/types";
 import { HEROES } from "../game/heroes";
-import { STATS_SCHEMA_VERSION, type GameStat, type RollStat, type StatsFinalizeInput, type StatsGameInit, type StatsSnapshot, type StatsTurnInput, type TurnStat, type StatsRollInput, type StatusRemovalReason, type StatsIntegrity } from "./types";
+import { STATS_SCHEMA_VERSION, type DefenseBuffSnapshotSet, type DefenseTelemetryTotals, type GameStat, type RollStat, type StatsFinalizeInput, type StatsGameInit, type StatsSnapshot, type StatsTurnInput, type TurnStat, type StatsRollInput, type StatusRemovalReason, type StatsIntegrity } from "./types";
 
 const createId = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -53,6 +53,39 @@ const cloneTurn = (turn: TurnStat): TurnStat => ({
     : undefined,
 });
 
+const cloneDefenseBuff = (
+  buff: DefenseBuffSnapshotSet["pending"][number]
+): DefenseBuffSnapshotSet["pending"][number] => ({
+  ...buff,
+  carryOverOnKO: buff.carryOverOnKO ? { ...buff.carryOverOnKO } : undefined,
+  expires: buff.expires ? { ...buff.expires } : undefined,
+  createdAt: { ...buff.createdAt },
+  source: buff.source ? { ...buff.source } : undefined,
+});
+
+const cloneDefenseBuffs = (
+  set?: DefenseBuffSnapshotSet
+): DefenseBuffSnapshotSet | undefined => {
+  if (!set) return undefined;
+  return {
+    pending: set.pending.map(cloneDefenseBuff),
+    expired: set.expired.map((entry) => ({
+      ...cloneDefenseBuff(entry),
+      reason: entry.reason,
+      expiredAt: { ...entry.expiredAt },
+    })),
+  };
+};
+
+const createDefenseTelemetryTotals = (): DefenseTelemetryTotals => ({
+  blockFromDefenseRoll: 0,
+  blockFromStatuses: 0,
+  preventHalfEvents: 0,
+  preventAllEvents: 0,
+  reflectSum: 0,
+  wastedBlockSum: 0,
+});
+
 export class StatsTracker {
   private game: GameStat | null = null;
   private turns: TurnStat[] = [];
@@ -82,6 +115,7 @@ export class StatsTracker {
         ? {
             ...meta.defenseMeta,
             turnsByVersion: { ...this.defenseTurnCounts },
+            totals: meta.defenseMeta.totals ?? createDefenseTelemetryTotals(),
           }
         : undefined,
     };
@@ -157,10 +191,42 @@ export class StatsTracker {
 
   updateGameMeta(partial: Partial<GameStat>) {
     if (!this.game) return;
-    this.game = {
+    const { metadata, defenseMeta, ...rest } = partial;
+    let next: GameStat = {
       ...this.game,
-      ...partial,
+      ...rest,
     };
+    if (metadata) {
+      next = {
+        ...next,
+        metadata: { ...(this.game.metadata ?? {}), ...metadata },
+      };
+    }
+    if (defenseMeta) {
+      const existingMeta = next.defenseMeta ?? {};
+      const mergedMeta = {
+        ...existingMeta,
+        ...defenseMeta,
+      };
+      if (defenseMeta.totals) {
+        const currentTotals =
+          existingMeta.totals ?? createDefenseTelemetryTotals();
+        const delta = defenseMeta.totals;
+        const totals = { ...currentTotals };
+        (Object.keys(delta) as Array<keyof DefenseTelemetryTotals>).forEach(
+          (key) => {
+            const increment = delta[key] ?? 0;
+            totals[key] = (totals[key] ?? 0) + increment;
+          }
+        );
+        mergedMeta.totals = totals;
+      }
+      next = {
+        ...next,
+        defenseMeta: mergedMeta,
+      };
+    }
+    this.game = next;
   }
 
   finalizeGame(input: StatsFinalizeInput): StatsSnapshot | null {
@@ -209,6 +275,7 @@ export class StatsTracker {
                 turnsByVersion: { ...this.defenseTurnCounts },
               }
             : undefined,
+          defenseBuffs: cloneDefenseBuffs(this.game.defenseBuffs),
         }
       : null;
     return {

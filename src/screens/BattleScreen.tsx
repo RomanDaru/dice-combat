@@ -14,6 +14,7 @@ import {
   useGameController,
   useGameData,
 } from "../context/GameController";
+import DefenseDevPanel from "../components/DefenseDevPanel";
 import { StatsProvider, useStatsTracker } from "../context/StatsContext";
 import { CueOverlay } from "../components/CueOverlay";
 import { useGame } from "../context/GameContext";
@@ -599,6 +600,7 @@ export function BattleScreen({ onBackToHeroSelect }: BattleScreenProps) {
     <StatsProvider>
       <GameController>
         <BattleContent onBackToHeroSelect={onBackToHeroSelect} />
+        {import.meta.env.DEV ? <DefenseDevPanel /> : null}
       </GameController>
     </StatsProvider>
   );

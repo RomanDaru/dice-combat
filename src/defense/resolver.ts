@@ -30,8 +30,10 @@ export type DefenseRuleExecution = {
 
 export type DefensePipelineCheckpoints = {
   rawDamage: number;
-  afterFlatBlock: number;
+  afterFlat: number;
   afterPrevent: number;
+  afterBlock: number;
+  afterReflect: number;
   finalDamage: number;
 };
 
@@ -92,13 +94,26 @@ const collectLogsForRule = (
   return lines;
 };
 
-const aggregateBlock = (
-  contributions: DefenseBlockContribution[],
+type BlockStageTotals = { flat: number; additional: number };
+
+const aggregateBlockStages = (
+  rules: DefenseRuleExecution[],
   target: "self" | "opponent" | "ally" = "self"
-) =>
-  contributions
-    .filter((entry) => entry.target === target)
-    .reduce((sum, entry) => sum + entry.amount, 0);
+): BlockStageTotals =>
+  rules.reduce<BlockStageTotals>(
+    (totals, rule) => {
+      rule.block.forEach((entry) => {
+        if (entry.target !== target) return;
+        if (entry.stage === "additional") {
+          totals.additional += entry.amount;
+        } else {
+          totals.flat += entry.amount;
+        }
+      });
+      return totals;
+    },
+    { flat: 0, additional: 0 }
+  );
 
 const aggregateDamage = (
   contributions: DefenseDamageContribution[],
@@ -115,18 +130,26 @@ const flattenStatusGrants = (
 
 const buildCheckpoints = (
   incomingDamage: number,
-  totalFlatBlock: number
+  totals: {
+    flatBlock: number;
+    statusPrevent: number;
+    additionalBlock: number;
+    reflect: number;
+  }
 ): DefensePipelineCheckpoints => {
   const rawDamage = Math.max(0, incomingDamage);
-  const afterFlatBlock = Math.max(0, rawDamage - totalFlatBlock);
-  // Prevent/reflect are not implemented yet; keep placeholders so downstream
-  // consumers can wire up without schema changes later.
-  const afterPrevent = afterFlatBlock;
-  const finalDamage = afterPrevent;
+  const afterFlat = Math.max(0, rawDamage - totals.flatBlock);
+  const afterPrevent = Math.max(0, afterFlat - totals.statusPrevent);
+  const afterBlock = Math.max(0, afterPrevent - totals.additionalBlock);
+  // Reflect currently does not reduce defender damage; keep stage for telemetry.
+  const afterReflect = Math.max(0, afterBlock);
+  const finalDamage = afterReflect;
   return {
     rawDamage,
-    afterFlatBlock,
+    afterFlat,
     afterPrevent,
+    afterBlock,
+    afterReflect,
     finalDamage,
   };
 };
@@ -202,17 +225,20 @@ export const resolveDefenseSchema = ({
     logs.push(...outcome.logs);
   });
 
-  const totalBlock = rules.reduce(
-    (sum, rule) => sum + aggregateBlock(rule.block, "self"),
-    0
-  );
+  const blockStages = aggregateBlockStages(rules, "self");
+  const totalBlock = blockStages.flat + blockStages.additional;
 
   const totalDamage = rules.reduce(
     (sum, rule) => sum + aggregateDamage(rule.damage, "opponent"),
     0
   );
 
-  const checkpoints = buildCheckpoints(incomingDamage, totalBlock);
+  const checkpoints = buildCheckpoints(incomingDamage, {
+    flatBlock: blockStages.flat,
+    statusPrevent: 0,
+    additionalBlock: blockStages.additional,
+    reflect: totalDamage,
+  });
 
   return {
     dice: diceValues,

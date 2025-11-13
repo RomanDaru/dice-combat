@@ -17,6 +17,8 @@ import type {
   Combo,
   PlayerState,
   PendingDefenseBuff,
+  Hero,
+  HeroId,
 } from "../game/types";
 import type {
   BaseDefenseResolution,
@@ -68,8 +70,10 @@ import type {
   ActiveAbilityOutcome,
 } from "../game/types";
 import type { DefenseStatusGrant } from "../defense/effects";
+import type { DefenseVersion } from "../defense/types";
 import {
   buildPendingDefenseBuffsFromGrants,
+  partitionBuffsByKo,
   partitionPendingDefenseBuffs,
 } from "../game/defenseBuffs";
 import type { PendingDefenseBuffTrigger } from "../game/defenseBuffs";
@@ -96,6 +100,16 @@ const AI_ROLL_ANIM_MS = 900;
 const AI_STEP_MS = 2000;
 const AI_PASS_FOLLOW_UP_MS = 450;
 const AI_PASS_EVENT_DURATION_MS = 600;
+const DEFENSE_OVERRIDE_KEY = "dcDefenseOverrides";
+
+const createDefenseTelemetryTotals = () => ({
+  blockFromDefenseRoll: 0,
+  blockFromStatuses: 0,
+  preventHalfEvents: 0,
+  preventAllEvents: 0,
+  reflectSum: 0,
+  wastedBlockSum: 0,
+});
 const createTurnId = () =>
   `turn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -104,6 +118,40 @@ type PlayerDefenseState = {
   selectedCombo: Combo | null;
   baseResolution: BaseDefenseResolution;
 };
+
+type DefenseBuffExpirationRecord = PendingDefenseBuff & {
+  reason: string;
+  expiredAt: {
+    round: number;
+    turnId: string;
+    phase?: StatusTimingPhase;
+    cause: "phase" | "ko";
+  };
+};
+
+const mapBuffForStats = (buff: PendingDefenseBuff) => ({
+  id: buff.id,
+  owner: buff.owner,
+  kind: buff.kind,
+  statusId: buff.statusId,
+  stacks: buff.stacks,
+  usablePhase: buff.usablePhase,
+  stackCap: buff.stackCap,
+  expires: buff.expires ? { ...buff.expires } : undefined,
+  cleansable: buff.cleansable,
+  carryOverOnKO: buff.carryOverOnKO
+    ? { ...buff.carryOverOnKO }
+    : undefined,
+  turnsRemaining: buff.turnsRemaining,
+  createdAt: { ...buff.createdAt },
+  source: buff.source ? { ...buff.source } : undefined,
+});
+
+const mapExpiredBuffForStats = (entry: DefenseBuffExpirationRecord) => ({
+  ...mapBuffForStats(entry),
+  reason: entry.reason,
+  expiredAt: { ...entry.expiredAt },
+});
 
 type ComputedData = {
   ability: OffensiveAbility | null;
@@ -134,6 +182,8 @@ type ComputedData = {
   turnTransitionSide: Side | null;
   activeTransition: ActiveTransition | null;
   activeCue: ActiveCue | null;
+  pendingDefenseBuffs: PendingDefenseBuff[];
+  defenseBuffExpirations: DefenseBuffExpirationRecord[];
 };
 
 type StatusSpendPhase = "attackRoll" | "defenseRoll";
@@ -174,6 +224,9 @@ type ControllerContext = {
       outcome: "success" | "failure" | null;
     } | null
   ) => void;
+  devDefenseOverrides: Record<HeroId, DefenseVersion | null>;
+  setDefenseVersionOverride: (heroId: HeroId, version: DefenseVersion | null) => void;
+  applyDefenseVersionOverride: (hero: Hero) => Hero;
 };
 
 type FlowEventOptions = {
@@ -305,12 +358,78 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const [defenseStatusMessage, setDefenseStatusMessage] = useState<string | null>(
     null
   );
-  const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
+const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     dice: number[];
     inProgress: boolean;
     label: string | null;
     outcome: "success" | "failure" | null;
   } | null>(null);
+  const [defenseBuffExpirations, setDefenseBuffExpirations] = useState<
+    DefenseBuffExpirationRecord[]
+  >([]);
+  const loadDefenseOverrides = useCallback(() => {
+    if (
+      !import.meta.env.DEV ||
+      typeof window === "undefined"
+    ) {
+      return {};
+    }
+    try {
+      const raw = window.localStorage.getItem(DEFENSE_OVERRIDE_KEY);
+      return raw ? (JSON.parse(raw) as Record<HeroId, DefenseVersion>) : {};
+    } catch {
+      return {};
+    }
+  }, []);
+  const [devDefenseOverrides, setDevDefenseOverrides] = useState<
+    Record<HeroId, DefenseVersion | null>
+  >(() => loadDefenseOverrides());
+  const persistDefenseOverrides = useCallback(
+    (overrides: Record<HeroId, DefenseVersion | null>) => {
+      if (!import.meta.env.DEV || typeof window === "undefined") return;
+      try {
+        const filtered = Object.fromEntries(
+          Object.entries(overrides).filter(
+            ([, value]) => value && (value === "v1" || value === "v2")
+          )
+        ) as Record<HeroId, DefenseVersion>;
+        window.localStorage.setItem(
+          DEFENSE_OVERRIDE_KEY,
+          JSON.stringify(filtered)
+        );
+      } catch {
+        // ignore storage errors
+      }
+    },
+    []
+  );
+  const setDefenseVersionOverride = useCallback(
+    (heroId: HeroId, version: DefenseVersion | null) => {
+      if (!import.meta.env.DEV) return;
+      setDevDefenseOverrides((prev) => {
+        const next = { ...prev };
+        if (!version) {
+          delete next[heroId];
+        } else {
+          next[heroId] = version;
+        }
+        persistDefenseOverrides(next);
+        return next;
+      });
+    },
+    [persistDefenseOverrides]
+  );
+  const applyDefenseVersionOverride = useCallback(
+    (hero: Hero): Hero => {
+      if (!import.meta.env.DEV) return hero;
+      const override = devDefenseOverrides[hero.id];
+      if (!override || hero.defenseVersion === override) {
+        return hero;
+      }
+      return { ...hero, defenseVersion: override };
+    },
+    [devDefenseOverrides]
+  );
   const applyPendingDefenseBuff = useCallback(
     (buff: PendingDefenseBuff) => {
       if (buff.kind !== "status") return;
@@ -338,19 +457,73 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     [latestState, pushLog, setPlayer]
   );
 
+  const archiveExpiredDefenseBuffs = useCallback(
+    (
+      entries: Array<{ buff: PendingDefenseBuff; reason: string }>,
+      context: {
+        cause: "phase" | "ko";
+        phase?: StatusTimingPhase;
+        round: number;
+        turnId: string;
+      }
+    ) => {
+      if (!entries.length) return;
+      setDefenseBuffExpirations((prev) => [
+        ...prev,
+        ...entries.map(({ buff, reason }) => ({
+          ...buff,
+          reason,
+          expiredAt: {
+            round: context.round,
+            turnId: context.turnId,
+            phase: context.phase,
+            cause: context.cause,
+          },
+        })),
+      ]);
+    },
+    []
+  );
+
   const releasePendingDefenseBuffs = useCallback(
     (trigger: PendingDefenseBuffTrigger) => {
       const snapshot = latestState.current;
       if (!snapshot.pendingDefenseBuffs.length) return;
-      const { ready, pending } = partitionPendingDefenseBuffs(
+      const { ready, pending, expired } = partitionPendingDefenseBuffs(
         snapshot.pendingDefenseBuffs,
         trigger
       );
-      if (!ready.length) return;
-      ready.forEach(applyPendingDefenseBuff);
+      if (!ready.length && !expired.length) return;
+
+      if (expired.length) {
+        archiveExpiredDefenseBuffs(expired, {
+          cause: "phase",
+          phase: trigger.phase,
+          round: trigger.round,
+          turnId: trigger.turnId,
+        });
+        expired.forEach(({ buff, reason }) => {
+          const owner = snapshot.players[buff.owner];
+          if (!owner) return;
+          pushLog(
+            `[Defense] ${owner.hero.name}'s ${buff.statusId} expires${
+              reason ? ` (${reason})` : ""
+            }.`
+          );
+        });
+      }
+      if (ready.length) {
+        ready.forEach(applyPendingDefenseBuff);
+      }
       dispatch({ type: "SET_PENDING_DEFENSE_BUFFS", buffs: pending });
     },
-    [applyPendingDefenseBuff, dispatch, latestState]
+    [
+      applyPendingDefenseBuff,
+      archiveExpiredDefenseBuffs,
+      dispatch,
+      latestState,
+      pushLog,
+    ]
   );
 
   const triggerDefenseBuffs = useCallback(
@@ -364,9 +537,81 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     },
     [releasePendingDefenseBuffs, state.round]
   );
+  const expireBuffsOnKo = useCallback(
+    (side: Side) => {
+      const snapshot = latestState.current;
+      if (!snapshot.pendingDefenseBuffs.length) return;
+      const { pending, expired } = partitionBuffsByKo(
+        snapshot.pendingDefenseBuffs,
+        side
+      );
+      if (!expired.length) return;
+      dispatch({ type: "SET_PENDING_DEFENSE_BUFFS", buffs: pending });
+      archiveExpiredDefenseBuffs(expired, {
+        cause: "ko",
+        round: state.round,
+        turnId: currentTurnIdRef.current,
+      });
+      expired.forEach(({ buff, reason }) => {
+        const owner = snapshot.players[buff.owner];
+        if (!owner) return;
+        pushLog(
+          `[Defense] ${owner.hero.name}'s ${buff.statusId} expires${
+            reason ? ` (${reason})` : ""
+          }.`
+        );
+      });
+    },
+    [
+      archiveExpiredDefenseBuffs,
+      dispatch,
+      latestState,
+      pushLog,
+      state.round,
+    ]
+  );
+  const lastAttackMarkerRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!pendingAttack) {
+      lastAttackMarkerRef.current = null;
+      return;
+    }
+    const marker = [
+      pendingAttack.attacker,
+      pendingAttack.defender,
+      pendingAttack.ability.combo,
+      pendingAttack.baseDamage,
+      pendingAttack.dice.join(""),
+    ].join(":");
+    if (lastAttackMarkerRef.current === marker) {
+      return;
+    }
+    lastAttackMarkerRef.current = marker;
+    triggerDefenseBuffs("nextAttackCommit", pendingAttack.attacker);
+  }, [pendingAttack, triggerDefenseBuffs]);
+  const lastHpRef = useRef({ you: players.you.hp, ai: players.ai.hp });
+  useEffect(() => {
+    const previous = lastHpRef.current;
+    if (players.you.hp <= 0 && previous.you > 0) {
+      expireBuffsOnKo("you");
+    }
+    if (players.ai.hp <= 0 && previous.ai > 0) {
+      expireBuffsOnKo("ai");
+    }
+    lastHpRef.current = { you: players.you.hp, ai: players.ai.hp };
+  }, [expireBuffsOnKo, players.ai.hp, players.you.hp]);
   const [activeTransition, setActiveTransition] =
     useState<ActiveTransition | null>(null);
   const [activeCue, setActiveCue] = useState<ActiveCue | null>(null);
+  const lastRoundRef = useRef(state.round);
+  useEffect(() => {
+    const prevRound = lastRoundRef.current ?? 0;
+    if (state.round > 0 && state.round > prevRound) {
+      triggerDefenseBuffs("roundEnd", "you");
+      triggerDefenseBuffs("roundEnd", "ai");
+    }
+    lastRoundRef.current = state.round;
+  }, [state.round, triggerDefenseBuffs]);
   const handleTurnStartStats = useCallback(
     ({
       side,
@@ -608,13 +853,16 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       ai: { turnId: currentTurnIdRef.current, amount: 0 },
     };
     firstPlayerRef.current = null;
+    setDefenseBuffExpirations([]);
     const youHeroId = players.you.hero.id;
     const aiHeroId = players.ai.hero.id;
     const youVersion = HERO_VERSION_MAP[youHeroId] ?? "0.0.0";
     const aiVersion = HERO_VERSION_MAP[aiHeroId] ?? "0.0.0";
+    const resolvedYouHero = applyDefenseVersionOverride(players.you.hero);
+    const resolvedAiHero = applyDefenseVersionOverride(players.ai.hero);
     const heroDefenseVersion = {
-      [youHeroId]: players.you.hero.defenseVersion ?? "v1",
-      [aiHeroId]: players.ai.hero.defenseVersion ?? "v1",
+      [youHeroId]: resolvedYouHero.defenseVersion ?? "v1",
+      [aiHeroId]: resolvedAiHero.defenseVersion ?? "v1",
     };
     const heroSchemaHash = {
       [youHeroId]: players.you.hero.defenseSchemaHash ?? null,
@@ -637,9 +885,18 @@ export const GameController = ({ children }: { children: ReactNode }) => {
         defenseSchemaVersion: DEFENSE_SCHEMA_VERSION,
         heroDefenseVersion,
         heroSchemaHash,
+        totals: createDefenseTelemetryTotals(),
       },
     });
-  }, [players.ai.hero.id, players.you.hero.id, state.rngSeed, state.turn, stats]);
+  }, [
+    players.ai.hero.id,
+    players.you.hero.id,
+    setDefenseBuffExpirations,
+    state.rngSeed,
+    state.turn,
+    stats,
+    applyDefenseVersionOverride,
+  ]);
 
   useEffect(() => {
     turnSignatureRef.current = { side: turn, phase, round };
@@ -896,6 +1153,9 @@ export const GameController = ({ children }: { children: ReactNode }) => {
           ? rawDuration
           : 0;
 
+      const endingSide: Side = event.payload.next === "you" ? "ai" : "you";
+      triggerDefenseBuffs("turnEnd", endingSide);
+
       if (prePhase === "turnTransition") {
         const fallbackTurnDuration = getCueDuration("turn", TURN_TRANSITION_DELAY_MS);
         queueTurnCue(
@@ -912,7 +1172,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
         afterReady: options.afterReady,
       });
     },
-    [queueTurnCue, sendFlowEvent]
+    [queueTurnCue, sendFlowEvent, triggerDefenseBuffs]
   );
 
   const applyTurnEndResolution = useCallback(
@@ -1071,6 +1331,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     enqueueCue,
     interruptCue,
     scheduleCallback,
+    applyDefenseVersionOverride,
   });
 
   const onConfirmDefense = useCallback(() => {
@@ -1419,6 +1680,15 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     state.turn,
   ]);
 
+  useEffect(() => {
+    stats.updateGameMeta({
+      defenseBuffs: {
+        pending: state.pendingDefenseBuffs.map(mapBuffForStats),
+        expired: defenseBuffExpirations.map(mapExpiredBuffForStats),
+      },
+    });
+  }, [defenseBuffExpirations, state.pendingDefenseBuffs, stats]);
+
   const dataValue: ComputedData = useMemo(
     () => ({
       ability,
@@ -1444,6 +1714,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       turnTransitionSide,
       activeTransition,
       activeCue,
+      pendingDefenseBuffs: state.pendingDefenseBuffs,
+      defenseBuffExpirations,
     }),
     [
       ability,
@@ -1466,6 +1738,8 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       turnTransitionSide,
       activeTransition,
       activeCue,
+      defenseBuffExpirations,
+      state.pendingDefenseBuffs,
     ]
   );
 
@@ -1499,6 +1773,9 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       onPerformActiveAbility,
       setDefenseStatusMessage,
       setDefenseStatusRollDisplay: setDefenseStatusRoll,
+      devDefenseOverrides,
+      setDefenseVersionOverride,
+      applyDefenseVersionOverride,
     }),
     [
       attackStatusRequests,
@@ -1529,6 +1806,9 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       confirmInitialRoll,
       setDefenseStatusMessage,
       setDefenseStatusRoll,
+      devDefenseOverrides,
+      setDefenseVersionOverride,
+      applyDefenseVersionOverride,
     ]
   );
 

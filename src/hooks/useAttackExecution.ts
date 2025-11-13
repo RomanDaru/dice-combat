@@ -9,6 +9,7 @@ import type {
   OffensiveAbility,
   PlayerState,
   Side,
+  Hero,
 } from "../game/types";
 import { ActiveAbilityIds } from "../game/activeAbilities";
 import { resolvePassTurn } from "../game/flow/turnEnd";
@@ -90,6 +91,7 @@ type UseAttackExecutionArgs = {
     defenderSide: Side;
   }) => void;
   triggerDefenseBuffs: (phase: StatusTimingPhase, owner: Side) => void;
+  applyDefenseVersionOverride: (hero: Hero) => Hero;
 };
 
 export function useAttackExecution({
@@ -127,6 +129,7 @@ export function useAttackExecution({
   aiReactionRequestRef,
   queuePendingDefenseGrants,
   triggerDefenseBuffs,
+  applyDefenseVersionOverride,
 }: UseAttackExecutionArgs) {
   const { handleAiDefenseResponse } = useAiDefenseResponse({
     setDefenseStatusMessage,
@@ -146,6 +149,7 @@ export function useAttackExecution({
     setPlayer,
     queuePendingDefenseGrants,
     triggerDefenseBuffs,
+    applyDefenseVersionOverride,
   });
 
   const onConfirmAttack = useCallback(() => {

@@ -1,5 +1,10 @@
 import type { HeroId, Side } from "../game/types";
-import type { DefenseVersion } from "../defense/types";
+import type {
+  DefenseCarryOverPolicy,
+  DefenseStatusExpiry,
+  DefenseVersion,
+} from "../defense/types";
+import type { StatusId, StatusTimingPhase } from "../engine/status/types";
 
 export const STATS_SCHEMA_VERSION = "1.0.0" as const;
 
@@ -74,8 +79,10 @@ export type DefenseSchemaLog = {
   dice: number[];
   checkpoints: {
     rawDamage: number;
-    afterFlatBlock: number;
+    afterFlat: number;
     afterPrevent: number;
+    afterBlock: number;
+    afterReflect: number;
     finalDamage: number;
   };
   rulesHit: DefenseRuleHitLog[];
@@ -131,6 +138,15 @@ export type TurnStat = {
   defenseSchema?: DefenseSchemaLog;
 };
 
+export type DefenseTelemetryTotals = {
+  blockFromDefenseRoll: number;
+  blockFromStatuses: number;
+  preventHalfEvents: number;
+  preventAllEvents: number;
+  reflectSum: number;
+  wastedBlockSum: number;
+};
+
 export type DefenseMeta = {
   enableDefenseV2: boolean;
   defenseDslVersion: string;
@@ -138,6 +154,44 @@ export type DefenseMeta = {
   heroDefenseVersion?: Partial<Record<HeroId, DefenseVersion | undefined>>;
   heroSchemaHash?: Partial<Record<HeroId, string | null | undefined>>;
   turnsByVersion?: Partial<Record<DefenseVersion, number>>;
+  totals?: DefenseTelemetryTotals;
+};
+
+export type DefenseBuffSnapshot = {
+  id: string;
+  owner: Side;
+  kind: "status";
+  statusId: StatusId;
+  stacks: number;
+  usablePhase: StatusTimingPhase;
+  stackCap?: number;
+  expires?: DefenseStatusExpiry;
+  cleansable?: boolean;
+  carryOverOnKO?: DefenseCarryOverPolicy;
+  turnsRemaining?: number;
+  createdAt: {
+    round: number;
+    turnId: string;
+  };
+  source?: {
+    ruleId: string;
+    effectId?: string;
+  };
+};
+
+export type DefenseBuffExpiredSnapshot = DefenseBuffSnapshot & {
+  reason: string;
+  expiredAt: {
+    round: number;
+    turnId: string;
+    phase?: StatusTimingPhase;
+    cause: "phase" | "ko";
+  };
+};
+
+export type DefenseBuffSnapshotSet = {
+  pending: DefenseBuffSnapshot[];
+  expired: DefenseBuffExpiredSnapshot[];
 };
 
 export type GameStat = {
@@ -186,6 +240,7 @@ export type GameStat = {
   integrity?: StatsIntegrity;
   metadata?: Record<string, unknown>;
   defenseMeta?: DefenseMeta;
+  defenseBuffs?: DefenseBuffSnapshotSet;
 };
 
 export type StatsSnapshot = {

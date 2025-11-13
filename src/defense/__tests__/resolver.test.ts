@@ -51,7 +51,10 @@ describe("resolveDefenseSchema", () => {
     expect(result.logs.length).toBeGreaterThan(0);
     expect(result.checkpoints).toMatchObject({
       rawDamage: 8,
-      afterFlatBlock: 6,
+      afterFlat: 8,
+      afterPrevent: 8,
+      afterBlock: 6,
+      afterReflect: 6,
       finalDamage: 6,
     });
   });

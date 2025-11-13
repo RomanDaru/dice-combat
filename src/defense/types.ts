@@ -1,5 +1,10 @@
 import type { StatusTimingPhase } from "../engine/status/types";
 
+export type DefenseCarryOverPolicy = {
+  owner?: boolean;
+  opponent?: boolean;
+};
+
 export type DefenseVersion = "v1" | "v2";
 
 export type DefenseDieValue = 1 | 2 | 3 | 4 | 5 | 6;
@@ -126,6 +131,7 @@ export type GainStatusEffectConfig = DefenseEffectCommon & {
   usablePhase?: StatusTimingPhase;
   expires?: DefenseStatusExpiry;
   cleansable?: boolean;
+  carryOverOnKO?: DefenseCarryOverPolicy;
 };
 
 export type ApplyStatusToOpponentEffectConfig = DefenseEffectCommon & {
@@ -135,6 +141,7 @@ export type ApplyStatusToOpponentEffectConfig = DefenseEffectCommon & {
   amount?: number;
   stackCap?: number;
   expires?: DefenseStatusExpiry;
+  carryOverOnKO?: DefenseCarryOverPolicy;
 };
 
 export type PreventHalfEffectConfig = DefenseEffectCommon & {
@@ -142,6 +149,7 @@ export type PreventHalfEffectConfig = DefenseEffectCommon & {
   stacks?: number;
   usablePhase?: StatusTimingPhase;
   expires?: DefenseStatusExpiry;
+  carryOverOnKO?: DefenseCarryOverPolicy;
 };
 
 export type BuffNextAttackEffectConfig = DefenseEffectCommon & {

@@ -2,6 +2,7 @@ import type { DefenseMatcherEvaluation } from "./matchers";
 import type {
   BlockPerEffectConfig,
   DealPerEffectConfig,
+  DefenseCarryOverPolicy,
   DefenseEffectConfig,
   DefenseEffectTarget,
   DefenseStatusExpiry,
@@ -47,6 +48,7 @@ export type DefenseBlockContribution = {
   amount: number;
   target: DefenseEffectTarget;
   kind: "flatBlock" | "blockPer";
+  stage: "flat" | "additional";
   source: DefenseEffectSource;
 };
 
@@ -65,6 +67,7 @@ export type DefenseStatusGrant = {
   stackCap?: number;
   amount?: number;
   cleansable?: boolean;
+  carryOverOnKO?: DefenseCarryOverPolicy;
   source: DefenseEffectSource;
 };
 
@@ -175,6 +178,7 @@ const applyFlatBlock = (
     result.blocks.push({
       amount,
       kind: "flatBlock",
+      stage: "flat",
       target,
       source,
     });
@@ -194,6 +198,7 @@ const applyBlockPer = (
     result.blocks.push({
       amount,
       kind: "blockPer",
+      stage: "additional",
       target,
       source,
     });
@@ -236,6 +241,7 @@ const applyGainStatus = (
     stackCap: effect.stackCap,
     amount: effect.amount,
     cleansable: effect.cleansable,
+    carryOverOnKO: effect.carryOverOnKO,
     source,
   });
   recordTrace(result.traces, source, target, "applied", {
@@ -258,6 +264,7 @@ const applyPreventHalf = (
     stacks,
     usablePhase,
     expires: effect.expires,
+    carryOverOnKO: effect.carryOverOnKO,
     source,
   });
   recordTrace(result.traces, source, target, "applied", {

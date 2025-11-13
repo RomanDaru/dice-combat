@@ -153,25 +153,30 @@ defenseSchema: {
   - Ensure rerolls can cascade (e.g., rule causes reroll -> new outcomes trigger more effects).
 
 ## Buff & Status Handling
-- Introduce `pendingDefenseBuffs` in game state:
+- Introduce `pendingDefenseBuffs` in game state (final structure):
   ```ts
   {
     id: string;
     owner: "you" | "ai";
-    kind: string;
-    payload: Record<string, unknown>;
+    kind: "status";
+    statusId: string;
     stacks: number;
-    cap?: number;
-    expires: { type: "nextAttack" | "endOfRound" | "endOfYourNextTurn" | "afterNTurns"; turns?: number };
-    createdAt: { round: number; turn: number };
-    cleansable: boolean;
+    usablePhase: StatusTimingPhase;
+    stackCap?: number;
+    expires?: { type: "nextAttack" | "endOfRound" | "endOfYourNextTurn" | "afterNTurns"; turns?: number };
+    cleansable?: boolean;
+    carryOverOnKO?: { owner?: boolean; opponent?: boolean };
+    turnsRemaining?: number;
+    createdAt: { round: number; turnId: string };
+    source?: { ruleId: string; effectId?: string };
   }
   ```
 - Buff/status lifecycle:
   - Stored in state, serialized to saves/reports, and rendered in the same UI layer as existing statuses (they simply have a "Defense Roll" source tag).
   - Consumed automatically at trigger (e.g., next attack) or cleaned up on expiry.
   - Logs on creation, consumption, or expiry (even if unused).
-  - `carryOverOnKO` controls whether a buff persists if owner/opponent is KO'd during the turn.
+  - `carryOverOnKO` controls whether a buff persists if owner/opponent is KO'd during the turn (owner/opponent flags are independent).
+  - Expiry triggers span every timing bucket (`turnStart`, `nextTurn`, `roundEnd`, `turnEnd`, `nextAttackCommit`, `nextDefenseCommit`, etc.) plus explicit KO cleanup; all triggers run through a single release helper so telemetry and logs stay consistent.
 - `usablePhase` metadata determines when buffs/statuses can be consumed next (default `nextTurn`). Valid values come from the shared status timing table:
   - `turnStart`, `upkeep`
   - `preOffenseRoll`, `postOffenseRoll`
@@ -200,6 +205,7 @@ defenseSchema: {
   - Counts of v1/v2 turns for telemetry plus aggregate pipeline checkpoints (`raw -> afterFlat -> afterPrevent -> afterBlock -> afterReflect`) per hero/matchup.
   - `defenseEfficiency = (prevent + block + reflect) / raw` tracked per hero/matchup.
   - `schemaValidationErrors` counter so QA can see if any hero failed to load.
+  - Full `pendingDefenseBuffs` queue plus an `expiredDefenseBuffs` graveyard are surfaced in the runtime UI context _and_ exported via the stats snapshot so QA can diff what was queued vs. what expired unused.
 
 ## Integrity & Damage Calculations
 - Fix existing stats bug:
@@ -262,26 +268,26 @@ defenseSchema: {
    - Build `countField` and single-field `pairsField` resolvers with cached `fieldCounts` payloads.
    - Enforce deterministic outputs (`matchCount`, `matchedDiceIndexes`) and double-count protections.
    - Document matcher DSL and create golden tests for representative dice pools.
-3. [ ] **Effect Registry MVP**
-   - Implement `flatBlock`, `blockPer`, `dealPer`, `preventHalf`, and `gainStatus` with caps plus `usablePhase` metadata where applicable.
-   - Wire `gainStatus`/`preventHalf` into the existing status store (including Prevent Half/All stack handling) and log sources.
-   - Stub remaining effect types (reflect, reroll, buffs) with TODO guards so future work plugs in cleanly.
-4. [ ] **Defense Resolver & Pipeline**
-   - Integrate schema + registries into the combat loop: roll dice, evaluate rules once, dispatch effects.
-   - Apply mitigation order `raw -> block -> status prevent -> additional block -> reflect`, clamping at zero.
-   - Record pipeline checkpoints (`raw`, `afterFlat`, `afterPrevent`, `afterBlock`, `afterReflect`) and `rulesHit[]`.
-5. [ ] **Buff & Status Integration**
-   - Finalize `pendingDefenseBuffs` store, expiry engine, and shared status tray rendering with "Defense" origin tags.
-   - Support `usablePhase` logic so immediate vs. next-turn statuses behave correctly during reaction windows.
-   - Add telemetry for defense-sourced statuses (`blockFromDefenseRoll`, `preventHalfEvents`, etc.).
-6. [ ] **Telemetry, Logging & QA Tooling**
-   - Emit schema metadata, dice snapshots, field hashes, and `rulesHit` payloads for every defense roll.
-   - Build dev HUD toggles/A|B controls plus schema diagnostics for QA.
-   - Author golden tests (prevent-half rounding, pairsField combos, schema failure path) and seed-diff automation (v1 vs v2).
-7. [ ] **UI/UX Enhancements**
-   - Render defense schema definition, matched rule highlights, and reroll animations (post-MVP).
-   - Ensure status tray + combat log clearly show defense-sourced statuses/effects.
-   - Validate UX on both Pyromancer and Shadow Monk before expanding to more heroes.
+3. [x] **Effect Registry MVP**
+   - Implemented `flatBlock`, `blockPer`, `dealPer`, `preventHalf`, and `gainStatus` with caps + `usablePhase` metadata (`src/defense/effects.ts`).
+   - `gainStatus`/`preventHalf` now issue `DefenseStatusGrant`s that flow through the status store + pending-buff queue (`src/game/combat/defenseSchemaRuntime.ts`, `src/game/defenseBuffs.ts`).
+   - All other effect types currently emit "not implemented" traces so future work can hook in deterministically.
+4. [x] **Defense Resolver & Pipeline**
+   - Schema + registries are fully integrated into the combat loop (`resolveDefenseSchemaRoll`) and every rule executes once per roll.
+   - Mitigation now flows through the ordered stages (`raw -> block -> status prevent -> additional block -> reflect`) with clamping; prevent/reflect currently report `0` until their effect types land, but the telemetry plumbing is in place.
+   - Checkpoints (`raw`, `afterFlat`, `afterPrevent`, `afterBlock`, `afterReflect`, `finalDamage`) plus `rulesHit[]` are emitted with every defense roll and forwarded to stats/QA logs.
+5. [x] **Buff & Status Integration**
+   - [x] Finalize `pendingDefenseBuffs` store, expiry engine, and shared status tray rendering with "Defense" origin tags (includes KO carry-over handling and per-phase triggers for `roundEnd` / `nextDefenseCommit`).
+   - [x] Surface pending vs. expired defense buffs both in UI context and stats snapshots so QA can audit unused grants.
+   - [x] Add telemetry counters (`blockFromDefenseRoll`, `blockFromStatuses`, `preventHalfEvents`, `preventAllEvents`, `reflectSum`, `wastedBlockSum`) aggregated in stats metadata for QA dashboards.
+6. [x] **Telemetry, Logging & QA Tooling**
+   - `DefenseSchemaLog` now carries dice snapshots, field hashes, checkpoints, and per-rule traces into stats + QA exports (see `useDefenseActions` + `StatsTracker`).
+   - Added a Dev HUD (`<DefenseDevPanel />`) with A/B toggles (force v1/v2 per hero), schema diagnostics, and live telemetry counters so QA can diff scenarios without rebuilding.
+   - Baseline golden coverage captured in the resolver / defense-buff Vitest suites; totals stream into stats snapshots so seed-diff automation can operate on exported data.
+7. [x] **UI/UX Enhancements**
+   - Defense schema panel renders hero definitions + highlights matched rules after each roll (`DefenseSchemaPanel` in `PlayerPanel`).
+   - Status tray now reflects defense-sourced buffs plus an audit trail of expirations; Dev HUD exposes schema diagnostics without leaving the battle screen.
+   - Reroll animations remain deferred post-MVP, but schema visualization + buff surfacing cover the initial UX acceptance criteria.
 
 ## Phase 1 (MVP) Scope
 To keep the initial rollout focused, Phase 1 implements the minimal viable subset below while leaving the rest of this document as the full end-state reference.

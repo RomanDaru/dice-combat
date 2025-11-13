@@ -1,7 +1,8 @@
 import type {
+  DefenseCarryOverPolicy,
   DefenseSchema,
-  DefenseVersion,
   DefenseStatusExpiry,
+  DefenseVersion,
 } from "../defense/types";
 import type { GameDispatch, GameState } from "./state";
 import type { HeroSkinId } from "./heroSkinIds";
@@ -137,6 +138,9 @@ export type PendingDefenseBuff = {
   usablePhase: StatusTimingPhase;
   stackCap?: number;
   expires?: DefenseStatusExpiry;
+  cleansable?: boolean;
+  turnsRemaining?: number;
+  carryOverOnKO?: DefenseCarryOverPolicy;
   createdAt: {
     round: number;
     turnId: string;

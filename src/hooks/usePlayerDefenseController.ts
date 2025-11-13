@@ -31,6 +31,7 @@ import type {
   Combo,
   PlayerState,
   Side,
+  Hero,
 } from "../game/types";
 import {
   combineDefenseSpends,
@@ -101,6 +102,7 @@ type UsePlayerDefenseControllerArgs = {
     defenderSide: Side;
   }) => void;
   triggerDefenseBuffs: (phase: StatusTimingPhase, owner: Side) => void;
+  applyDefenseVersionOverride: (hero: Hero) => Hero;
 };
 
 export function usePlayerDefenseController({
@@ -127,6 +129,7 @@ export function usePlayerDefenseController({
   scheduleCallback,
   queuePendingDefenseGrants,
   triggerDefenseBuffs,
+  applyDefenseVersionOverride,
 }: UsePlayerDefenseControllerArgs) {
   const runDefenseResolution = useCallback(
     ({
@@ -224,6 +227,7 @@ export function usePlayerDefenseController({
         abilityName: formatAbilityName(pendingAttack.ability),
         defenseAbilityName,
       });
+      triggerDefenseBuffs("nextDefenseCommit", pendingAttack.defender);
     },
     [
       closeDiceTray,
@@ -258,11 +262,12 @@ export function usePlayerDefenseController({
     }
 
     setPhase("defense");
-    const useSchema = isDefenseSchemaEnabled(defender.hero);
+    const defenderHero = applyDefenseVersionOverride(defender.hero);
+    const useSchema = isDefenseSchemaEnabled(defenderHero);
     animateDefenseRoll((rolledDice) => {
-      if (useSchema && defender.hero.defenseSchema) {
+      if (useSchema && defenderHero.defenseSchema) {
         const schemaOutcome = resolveDefenseSchemaRoll({
-          hero: defender.hero,
+          hero: defenderHero,
           dice: rolledDice,
           attacker,
           defender,
@@ -316,6 +321,7 @@ export function usePlayerDefenseController({
     setDefenseStatusMessage,
     openDiceTray,
     triggerDefenseBuffs,
+    applyDefenseVersionOverride,
   ]);
 
   const onChooseDefenseOption = useCallback(
