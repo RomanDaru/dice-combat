@@ -95,6 +95,10 @@ import {
 } from "../config/buildInfo";
 import { ENABLE_DEFENSE_V2 } from "../config/featureFlags";
 import { defenseDebugLog } from "../utils/debug";
+import {
+  deriveVirtualTokensForSide,
+  type VirtualTokenDerivationBreakdown,
+} from "./virtualTokens";
 
 const DEF_DIE_INDEX = 2;
 const ROLL_ANIM_MS = 1300;
@@ -797,66 +801,33 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     [latestState, playerDefenseState]
   );
 
-  const applyRequestDeductions = (
-    tokens: Tokens,
-    requests: Record<StatusId, number>
-  ): Tokens => {
-    let adjusted = tokens;
-    Object.entries(requests).forEach(([rawId, amount]) => {
-      if (amount <= 0) return;
-      const statusId = rawId as StatusId;
-      const current = getStacks(adjusted, statusId, 0);
-      if (current <= 0) return;
-      const next = Math.max(0, current - amount);
-      if (next === current) return;
-      adjusted = setStacks(adjusted, statusId, next);
-    });
-    return adjusted;
-  };
-
-  const applyPendingBuffAdjustments = (
-    tokens: Tokens,
-    owner: Side,
-    pendingBuffs: PendingDefenseBuff[]
-  ): Tokens => {
-    let adjusted = tokens;
-    pendingBuffs.forEach((buff) => {
-      if (buff.owner !== owner || buff.kind !== "status") return;
-      const current = getStacks(adjusted, buff.statusId, 0);
-      let nextStacks = current + buff.stacks;
-      if (typeof buff.stackCap === "number") {
-        nextStacks = Math.min(nextStacks, buff.stackCap);
-      }
-      const statusDef = getStatus(buff.statusId);
-      if (typeof statusDef?.maxStacks === "number") {
-        nextStacks = Math.min(nextStacks, statusDef.maxStacks);
-      }
-      if (nextStacks === current) return;
-      adjusted = setStacks(adjusted, buff.statusId, nextStacks);
-    });
-    return adjusted;
-  };
-
   const virtualTokens = useMemo<Record<Side, Tokens>>(() => {
+    const debugEntries: VirtualTokenDerivationBreakdown[] = [];
     const deriveFor = (side: Side): Tokens => {
-      const player = state.players[side];
-      if (!player) return {};
-      let adjusted = player.tokens;
-      if (side === "you") {
-        adjusted = applyRequestDeductions(adjusted, attackStatusRequests);
-        adjusted = applyRequestDeductions(adjusted, defenseStatusRequests);
-      }
-      adjusted = applyPendingBuffAdjustments(
-        adjusted,
+      const result = deriveVirtualTokensForSide({
+        player: state.players[side],
         side,
-        state.pendingDefenseBuffs
-      );
-      return adjusted;
+        attackStatusRequests,
+        defenseStatusRequests,
+        pendingDefenseBuffs: state.pendingDefenseBuffs,
+      });
+      debugEntries.push(result.breakdown);
+      return result.tokens;
     };
-    return {
+    const derived = {
       you: deriveFor("you"),
       ai: deriveFor("ai"),
     };
+    if (import.meta.env?.DEV) {
+      const shouldLog = debugEntries.some(
+        (entry) =>
+          entry.requestDeltaApplied || entry.pendingBuffSummary.length > 0
+      );
+      if (shouldLog) {
+        defenseDebugLog("virtualTokens:derive", debugEntries);
+      }
+    }
+    return derived;
   }, [
     attackStatusRequests,
     defenseStatusRequests,

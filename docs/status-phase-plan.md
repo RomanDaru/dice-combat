@@ -59,6 +59,10 @@
     1. Treat pending buffs as invisible until their trigger has fired. Implementation idea: keep a `Set` of buff IDs released this turn; when `releasePendingDefenseBuffs` runs, add each `ready` buff ID to the set and only let `virtualTokens` add stacks for IDs in that set. Alternatively, drop pending-buff additions entirely and let PlayerPanel rely purely on actual tokens (safer short-term fix aligned with UX expectations).
     2. After removing premature additions, extend spend controls/other consumers to use the sanitized `virtualTokens` so they clamp requests against the same view (so Chi spends never surpass actual + confirmed grants).
     3. Keep the new integration test + DEV log as guardrails so we immediately catch regressions where pending grants leak into the UI before their trigger.
+- **2025-02-15 Instrumentation**: Added a pure helper `deriveVirtualTokensForSide` plus DEV-only logging so every derivation emits `{ actualStacks, afterRequests, pendingBuffSummary }` (`src/context/virtualTokens.ts:1-74`, `src/context/GameController.tsx:806-839`). This confirms when request clamps fire and still reports pending grants for manual auditing without leaking stacks into the UI.
+- **2025-02-15 Regression Test & Fix**:
+  - `src/context/__tests__/virtualTokens.test.ts` covers the Chi scenario (1 owned, spend 1, pending +2) and asserts the derived view stays at 0 plus surfaces the pending buff metadata once `nextDefenseCommit` eventually fires.
+  - `virtualTokens` no longer adds pending buffs at derivation time; PlayerPanel now reflects only actual tokens minus outstanding spend requests, so Chi stacks appear only after `applyPendingDefenseBuff` runs (`src/context/GameController.tsx:806-839`, `src/context/virtualTokens.ts:1-74`). Spend controls still need to switch to the shared selector (TODO).
 
 ## 3. Preconditions & Guardrails
 - Commit after each completed step (small, focused commits to keep history clean). 
