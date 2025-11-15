@@ -5,7 +5,7 @@
 **Goal**: Align status spend/grant phases so Chi, Prevent Half, and other statuses behave deterministically. Based on docs/status-core-plan.md – we are executing Variant B.
 
 ## 1. High-Level Steps
-1. ✅ **Status phase enum in place** – verify we consistently rely on StatusTimingPhase enum (already exists in src/engine/status/types.ts).
+1. ✅ **Status phase enum in place** – audit complete. `StatusTimingPhase` remains the single source of truth (`src/engine/status/types.ts:22`), and every grant/buff helper now imports it instead of raw strings (spot-checked key callsites `src/context/GameController.tsx:586`, `src/game/defenseBuffs.ts:5`, `src/hooks/usePlayerDefenseController.ts:27`). No changes needed right now; future additions must extend the enum rather than pushing ad-hoc literals.
 2. **Audit & adjust triggerDefenseBuffs calls** – make sure every phase fires exactly when intended.
 3. **Grant metadata & logs** – log source/phase when applying PendingDefenseBuff.
 4. **Prevent Half timing update** – ensure grant cannot be used in the same defense.
