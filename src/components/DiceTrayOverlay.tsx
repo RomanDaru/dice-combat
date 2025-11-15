@@ -141,6 +141,18 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
     return "Dice are locked while rolling or during defense.";
   })();
 
+  const showingStatusRoll = Boolean(statusRoll && statusDice.length > 0);
+  const trayDice = showingStatusRoll ? statusDice : dice;
+  const trayHeld = showingStatusRoll ? statusHeld : held;
+  const trayRolling = showingStatusRoll
+    ? statusRolling.length
+      ? statusRolling
+      : false
+    : rolling;
+  const trayCanInteract = showingStatusRoll ? false : canInteract;
+  const trayDefIndex = showingStatusRoll ? -1 : defenseDieIndex;
+  const trayToggleHold = showingStatusRoll ? () => {} : onToggleHold;
+
   return (
     <div className={styles.overlay}>
       <div
@@ -201,57 +213,41 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
                 )}
               </div>
             )}
-            {statusRoll && statusDice.length > 0 && (
+            <div className={styles.diceWrapper}>
+              <DiceGrid
+                dice={trayDice}
+                held={trayHeld}
+                rolling={trayRolling}
+                canInteract={trayCanInteract}
+                onToggleHold={trayToggleHold}
+                defIndex={trayDefIndex}
+                showDcLogo={false}
+                isDefensePhase={isDefenseTurn}
+                statusActive={statusActive}
+                diceImages={diceImages}
+              />
+            </div>
+            {showingStatusRoll && (
               <div
                 className={clsx(
                   styles.statusRollSection,
-                  statusRoll.outcome === "success" && styles.statusRollSuccess,
-                  statusRoll.outcome === "failure" && styles.statusRollFailure
+                  statusRoll?.outcome === "success" && styles.statusRollSuccess,
+                  statusRoll?.outcome === "failure" && styles.statusRollFailure
                 )}>
                 <div className={styles.statusRollHeader}>
-                  {statusRoll.label ?? "Status Roll"}
-                </div>
-                <div className={styles.statusRollDice}>
-                  <DiceGrid
-                    dice={statusDice}
-                    held={statusHeld}
-                    rolling={statusRolling.length ? statusRolling : false}
-                    canInteract={false}
-                    onToggleHold={() => {}}
-                    defIndex={-1}
-                    showDcLogo={false}
-                    isDefensePhase={isDefenseTurn}
-                    statusActive={statusActive}
-                    diceImages={diceImages}
-                  />
+                  {statusRoll?.label ?? "Status Roll"}
                 </div>
                 {showStatusToast && (
                   <div
                     className={clsx(
                       styles.statusToast,
-                      statusRoll.outcome === "success" && styles.toastSuccess,
-                      statusRoll.outcome === "failure" && styles.toastFailure,
-                      statusRoll.outcome === "failure" && styles.toastShake
+                      statusRoll?.outcome === "success" && styles.toastSuccess,
+                      statusRoll?.outcome === "failure" && styles.toastFailure,
+                      statusRoll?.outcome === "failure" && styles.toastShake
                     )}>
                     {defenseStatusMessage}
                   </div>
                 )}
-              </div>
-            )}
-            {!statusRoll && (
-              <div className={styles.diceWrapper}>
-                <DiceGrid
-                  dice={dice}
-                  held={held}
-                  rolling={rolling}
-                  canInteract={canInteract}
-                  onToggleHold={onToggleHold}
-                  defIndex={defenseDieIndex}
-                  showDcLogo={false}
-                  isDefensePhase={isDefenseTurn}
-                  statusActive={statusActive}
-                  diceImages={diceImages}
-                />
               </div>
             )}
             <div className={styles.actions}>
