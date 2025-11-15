@@ -189,6 +189,7 @@ type ComputedData = {
   pendingDefenseBuffs: PendingDefenseBuff[];
   defenseBuffExpirations: DefenseBuffExpirationRecord[];
   awaitingDefenseConfirmation: boolean;
+  virtualTokens: Record<Side, Tokens>;
 };
 
 type StatusSpendPhase = "attackRoll" | "defenseRoll";
@@ -795,6 +796,74 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     },
     [latestState, playerDefenseState]
   );
+
+  const applyRequestDeductions = (
+    tokens: Tokens,
+    requests: Record<StatusId, number>
+  ): Tokens => {
+    let adjusted = tokens;
+    Object.entries(requests).forEach(([rawId, amount]) => {
+      if (amount <= 0) return;
+      const statusId = rawId as StatusId;
+      const current = getStacks(adjusted, statusId, 0);
+      if (current <= 0) return;
+      const next = Math.max(0, current - amount);
+      if (next === current) return;
+      adjusted = setStacks(adjusted, statusId, next);
+    });
+    return adjusted;
+  };
+
+  const applyPendingBuffAdjustments = (
+    tokens: Tokens,
+    owner: Side,
+    pendingBuffs: PendingDefenseBuff[]
+  ): Tokens => {
+    let adjusted = tokens;
+    pendingBuffs.forEach((buff) => {
+      if (buff.owner !== owner || buff.kind !== "status") return;
+      const current = getStacks(adjusted, buff.statusId, 0);
+      let nextStacks = current + buff.stacks;
+      if (typeof buff.stackCap === "number") {
+        nextStacks = Math.min(nextStacks, buff.stackCap);
+      }
+      const statusDef = getStatus(buff.statusId);
+      if (typeof statusDef?.maxStacks === "number") {
+        nextStacks = Math.min(nextStacks, statusDef.maxStacks);
+      }
+      if (nextStacks === current) return;
+      adjusted = setStacks(adjusted, buff.statusId, nextStacks);
+    });
+    return adjusted;
+  };
+
+  const virtualTokens = useMemo<Record<Side, Tokens>>(() => {
+    const deriveFor = (side: Side): Tokens => {
+      const player = state.players[side];
+      if (!player) return {};
+      let adjusted = player.tokens;
+      if (side === "you") {
+        adjusted = applyRequestDeductions(adjusted, attackStatusRequests);
+        adjusted = applyRequestDeductions(adjusted, defenseStatusRequests);
+      }
+      adjusted = applyPendingBuffAdjustments(
+        adjusted,
+        side,
+        state.pendingDefenseBuffs
+      );
+      return adjusted;
+    };
+    return {
+      you: deriveFor("you"),
+      ai: deriveFor("ai"),
+    };
+  }, [
+    attackStatusRequests,
+    defenseStatusRequests,
+    state.pendingDefenseBuffs,
+    state.players.ai,
+    state.players.you,
+  ]);
 
   const adjustStatusRequest = useCallback(
     (phase: StatusSpendPhase, statusId: StatusId, delta: number) => {
@@ -1833,6 +1902,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
       pendingDefenseBuffs: state.pendingDefenseBuffs,
       defenseBuffExpirations,
       awaitingDefenseConfirmation: Boolean(queuedDefenseResolution),
+      virtualTokens,
     }),
     [
       ability,
@@ -1858,6 +1928,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
       defenseBuffExpirations,
       state.pendingDefenseBuffs,
       queuedDefenseResolution,
+      virtualTokens,
     ]
   );
 

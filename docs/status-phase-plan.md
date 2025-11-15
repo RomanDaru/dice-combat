@@ -47,6 +47,7 @@
   - Track pending grants per status so we can show future stacks (optional, but helps UI).
 - **Risk**: rounding/ordering mistakes (grant & spend same tick).
   - **Mitigation**: keep engine operations on actual player.tokens; derived view used for UI/validation only. Unit-test the selector (Chi 3, request 2, pending grant 1 -> view = 2).
+- **2025-02-14 Update**: `GameController` now computes `virtualTokens` by subtracting pending spend requests and layering in pending defense buffs with the same clamping rules we use when the buff resolves (`src/context/GameController.tsx:192` and `src/context/GameController.tsx:840`), and `PlayerPanel` consumes that shared view instead of rolling its own math (`src/components/PlayerPanel.tsx:17` and `src/components/PlayerPanel.tsx:27`). Remaining gaps: spend controls still read raw `player.tokens`, so they won't yet preview incoming Chi from pending grants.
 
 ## 3. Preconditions & Guardrails
 - Commit after each completed step (small, focused commits to keep history clean). 
