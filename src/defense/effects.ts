@@ -8,6 +8,7 @@ import type {
   DefenseStatusExpiry,
   FlatBlockEffectConfig,
   GainStatusEffectConfig,
+  ApplyStatusToOpponentEffectConfig,
   PreventHalfEffectConfig,
 } from "./types";
 import type {
@@ -228,9 +229,14 @@ const applyGainStatus = (
   effect: GainStatusEffectConfig,
   source: DefenseEffectSource,
   target: DefenseEffectTarget,
-  result: DefenseEffectsResult
+  result: DefenseEffectsResult,
+  matchCount: number
 ) => {
-  const stacks = effect.stacks ?? 1;
+  // Support both "On" (fixed stacks) and "For each" (amount * matchCount)
+  const stacks =
+    typeof effect.amount === "number" && Number.isFinite(effect.amount)
+      ? Math.max(0, Math.floor(effect.amount * Math.max(0, matchCount)))
+      : effect.stacks ?? 1;
   const usablePhase = effect.usablePhase ?? DEFAULT_GAIN_STATUS_PHASE;
   result.status.push({
     status: effect.status as StatusId,
@@ -241,6 +247,34 @@ const applyGainStatus = (
     stackCap: effect.stackCap,
     amount: effect.amount,
     cleansable: effect.cleansable,
+    carryOverOnKO: effect.carryOverOnKO,
+    source,
+  });
+  recordTrace(result.traces, source, target, "applied", {
+    value: stacks,
+    metadata: { status: effect.status },
+  });
+};
+
+const applyApplyStatusToOpponent = (
+  effect: ApplyStatusToOpponentEffectConfig,
+  source: DefenseEffectSource,
+  result: DefenseEffectsResult,
+  matchCount: number
+) => {
+  // Treat apply-to-opponent as an "On" effect by default; if amount is provided, scale per match
+  const stacks =
+    typeof effect.amount === "number" && Number.isFinite(effect.amount)
+      ? Math.max(0, Math.floor(effect.amount * Math.max(0, matchCount)))
+      : effect.stacks ?? 1;
+  const target: DefenseEffectTarget = "opponent";
+  const usablePhase = DEFAULT_GAIN_STATUS_PHASE;
+  result.status.push({
+    status: effect.status as StatusId,
+    target,
+    stacks,
+    usablePhase,
+    expires: effect.expires,
     carryOverOnKO: effect.carryOverOnKO,
     source,
   });
@@ -320,7 +354,10 @@ export const executeDefenseEffects = ({
         applyBlockPer(effect, source, target, result, match.matchCount);
         break;
       case "gainStatus":
-        applyGainStatus(effect, source, target, result);
+        applyGainStatus(effect, source, target, result, match.matchCount);
+        break;
+      case "applyStatusToOpponent":
+        applyApplyStatusToOpponent(effect, source, result, match.matchCount);
         break;
       case "preventHalf":
         applyPreventHalf(effect, source, target, result);

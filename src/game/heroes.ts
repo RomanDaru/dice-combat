@@ -88,6 +88,30 @@ export const HEROES: Record<HeroId, Hero> = {
     ai: {
       chooseHeld: pyroAiStrategy,
     },
+    // Defense v2 schema (can be enabled via Force v2 in Dev HUD)
+    defenseSchema: {
+      dice: 3,
+      fields: [
+        { id: "BLOCK_45", faces: [4, 5], label: "Block Triggers (4,5)" },
+        { id: "FACE_6", faces: [6], label: "Burn Trigger (6)" },
+      ],
+      rules: [
+        {
+          id: "pyro_block_per_45",
+          label: "Smolder Guard – Block",
+          matcher: { type: "countField", fieldId: "BLOCK_45" },
+          effects: [{ type: "blockPer", amount: 1 }],
+        },
+        {
+          id: "pyro_burn_on_6",
+          label: "Smolder Guard – Burn",
+          matcher: { type: "countField", fieldId: "FACE_6", min: 1, cap: 1 },
+          effects: [
+            { type: "applyStatusToOpponent", status: "burn", stacks: 1 },
+          ],
+        },
+      ],
+    },
   },
   "Shadow Monk": {
     id: "Shadow Monk",
@@ -187,6 +211,44 @@ export const HEROES: Record<HeroId, Hero> = {
         block: 1,
         apply: { chi: 1 },
       },
+    },
+    // Defense v2 schema (can be enabled via Force v2 in Dev HUD)
+    defenseSchema: {
+      dice: 4,
+      fields: [
+        { id: "LOW_123", faces: [1, 2, 3], label: "Block Triggers (1,2,3)" },
+        { id: "MID_45", faces: [4, 5], label: "Chi Triggers (4,5)" },
+        { id: "FACE_6", faces: [6], label: "Prevent Trigger (6)" },
+      ],
+      rules: [
+        {
+          id: "monk_block_per_123",
+          label: "Stone Skin – Block",
+          matcher: { type: "countField", fieldId: "LOW_123" },
+          effects: [{ type: "blockPer", amount: 1 }],
+        },
+        {
+          id: "monk_gain_chi_per_45",
+          label: "Stone Skin – Chi",
+          matcher: { type: "countField", fieldId: "MID_45" },
+          effects: [
+            // For each (4 or 5) gain 1 Chi → amount scales by matchCount
+            {
+              type: "gainStatus",
+              status: "chi",
+              amount: 1,
+              stackCap: 3,
+              usablePhase: "postDamageApply",
+            },
+          ],
+        },
+        {
+          id: "monk_prevent_on_6",
+          label: "Stone Skin – Prevent Half",
+          matcher: { type: "countField", fieldId: "FACE_6", min: 1, cap: 1 },
+          effects: [{ type: "preventHalf", stacks: 1 }],
+        },
+      ],
     },
     ai: {
       chooseHeld: monkAiStrategy,

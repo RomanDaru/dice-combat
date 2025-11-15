@@ -156,6 +156,7 @@ type UseDefenseResolutionArgs = {
     options?: { blankLineBefore?: boolean; blankLineAfter?: boolean }
   ) => void;
   setPlayer: (side: Side, player: PlayerState) => void;
+  queueDefenseResolution?: (payload: { resolve: () => void; defenderSide: Side }) => void;
 };
 
 export function useDefenseResolution({
@@ -171,16 +172,18 @@ export function useDefenseResolution({
   popDamage,
   pushLog,
   setPlayer,
+  queueDefenseResolution,
 }: UseDefenseResolutionArgs) {
   const resolveDefenseWithEvents = useCallback<DefenseResolutionHandler>(
     (resolution, context) => {
-      const { attackerSide, defenderSide } = context;
-      setPlayer(attackerSide, resolution.updatedAttacker);
-      setPlayer(defenderSide, resolution.updatedDefender);
-      if (resolution.logs.length) pushLog(resolution.logs);
-      resolution.fx.forEach(({ side, amount, kind }) =>
-        popDamage(side, amount, kind)
-      );
+      const executeResolution = () => {
+        const { attackerSide, defenderSide } = context;
+        setPlayer(attackerSide, resolution.updatedAttacker);
+        setPlayer(defenderSide, resolution.updatedDefender);
+        if (resolution.logs.length) pushLog(resolution.logs);
+        resolution.fx.forEach(({ side, amount, kind }) =>
+          popDamage(side, amount, kind)
+        );
 
       let summaryDelay = 600;
 
@@ -229,6 +232,17 @@ export function useDefenseResolution({
           handleFlowEvent(event, followUp ? { afterReady: followUp } : undefined);
         });
       });
+      };
+
+      if (queueDefenseResolution && context.defenderSide === "ai") {
+        queueDefenseResolution({
+          defenderSide: context.defenderSide,
+          resolve: executeResolution,
+        });
+        return;
+      }
+
+      executeResolution();
     },
     [
       aiPlay,
@@ -243,6 +257,7 @@ export function useDefenseResolution({
       scheduleCallback,
       setPhase,
       setPlayer,
+      queueDefenseResolution,
     ]
   );
 

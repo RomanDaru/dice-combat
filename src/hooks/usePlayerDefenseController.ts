@@ -32,6 +32,7 @@ import type {
   PlayerState,
   Side,
   Hero,
+  Tokens,
 } from "../game/types";
 import {
   combineDefenseSpends,
@@ -41,11 +42,13 @@ import {
 } from "./defenseActions.helpers";
 import type { DefenseResolutionHandler } from "./useDefenseResolution";
 import { getPreDefenseReactionDescriptor } from "../game/combat/preDefenseReactions";
+import { defenseDebugLog } from "../utils/debug";
 
 export type PlayerDefenseState = {
   roll: DefenseRollResult;
   selectedCombo: Combo | null;
   baseResolution: BaseDefenseResolution;
+  schemaLogs?: string[];
 };
 
 type UsePlayerDefenseControllerArgs = {
@@ -131,6 +134,35 @@ export function usePlayerDefenseController({
   triggerDefenseBuffs,
   applyDefenseVersionOverride,
 }: UsePlayerDefenseControllerArgs) {
+  const mergePlayerWithSchema = useCallback(
+    (base: PlayerState, schemaPlayer: PlayerState): PlayerState | null => {
+      let changed = false;
+      let next: PlayerState = base;
+      if (base.hp !== schemaPlayer.hp) {
+        next = { ...next, hp: schemaPlayer.hp };
+        changed = true;
+      }
+      const mergedTokens: Tokens = { ...base.tokens };
+      const schemaTokens = schemaPlayer.tokens ?? {};
+      Object.entries(schemaTokens).forEach(([statusId, stacks]) => {
+        const current = mergedTokens[statusId] ?? 0;
+        if (stacks > 0) {
+          if (current !== stacks) {
+            mergedTokens[statusId] = stacks;
+            changed = true;
+          }
+        } else if (current !== 0) {
+          delete mergedTokens[statusId];
+          changed = true;
+        }
+      });
+      if (changed) {
+        next = { ...next, tokens: mergedTokens };
+      }
+      return changed ? next : null;
+    },
+    []
+  );
   const runDefenseResolution = useCallback(
     ({
       attacker,
@@ -154,6 +186,18 @@ export function usePlayerDefenseController({
         baseResolution,
         spendRequests: defenseStatusRequests,
       });
+      const spendTotals = aggregateStatusSpendSummaries(
+        defensePlan.defense.statusSpends
+      );
+      defenseDebugLog("defensePlan", {
+        incomingDamage,
+        baseBlock: baseResolution.baseBlock,
+        bonusBlock: spendTotals.bonusBlock,
+        spendRequests: defenseStatusRequests,
+        statusSpends: defensePlan.defense.statusSpends,
+        defenderTokensBefore: defender.tokens,
+        defenderTokensAfter: defensePlan.defenderAfter.tokens,
+      });
 
       let updatedDefender = defensePlan.defenderAfter;
       defensePlan.defense.statusSpends.forEach((spend) => {
@@ -163,12 +207,12 @@ export function usePlayerDefenseController({
         }
       });
 
-      setPlayer(pendingAttack.defender, updatedDefender);
+      setPlayer(pendingAttack.defender, updatedDefender, "runDefensePlan:updatedDefender");
 
       const currentAttacker =
         latestState.current.players[pendingAttack.attacker];
       if (currentAttacker && currentAttacker !== attacker) {
-        setPlayer(pendingAttack.attacker, attacker);
+        setPlayer(pendingAttack.attacker, attacker, "runDefensePlan:attackerSync");
       }
 
       const attackStatusSpends = pendingAttack.modifiers?.statusSpends ?? [];
@@ -186,16 +230,6 @@ export function usePlayerDefenseController({
         defensePlan.defense,
         pendingDefenseSpends
       );
-
-      if (schemaLogs?.length) {
-        pushLog(
-          [
-            `[Defense] ${defender.hero.name} resolves defense schema:`,
-            ...schemaLogs,
-          ],
-          { blankLineBefore: true }
-        );
-      }
 
       triggerDefenseBuffs("preApplyDamage", pendingAttack.defender);
       const resolution = resolveAttack({
@@ -219,6 +253,15 @@ export function usePlayerDefenseController({
       const defenseAbilityName = extractDefenseAbilityName(
         mergedDefense as DefenseSelectionCarrier | null
       );
+      if (schemaLogs?.length) {
+        pushLog(
+          [
+            `[Defense] ${defender.hero.name} resolves defense schema:`,
+            ...schemaLogs,
+          ],
+          { blankLineBefore: true }
+        );
+      }
       resolveDefenseWithEvents(resolution, {
         attackerSide: pendingAttack.attacker,
         defenderSide: pendingAttack.defender,
@@ -227,7 +270,12 @@ export function usePlayerDefenseController({
         abilityName: formatAbilityName(pendingAttack.ability),
         defenseAbilityName,
       });
+      defenseDebugLog("defenseResolution", {
+        summary: resolution.summary,
+        defenseStatusSpends: defensePlan.defense.statusSpends,
+      });
       triggerDefenseBuffs("nextDefenseCommit", pendingAttack.defender);
+      triggerDefenseBuffs("postDamageApply", pendingAttack.defender);
     },
     [
       closeDiceTray,
@@ -264,8 +312,11 @@ export function usePlayerDefenseController({
     setPhase("defense");
     const defenderHero = applyDefenseVersionOverride(defender.hero);
     const useSchema = isDefenseSchemaEnabled(defenderHero);
+    const defenseDiceCount =
+      useSchema && defenderHero.defenseSchema ? defenderHero.defenseSchema.dice : undefined;
     animateDefenseRoll((rolledDice) => {
       if (useSchema && defenderHero.defenseSchema) {
+        const defenderTokensBefore = { ...defender.tokens };
         const schemaOutcome = resolveDefenseSchemaRoll({
           hero: defenderHero,
           dice: rolledDice,
@@ -274,18 +325,65 @@ export function usePlayerDefenseController({
           incomingDamage:
             pendingAttack.baseDamage ?? pendingAttack.ability.damage,
         });
+        const formatPendingGrant = (grant: DefenseStatusGrant) => {
+          const targetName =
+            grant.target === "opponent"
+              ? attacker.hero.name
+              : defender.hero.name;
+          const timingLabel =
+            grant.usablePhase === "immediate"
+              ? "now"
+              : grant.usablePhase === "nextTurn"
+              ? "next turn"
+              : grant.usablePhase ?? "later";
+          return `[Status Pending] ${targetName} will gain ${grant.status} (${grant.stacks ?? 1} stack${
+            (grant.stacks ?? 1) === 1 ? "" : "s"
+          }) at ${timingLabel}.`;
+        };
         if (schemaOutcome.pendingStatusGrants.length) {
+          pushLog(schemaOutcome.pendingStatusGrants.map(formatPendingGrant));
           queuePendingDefenseGrants({
             grants: schemaOutcome.pendingStatusGrants,
             attackerSide: pendingAttack.attacker,
             defenderSide: pendingAttack.defender,
           });
         }
-        runDefenseResolution({
-          attacker: schemaOutcome.updatedAttacker,
-          defender: schemaOutcome.updatedDefender,
+        defenseDebugLog("schemaDefenseRoll", {
+          hero: defenderHero.id,
+          dice: rolledDice,
+          baseBlock: schemaOutcome.baseResolution.baseBlock,
+          pendingStatusGrants: schemaOutcome.pendingStatusGrants,
+          defenderTokensBefore,
+          defenderTokensAfter: schemaOutcome.updatedDefender.tokens,
+        });
+        const mergedDefender = mergePlayerWithSchema(
+          defender,
+          schemaOutcome.updatedDefender
+        );
+        if (mergedDefender) {
+          setPlayer(
+            pendingAttack.defender,
+            mergedDefender,
+            "schemaRoll:applyImmediateDefender"
+          );
+        }
+        const mergedAttacker = mergePlayerWithSchema(
+          attacker,
+          schemaOutcome.updatedAttacker
+        );
+        if (mergedAttacker) {
+          setPlayer(
+            pendingAttack.attacker,
+            mergedAttacker,
+            "schemaRoll:applyImmediateAttacker"
+          );
+        }
+        setPlayerDefenseState({
+          roll: schemaOutcome.selection.roll,
+          selectedCombo: null,
           baseResolution: schemaOutcome.baseResolution,
           schemaLogs: schemaOutcome.logs,
+          tokenSnapshot: defenderTokensBefore,
         });
         return;
       }
@@ -306,8 +404,9 @@ export function usePlayerDefenseController({
         roll: rollResult,
         selectedCombo: initialCombo,
         baseResolution: initialBaseResolution,
+        tokenSnapshot: { ...defender.tokens },
       });
-    });
+    }, 700, { diceCount: defenseDiceCount });
   }, [
     animateDefenseRoll,
     latestState,
@@ -315,14 +414,16 @@ export function usePlayerDefenseController({
     playerDefenseState,
     pushLog,
     queuePendingDefenseGrants,
+    setPlayer,
     setDefenseStatusRollDisplay,
     setPhase,
     setPlayerDefenseState,
     setDefenseStatusMessage,
-    openDiceTray,
-    triggerDefenseBuffs,
-    applyDefenseVersionOverride,
-  ]);
+  openDiceTray,
+  triggerDefenseBuffs,
+  applyDefenseVersionOverride,
+  mergePlayerWithSchema,
+]);
 
   const onChooseDefenseOption = useCallback(
     (combo: Combo | null) => {
@@ -334,11 +435,12 @@ export function usePlayerDefenseController({
           ...prev,
           selectedCombo: combo,
           baseResolution: nextBaseResolution,
+          tokenSnapshot: prev.tokenSnapshot,
         };
       });
     },
     [setPlayerDefenseState]
-  ]);
+  );
 
   const onConfirmDefense = useCallback(() => {
     if (!pendingAttack || pendingAttack.defender !== "you") return;
@@ -347,27 +449,32 @@ export function usePlayerDefenseController({
 
     const snapshot = latestState.current;
     const attacker = snapshot.players[pendingAttack.attacker];
-    let defender = snapshot.players[pendingAttack.defender];
+    const defender = snapshot.players[pendingAttack.defender];
     if (!attacker || !defender || attacker.hp <= 0 || defender.hp <= 0) {
       setPlayerDefenseState(null);
       return;
     }
 
-    const selection = selectDefenseOptionByCombo(
-      defenseState.roll,
-      defenseState.selectedCombo ?? null
-    );
-    const baseResolution = resolveDefenseSelection(selection);
+    const baseResolution = defenseState.baseResolution;
+    defenseDebugLog("confirmDefense", {
+      attacker: pendingAttack.attacker,
+      defender: pendingAttack.defender,
+      baseBlock: baseResolution.baseBlock,
+      defenseStatusRequests,
+      defenderTokens: defender.tokens,
+    });
     runDefenseResolution({
       attacker,
       defender,
       baseResolution,
+      schemaLogs: defenseState.schemaLogs,
     });
   }, [
-    closeDiceTray,
+    defenseStatusRequests,
     latestState,
     pendingAttack,
     playerDefenseState,
+    runDefenseResolution,
     setPlayerDefenseState,
   ]);
 

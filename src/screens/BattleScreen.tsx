@@ -217,9 +217,15 @@ const MatchSummaryPanel = () => {
 
 const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
   const { state } = useGame();
-  const { handleReset, startInitialRoll, confirmInitialRoll, openDiceTray } =
-    useGameController();
-  const { phase, initialRoll, activeCue } = useGameData();
+  const {
+    handleReset,
+    startInitialRoll,
+    confirmInitialRoll,
+    openDiceTray,
+    onConfirmDefenseResolution,
+  } = useGameController();
+  const { phase, initialRoll, activeCue, awaitingDefenseConfirmation } =
+    useGameData();
   const { players, turn, round } = state;
   const you = players.you;
   const ai = players.ai;
@@ -531,6 +537,14 @@ const BattleContent = ({ onBackToHeroSelect }: BattleScreenProps) => {
                       <div className={styles.turnProgressWrap}>
                         <TurnProgress phase={phase} />
                       </div>
+                      {awaitingDefenseConfirmation && (
+                        <button
+                          type='button'
+                          className={styles.turnPassButton}
+                          onClick={onConfirmDefenseResolution}>
+                          Continue
+                        </button>
+                      )}
                     </div>
                   </div>
 

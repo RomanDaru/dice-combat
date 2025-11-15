@@ -43,7 +43,6 @@ export const buildPendingDefenseBuffsFromGrants = (
   context: BuildBuffsContext
 ): PendingDefenseBuff[] =>
   grants
-    .filter((grant) => grant.usablePhase !== "immediate")
     .map((grant, index) => ({
       id: createBuffId(context.turnId, index),
       owner: resolveOwnerForGrant(

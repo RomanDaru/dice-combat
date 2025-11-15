@@ -2,7 +2,7 @@
   position: absolute;
   inset: 0;
   background: rgba(10, 12, 25, 0.68);
-  backdrop-filter: blur(6px);
+  backdrop-filter: none;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -107,6 +107,82 @@
   background: rgba(8, 11, 24, 0.72);
   border: 1px solid rgba(148, 163, 184, 0.25);
   box-shadow: 0 8px 18px rgba(5, 11, 25, 0.35);
+}
+
+.statusPrompt {
+  width: 100%;
+  padding: clamp(12px, 2vw, 18px);
+  border-radius: clamp(12px, 2vw, 16px);
+  background: rgba(8, 12, 28, 0.78);
+  border: 1px solid rgba(147, 197, 253, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.statusPromptHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.statusBadge {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.18);
+  color: #dbeafe;
+}
+
+.statusPromptTitle {
+  font-size: clamp(13px, 1.6vw, 16px);
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.statusPromptBody {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.statusPromptText {
+  flex: 1;
+  min-width: 220px;
+  font-size: clamp(12px, 1.4vw, 14px);
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.statusPromptControls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 180px;
+}
+
+.statusPromptButton {
+  min-width: 160px;
+}
+
+.statusPromptHint {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.9);
+  text-align: right;
+}
+
+.statusPromptResult {
+  width: 100%;
+  font-size: 13px;
+  color: rgba(226, 232, 240, 0.9);
+  text-align: center;
 }
 
 .statusRollHeader {

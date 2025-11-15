@@ -19,6 +19,7 @@ import type {
   PendingDefenseBuff,
   Hero,
   HeroId,
+  Tokens,
 } from "../game/types";
 import type {
   BaseDefenseResolution,
@@ -93,6 +94,7 @@ import {
   DEFENSE_SCHEMA_VERSION,
 } from "../config/buildInfo";
 import { ENABLE_DEFENSE_V2 } from "../config/featureFlags";
+import { defenseDebugLog } from "../utils/debug";
 
 const DEF_DIE_INDEX = 2;
 const ROLL_ANIM_MS = 1300;
@@ -117,6 +119,8 @@ type PlayerDefenseState = {
   roll: DefenseRollResult;
   selectedCombo: Combo | null;
   baseResolution: BaseDefenseResolution;
+  schemaLogs?: string[];
+  tokenSnapshot: Tokens | null;
 };
 
 type DefenseBuffExpirationRecord = PendingDefenseBuff & {
@@ -184,6 +188,7 @@ type ComputedData = {
   activeCue: ActiveCue | null;
   pendingDefenseBuffs: PendingDefenseBuff[];
   defenseBuffExpirations: DefenseBuffExpirationRecord[];
+  awaitingDefenseConfirmation: boolean;
 };
 
 type StatusSpendPhase = "attackRoll" | "defenseRoll";
@@ -213,6 +218,7 @@ type ControllerContext = {
   onTriggerStatusReaction: (statusId: StatusId) => void;
   onChooseDefenseOption: (combo: Combo | null) => void;
   onConfirmDefense: () => void;
+  onConfirmDefenseResolution: () => void;
   activeAbilities: ActiveAbility[];
   onPerformActiveAbility: (abilityId: string) => boolean;
   setDefenseStatusMessage: (message: string | null) => void;
@@ -239,11 +245,19 @@ const GameControllerContext = createContext<ControllerContext | null>(null);
 
 export const GameController = ({ children }: { children: ReactNode }) => {
   const { state, dispatch } = useGame();
+  const latestState = useLatest(state);
   const setPlayer = useCallback(
-    (side: Side, player: PlayerState) => {
+    (side: Side, player: PlayerState, reason?: string) => {
+      if (side === "you" && import.meta.env?.DEV) {
+        defenseDebugLog("setPlayer", {
+          reason,
+          tokensBefore: latestState.current.players.you?.tokens,
+          tokensAfter: player.tokens,
+        });
+      }
       dispatch({ type: "SET_PLAYER", side, player });
     },
-    [dispatch]
+    [dispatch, latestState]
   );
   const stats = useStatsTracker();
   const statsSeedRef = useRef<number | null>(null);
@@ -293,7 +307,55 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     };
   }
   const rng = rngRef.current.rng;
-  const latestState = useLatest(state);
+
+  const {
+    pushLog,
+    logPlayerAttackStart,
+    logPlayerNoCombo,
+    logAiAttackRoll,
+    logAiNoCombo,
+  } = useCombatLog();
+
+  const {
+    players,
+    turn,
+    round,
+    dice,
+    held,
+    rolling,
+    rollsLeft,
+    aiPreview,
+    pendingAttack,
+    pendingStatusClear,
+  } = state;
+  const phase = state.phase;
+
+  const applyPendingDefenseBuff = useCallback(
+    (buff: PendingDefenseBuff) => {
+      if (buff.kind !== "status") return;
+      const snapshot = latestState.current;
+      const player = snapshot.players[buff.owner];
+      if (!player) return;
+      const currentStacks = getStacks(player.tokens, buff.statusId, 0);
+      let nextStacks = currentStacks + buff.stacks;
+      if (typeof buff.stackCap === "number") {
+        nextStacks = Math.min(nextStacks, buff.stackCap);
+      }
+      const statusDef = getStatus(buff.statusId);
+      if (typeof statusDef?.maxStacks === "number") {
+        nextStacks = Math.min(nextStacks, statusDef.maxStacks);
+      }
+      if (nextStacks === currentStacks) return;
+      const nextTokens = setStacks(player.tokens, buff.statusId, nextStacks);
+      setPlayer(buff.owner, { ...player, tokens: nextTokens }, "pendingDefenseBuff:apply");
+      pushLog(
+        `[Status Ready] ${player.hero.name} gains ${buff.statusId} (${nextStacks} stack${
+          nextStacks === 1 ? "" : "s"
+        }).`
+      );
+    },
+    [latestState, pushLog, setPlayer]
+  );
 
   const enqueuePendingDefenseGrants = useCallback(
     ({
@@ -313,22 +375,12 @@ export const GameController = ({ children }: { children: ReactNode }) => {
         turnId: currentTurnIdRef.current,
       });
       if (entries.length === 0) return;
-      const snapshot = latestState.current;
       dispatch({
         type: "SET_PENDING_DEFENSE_BUFFS",
-        buffs: [...snapshot.pendingDefenseBuffs, ...entries],
-      });
-      entries.forEach((entry) => {
-        const owner = snapshot.players[entry.owner];
-        if (!owner) return;
-        pushLog(
-          `[Defense] ${owner.hero.name} primes ${entry.statusId} (${entry.stacks} stack${
-            entry.stacks === 1 ? "" : "s"
-          }) for ${entry.usablePhase}.`
-        );
+        buffs: [...state.pendingDefenseBuffs, ...entries],
       });
     },
-    [dispatch, latestState, pushLog, state.round]
+    [dispatch, state.pendingDefenseBuffs, state.round]
   );
   const aiPlayRef = useRef<() => void>(() => {});
   const [attackStatusRequests, setAttackStatusRequests] = useState<
@@ -337,6 +389,11 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const [defenseStatusRequests, setDefenseStatusRequests] = useState<
     Record<StatusId, number>
   >({});
+  useEffect(() => {
+    if (import.meta.env?.DEV) {
+      defenseDebugLog("defenseStatusRequests:update", defenseStatusRequests);
+    }
+  }, [defenseStatusRequests]);
   const [turnStatusBudgets, setTurnStatusBudgets] = useState<TurnStatusBudgets>(
     () => ({
       ...createEmptyTurnStatusBudgets(),
@@ -367,6 +424,24 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
   const [defenseBuffExpirations, setDefenseBuffExpirations] = useState<
     DefenseBuffExpirationRecord[]
   >([]);
+  const [queuedDefenseResolution, setQueuedDefenseResolution] = useState<{
+    resolve: () => void;
+    defender: Side;
+  } | null>(null);
+  const queueDefenseResolution = useCallback(
+    (payload: { resolve: () => void; defender: Side }) => {
+      setQueuedDefenseResolution(payload);
+    },
+    []
+  );
+  const confirmQueuedDefenseResolution = useCallback(() => {
+    setQueuedDefenseResolution((current) => {
+      if (current) {
+        current.resolve();
+      }
+      return null;
+    });
+  }, []);
   const loadDefenseOverrides = useCallback(() => {
     if (
       !import.meta.env.DEV ||
@@ -430,32 +505,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     },
     [devDefenseOverrides]
   );
-  const applyPendingDefenseBuff = useCallback(
-    (buff: PendingDefenseBuff) => {
-      if (buff.kind !== "status") return;
-      const snapshot = latestState.current;
-      const player = snapshot.players[buff.owner];
-      if (!player) return;
-      const currentStacks = getStacks(player.tokens, buff.statusId, 0);
-      let nextStacks = currentStacks + buff.stacks;
-      if (typeof buff.stackCap === "number") {
-        nextStacks = Math.min(nextStacks, buff.stackCap);
-      }
-      const statusDef = getStatus(buff.statusId);
-      if (typeof statusDef?.maxStacks === "number") {
-        nextStacks = Math.min(nextStacks, statusDef.maxStacks);
-      }
-      if (nextStacks === currentStacks) return;
-      const nextTokens = setStacks(player.tokens, buff.statusId, nextStacks);
-      setPlayer(buff.owner, { ...player, tokens: nextTokens });
-      pushLog(
-        `[Defense] ${player.hero.name} readies ${buff.statusId} (${nextStacks} stack${
-          nextStacks === 1 ? "" : "s"
-        }).`
-      );
-    },
-    [latestState, pushLog, setPlayer]
-  );
+
 
   const archiveExpiredDefenseBuffs = useCallback(
     (
@@ -513,7 +563,13 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
         });
       }
       if (ready.length) {
-        ready.forEach(applyPendingDefenseBuff);
+        ready.forEach((buff) => {
+          if (buff.usablePhase === "immediate") {
+            applyPendingDefenseBuff(buff);
+          } else {
+            applyPendingDefenseBuff(buff);
+          }
+        });
       }
       dispatch({ type: "SET_PENDING_DEFENSE_BUFFS", buffs: pending });
     },
@@ -701,6 +757,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     (side: Side, statusId: StatusId, amount: number) => {
       if (amount <= 0) return;
       if (!turnLimitedStatusSet.has(statusId)) return;
+      defenseDebugLog("consumeStatusBudget", { side, statusId, amount });
       setTurnStatusBudgets((prev) =>
         consumeTurnStatusBudgetValue(prev, side, statusId, amount)
       );
@@ -714,6 +771,17 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     [turnStatusBudgets]
   );
 
+  const getTokenSource = useCallback(
+    (phase: StatusSpendPhase): Tokens => {
+      if (phase === "defenseRoll" && playerDefenseState?.tokenSnapshot) {
+        return playerDefenseState.tokenSnapshot;
+      }
+      const player = latestState.current.players.you;
+      return player?.tokens ?? {};
+    },
+    [latestState, playerDefenseState]
+  );
+
   const adjustStatusRequest = useCallback(
     (phase: StatusSpendPhase, statusId: StatusId, delta: number) => {
       if (delta === 0) return;
@@ -724,31 +792,68 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
 
       setter((prev) => {
         const current = prev[statusId] ?? 0;
-        const player = latestState.current.players.you;
-        if (!player) return prev;
-        const ownedStacks = getStacks(player.tokens, statusId, 0);
+        const tokenSource = getTokenSource(phase);
+        const ownedStacks = getStacks(tokenSource, statusId, 0);
         const isTurnLimited = turnLimitedStatusSet.has(statusId);
         let limit = ownedStacks;
+        let budgetValue: number | null = null;
         if (isTurnLimited) {
           const budget = getStatusBudget("you", statusId);
-          limit = Math.min(limit, budget);
+          budgetValue = budget;
+          if (budget > 0) {
+            limit = Math.min(limit, budget);
+          }
         }
-        if (delta > 0 && limit <= 0) return prev;
+        if (delta > 0 && limit <= 0) {
+          defenseDebugLog("adjustStatusRequest:blocked", {
+            phase,
+            statusId,
+            delta,
+            ownedStacks,
+            limit,
+            budget: budgetValue,
+            current,
+          });
+          return prev;
+        }
         let nextValue = current + delta;
         if (delta > 0) {
           nextValue = Math.max(0, Math.min(nextValue, limit));
         } else {
           nextValue = Math.max(0, nextValue);
         }
-        if (nextValue === current) return prev;
+        if (nextValue === current) {
+          defenseDebugLog("adjustStatusRequest:noChange", {
+            phase,
+            statusId,
+            delta,
+            ownedStacks,
+            limit,
+            budget: budgetValue,
+            current,
+          });
+          return prev;
+        }
+        const logPayload = {
+          phase,
+          statusId,
+          delta,
+          ownedStacks,
+          limit,
+            budget: budgetValue,
+          previous: current,
+          next: nextValue,
+        };
         if (nextValue <= 0) {
           const { [statusId]: _, ...rest } = prev;
+          defenseDebugLog("adjustStatusRequest:cleared", logPayload);
           return rest;
         }
+        defenseDebugLog("adjustStatusRequest:update", logPayload);
         return { ...prev, [statusId]: nextValue };
       });
     },
-    [getStatusBudget, latestState, turnLimitedStatusSet]
+    [getStatusBudget, getTokenSource, turnLimitedStatusSet]
   );
 
   const requestStatusSpend = useCallback(
@@ -774,13 +879,16 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
   }, []);
 
   useEffect(() => {
-    const clampTurnLimited = (prev: Record<StatusId, number>) => {
-      const player = latestState.current.players.you;
-      if (!player || turnLimitedStatusSet.size === 0) return prev;
+    const clampTurnLimited = (
+      prev: Record<StatusId, number>,
+      phase: StatusSpendPhase
+    ) => {
+      if (turnLimitedStatusSet.size === 0) return prev;
+      const tokenSource = getTokenSource(phase);
       let next = prev;
       Object.entries(prev).forEach(([statusId, requested]) => {
         if (!turnLimitedStatusSet.has(statusId as StatusId)) return;
-        const owned = getStacks(player.tokens, statusId, 0);
+        const owned = getStacks(tokenSource, statusId, 0);
         const budget = getStatusBudget("you", statusId as StatusId);
         const maxAllowed = Math.min(owned, budget);
         if (requested <= maxAllowed) return;
@@ -794,9 +902,9 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
       return next;
     };
 
-    setAttackStatusRequests((prev) => clampTurnLimited(prev));
-    setDefenseStatusRequests((prev) => clampTurnLimited(prev));
-  }, [getStatusBudget, latestState, turnLimitedStatusSet]);
+    setAttackStatusRequests((prev) => clampTurnLimited(prev, "attackRoll"));
+    setDefenseStatusRequests((prev) => clampTurnLimited(prev, "defenseRoll"));
+  }, [getStatusBudget, getTokenSource, turnLimitedStatusSet]);
 
 
   const triggerImpactLock = useCallback((kind: "hit" | "reflect") => {
@@ -826,20 +934,6 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     },
     []
   );
-
-  const {
-    players,
-    turn,
-    round,
-    dice,
-    held,
-    rolling,
-    rollsLeft,
-    aiPreview,
-    pendingAttack,
-    pendingStatusClear,
-  } = state;
-  const phase = state.phase;
 
   useEffect(() => {
     if (statsSeedRef.current === state.rngSeed) {
@@ -1008,14 +1102,6 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     [schedule, setFloatDamage, setShake, triggerImpactLock]
   );
 
-  const {
-    pushLog,
-    logPlayerAttackStart,
-    logPlayerNoCombo,
-    logAiAttackRoll,
-    logAiNoCombo,
-  } = useCombatLog();
-
   const readyForActing = useMemo(() => detectCombos(dice), [dice]);
   const readyForAI = useMemo(
     () => detectCombos(aiPreview.dice),
@@ -1064,26 +1150,22 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
   const initialRoll = state.initialRoll;
   const defenseBaseBlock = playerDefenseState?.baseResolution.baseBlock ?? 0;
   useEffect(() => {
-    if (!playerDefenseState || defenseBaseBlock > 0) return;
-    setDefenseStatusRequests((prev) => {
-      if (!("chi" in prev)) return prev;
-      const { chi: _ignored, ...rest } = prev;
-      return rest;
-    });
+    // no-op: keep defense requests until they are consumed
   }, [playerDefenseState, defenseBaseBlock]);
 
   useEffect(() => {
     if (turnLimitedStatusSet.size === 0) return;
-    const currentPlayer = turn === "you" ? players.you : players.ai;
     setTurnStatusBudgets((prev) => {
       let next = prev;
       turnLimitedStatusSet.forEach((statusId) => {
-        const owned = getStacks(currentPlayer.tokens, statusId, 0);
-        next = setTurnStatusBudgetValue(next, turn, statusId, owned);
+        const ownedYou = getStacks(players.you.tokens, statusId, 0);
+        const ownedAi = getStacks(players.ai.tokens, statusId, 0);
+        next = setTurnStatusBudgetValue(next, "you", statusId, ownedYou);
+        next = setTurnStatusBudgetValue(next, "ai", statusId, ownedAi);
       });
       return next;
     });
-  }, [players.ai.tokens, players.you.tokens, turn, turnLimitedStatusSet]);
+  }, [players.ai.tokens, players.you.tokens, turnLimitedStatusSet]);
   const statusActive = !!pendingStatusClear;
   const showDcLogo =
     turn === "you" && rollsLeft === 3 && !pendingAttack && !statusActive;
@@ -1259,6 +1341,9 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     sendFlowEvent,
     resumePendingStatus,
     scheduleCallback: schedule,
+    setDefenseStatusMessage,
+    setDefenseStatusRollDisplay: setDefenseStatusRoll,
+    openDiceTray,
   });
   const { aiPlay } = useAiController({
     logAiNoCombo,
@@ -1332,6 +1417,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     interruptCue,
     scheduleCallback,
     applyDefenseVersionOverride,
+    queueDefenseResolution,
   });
 
   const onConfirmDefense = useCallback(() => {
@@ -1482,7 +1568,8 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
       },
     });
     resetRoll();
-  }, [clearCues, dispatch, resetRoll, stats, latestState]);
+    setQueuedDefenseResolution(null);
+  }, [clearCues, dispatch, resetRoll, stats, latestState, setQueuedDefenseResolution]);
 
   useEffect(() => {
     const youDefeated = players.you.hp <= 0;
@@ -1515,6 +1602,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
   }, []);
   const lastAttackCueKeyRef = useRef<string | null>(null);
   const lastStatusCueKeyRef = useRef<string | null>(null);
+  const statusTrayPromptKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (state.phase === "standoff") {
       initialStartRef.current = false;
@@ -1597,6 +1685,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
   useEffect(() => {
     if (!pendingStatusClear) {
       lastStatusCueKeyRef.current = null;
+      statusTrayPromptKeyRef.current = null;
       return;
     }
     if (pendingStatusClear.rolling) {
@@ -1625,6 +1714,19 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
       mergeWindowMs: 2200,
     });
   }, [enqueueCue, pendingStatusClear, players.ai.hero.name, players.you.hero.name]);
+
+  useEffect(() => {
+    if (!pendingStatusClear || pendingStatusClear.side !== "you") {
+      statusTrayPromptKeyRef.current = null;
+      return;
+    }
+    const key = `${pendingStatusClear.side}:${pendingStatusClear.status}:${pendingStatusClear.stacks}:${pendingStatusClear.action}`;
+    if (statusTrayPromptKeyRef.current === key) {
+      return;
+    }
+    statusTrayPromptKeyRef.current = key;
+    setDiceTrayVisible(true);
+  }, [pendingStatusClear]);
 
   useEffect(() => {
     if (
@@ -1716,6 +1818,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
       activeCue,
       pendingDefenseBuffs: state.pendingDefenseBuffs,
       defenseBuffExpirations,
+      awaitingDefenseConfirmation: Boolean(queuedDefenseResolution),
     }),
     [
       ability,
@@ -1740,6 +1843,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
       activeCue,
       defenseBuffExpirations,
       state.pendingDefenseBuffs,
+      queuedDefenseResolution,
     ]
   );
 
@@ -1768,6 +1872,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
       onUserDefenseRoll,
       onChooseDefenseOption,
       onConfirmDefense,
+      onConfirmDefenseResolution: confirmQueuedDefenseResolution,
       onTriggerStatusReaction: onUserStatusReaction,
       activeAbilities,
       onPerformActiveAbility,
@@ -1809,6 +1914,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
       devDefenseOverrides,
       setDefenseVersionOverride,
       applyDefenseVersionOverride,
+      confirmQueuedDefenseResolution,
     ]
   );
 

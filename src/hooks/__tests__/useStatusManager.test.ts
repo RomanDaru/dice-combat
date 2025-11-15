@@ -100,6 +100,9 @@ const scheduleCallback = vi.fn<(duration: number, cb: () => void) => () => void>
     return () => clearTimeout(handle);
   }
 );
+const setDefenseStatusMessage = vi.fn();
+const setDefenseStatusRollDisplay = vi.fn();
+const openDiceTray = vi.fn();
 
 const wrapHook = (pendingStatus: PendingStatusClear | null) => {
   mockState.pendingStatusClear = pendingStatus;
@@ -111,6 +114,9 @@ const wrapHook = (pendingStatus: PendingStatusClear | null) => {
       sendFlowEvent,
       resumePendingStatus,
       scheduleCallback,
+      setDefenseStatusMessage,
+      setDefenseStatusRollDisplay,
+      openDiceTray,
     })
   );
 };

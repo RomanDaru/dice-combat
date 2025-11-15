@@ -4,6 +4,7 @@ import DiceGrid from "./DiceGrid";
 import ArtButton from "./ArtButton";
 import { useGame } from "../context/GameContext";
 import { useGameData, useGameController } from "../context/GameController";
+import { getStatus } from "../engine/status";
 import styles from "./DiceTrayOverlay.module.css";
 
 type DiceTrayOverlayProps = {
@@ -19,6 +20,7 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
     statusActive,
     defenseDieIndex,
     awaitingDefenseSelection,
+    awaitingDefenseConfirmation,
     defenseRoll,
     impactLocked,
     defenseStatusRoll,
@@ -31,8 +33,10 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
     onUserDefenseRoll,
     activeAbilities,
     onPerformActiveAbility,
+    onConfirmDefenseResolution,
+    performStatusClearRoll,
   } = useGameController();
-  const { dice, held, rolling, turn, rollsLeft } = state;
+  const { dice, held, rolling, turn, rollsLeft, pendingStatusClear, players } = state;
   const statusRoll = defenseStatusRoll;
   const statusDice = statusRoll?.dice ?? [];
   const statusHeld = useMemo(() => statusDice.map(() => false), [statusDice]);
@@ -60,8 +64,10 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
     impactLocked ||
     Boolean(statusRoll?.inProgress) ||
     statusRoll?.outcome === "success";
-  const showDefenseConfirmAction = isDefenseTurn && awaitingDefenseSelection;
-  const defenseConfirmDisabled = !awaitingDefenseSelection || impactLocked;
+  const needsDefenseSelection = isDefenseTurn && awaitingDefenseSelection;
+  const needsDefenseConfirmationOnly =
+    isDefenseTurn && !needsDefenseSelection && awaitingDefenseConfirmation;
+  const defenseConfirmDisabled = impactLocked;
   const defenseActiveAbilities = isDefenseTurn ? activeAbilities : [];
   const activeAbilityDisabled =
     statusActive ||
@@ -69,6 +75,47 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
     impactLocked ||
     Boolean(statusRoll?.inProgress) ||
     statusRoll?.outcome === "success";
+
+  const statusOwnerName =
+    pendingStatusClear?.side === "you"
+      ? players.you.hero.name
+      : players.ai.hero.name;
+  const statusTargetDef = pendingStatusClear
+    ? getStatus(pendingStatusClear.status)
+    : null;
+  const statusSourceDef =
+    pendingStatusClear?.sourceStatus != null
+      ? getStatus(pendingStatusClear.sourceStatus)
+      : null;
+  const statusActionLabel =
+    pendingStatusClear?.action === "transfer"
+      ? "Attempt Transfer"
+      : "Status Roll";
+  const statusInfo = pendingStatusClear
+    ? pendingStatusClear.action === "transfer"
+      ? `${statusSourceDef?.name ?? "Status"}: ${
+          statusTargetDef?.name ?? pendingStatusClear.status
+        } (${pendingStatusClear.stacks} stack${
+          pendingStatusClear.stacks === 1 ? "" : "s"
+        })`
+      : `${statusTargetDef?.name ?? pendingStatusClear.status} stacks: ${
+          pendingStatusClear.stacks
+        }`
+    : null;
+  const statusResultText =
+    pendingStatusClear && pendingStatusClear.roll !== undefined
+      ? pendingStatusClear.success
+        ? pendingStatusClear.action === "transfer"
+          ? "-> Transfer success"
+          : "-> Cleansed"
+        : pendingStatusClear.action === "transfer"
+        ? "-> Transfer failed"
+        : "-> Status sticks"
+      : null;
+  const canRollStatus =
+    pendingStatusClear?.side === "you" &&
+    !pendingStatusClear.rolling &&
+    !impactLocked;
 
   const helperText = (() => {
     if (statusRoll) {
@@ -117,6 +164,43 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
             </ArtButton>
           </div>
           <div className={styles.trayBody}>
+            {pendingStatusClear && (
+              <div className={styles.statusPrompt}>
+                <div className={styles.statusPromptHeader}>
+                  <span className={styles.statusBadge}>{statusOwnerName}</span>
+                  <span className={styles.statusPromptTitle}>
+                    {statusTargetDef?.name ?? pendingStatusClear.status}
+                  </span>
+                </div>
+                <div className={styles.statusPromptBody}>
+                  <div className={styles.statusPromptText}>{statusInfo}</div>
+                  <div className={styles.statusPromptControls}>
+                    {pendingStatusClear.side === "you" ? (
+                      <ArtButton
+                        variant='medium'
+                        className={styles.statusPromptButton}
+                        onClick={() => performStatusClearRoll("you")}
+                        disabled={!canRollStatus}>
+                        {statusActionLabel}
+                      </ArtButton>
+                    ) : (
+                      <div className={styles.statusPromptHint}>
+                        {pendingStatusClear.rolling
+                          ? "AI is rolling..."
+                          : pendingStatusClear.action === "transfer"
+                          ? "AI will attempt a transfer."
+                          : "AI will roll automatically."}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {pendingStatusClear.roll !== undefined && (
+                  <div className={styles.statusPromptResult}>
+                    Roll: <b>{pendingStatusClear.roll}</b> {statusResultText}
+                  </div>
+                )}
+              </div>
+            )}
             {statusRoll && statusDice.length > 0 && (
               <div
                 className={clsx(
@@ -199,7 +283,7 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
                   {ability.label}
                 </ArtButton>
               ))}
-              {showDefenseConfirmAction ? (
+              {needsDefenseSelection && (
                 <ArtButton
                   variant='medium'
                   className={styles.actionButton}
@@ -207,7 +291,18 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
                   disabled={defenseConfirmDisabled}>
                   Select Defense
                 </ArtButton>
-              ) : (
+              )}
+              {needsDefenseConfirmationOnly && (
+                <ArtButton
+                  variant='medium'
+                  className={styles.actionButton}
+                  onClick={onConfirmDefenseResolution}
+                  disabled={defenseConfirmDisabled}>
+                  Confirm Defense
+                </ArtButton>
+              )}
+              {!needsDefenseSelection &&
+                !needsDefenseConfirmationOnly &&
                 !isDefenseTurn && (
                   <ArtButton
                     variant='medium'
@@ -215,8 +310,7 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
                     onClick={closeDiceTray}>
                     Select Attack
                   </ArtButton>
-                )
-              )}
+                )}
             </div>
             {helperText && (
               <div className={styles.helper}>{helperText}</div>
@@ -227,9 +321,3 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
     </div>
   );
 }
-
-
-
-
-
-

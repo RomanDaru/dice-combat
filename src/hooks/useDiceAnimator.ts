@@ -12,6 +12,7 @@ type RollsUpdater = number | ((prev: number) => number);
 type AnimateDefenseRollOptions = {
   animateSharedDice?: boolean;
   onTick?: (dice: number[]) => void;
+  diceCount?: number;
 };
 
 type AnimateDefenseDieOptions = {
@@ -154,20 +155,29 @@ export function useDiceAnimator({
       duration = 700,
       options: AnimateDefenseRollOptions = {}
     ) => {
-      const { animateSharedDice = true, onTick } = options;
+      const { animateSharedDice = true, onTick, diceCount } = options;
+      const initialCount = (() => {
+        if (typeof diceCount === "number" && diceCount > 0) return Math.floor(diceCount);
+        const len = latestState.current.dice?.length ?? 5;
+        return Math.max(1, len);
+      })();
       if (animateSharedDice && !latestState.current.savedDefenseDice) {
         setSavedDiceForDefense([...latestState.current.dice]);
       }
       if (animateSharedDice) {
-        const mask = [true, true, true, true, true];
+        const mask = Array.from({ length: initialCount }, () => true);
+        // ensure shared dice array has correct length for UI
+        const seedDice = Array.from({ length: initialCount }, () => rollDie(rng));
+        setDice(seedDice);
+        setHeld(Array.from({ length: initialCount }, () => false));
         setRolling(mask);
       }
       let workingDice = animateSharedDice
-        ? [...latestState.current.dice]
-        : Array.from({ length: 5 }, () => rollDie(rng));
+        ? [...latestState.current.dice].slice(0, initialCount)
+        : Array.from({ length: initialCount }, () => rollDie(rng));
       const startedAt = Date.now();
       const cancelInterval = scheduleInterval(() => {
-        workingDice = workingDice.map(() => rollDie(rng));
+        workingDice = Array.from({ length: initialCount }, () => rollDie(rng));
         if (animateSharedDice) {
           setDice([...workingDice]);
         }
@@ -176,10 +186,10 @@ export function useDiceAnimator({
         }
         if (Date.now() - startedAt > duration) {
           cancelInterval();
-          const result = Array.from({ length: 5 }, () => rollDie(rng));
+          const result = Array.from({ length: initialCount }, () => rollDie(rng));
           if (animateSharedDice) {
             setDice(result);
-            setRolling([false, false, false, false, false]);
+            setRolling(Array.from({ length: initialCount }, () => false));
           }
           if (onTick) {
             onTick([...result]);
@@ -188,7 +198,7 @@ export function useDiceAnimator({
         }
       }, 90);
     },
-    [latestState, rng, setDice, setRolling, setSavedDiceForDefense]
+    [latestState, rng, setDice, setHeld, setRolling, setSavedDiceForDefense]
   );
 
   const restoreDiceAfterDefense = useCallback(() => {

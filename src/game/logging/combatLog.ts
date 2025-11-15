@@ -15,6 +15,17 @@ const formatStacks = (value: number) =>
 export const formatDice = (values: number[]) => values.join(" ");
 export const indentLog = (line: string) => ` > ${line}`;
 
+const describeStatusGain = (
+  label: string,
+  count: number,
+  target: PlayerState,
+  isResource = false
+) => {
+  const tag = isResource ? resourceTag(label) : statusTag(label);
+  const verb = isResource ? "gains" : "suffers";
+  return `${target.hero.name} ${verb} ${tag} (${formatStacks(count)}).`;
+};
+
 const getStatusGainLines = (
   attackerBefore: PlayerState,
   attackerAfter: PlayerState,
@@ -22,27 +33,38 @@ const getStatusGainLines = (
   defenderAfter: PlayerState
 ) => {
   const lines: string[] = [];
-  const burnBefore = getStacks(defenderBefore.tokens, "burn", 0);
-  const burnAfter = getStacks(defenderAfter.tokens, "burn", 0);
-  if (burnAfter > burnBefore) {
-    lines.push(
-      `${defenderBefore.hero.name} gains ${statusTag("Burn")} (${formatStacks(
-        burnAfter
-      )}).`
-    );
+  const burnAttacker =
+    getStacks(attackerAfter.tokens, "burn", 0) -
+    getStacks(attackerBefore.tokens, "burn", 0);
+  if (burnAttacker > 0) {
+    lines.push(describeStatusGain("Burn", burnAttacker, attackerAfter, false));
+  }
+  const burnDefender =
+    getStacks(defenderAfter.tokens, "burn", 0) -
+    getStacks(defenderBefore.tokens, "burn", 0);
+  if (burnDefender > 0) {
+    lines.push(describeStatusGain("Burn", burnDefender, defenderAfter, false));
   }
   const chiDiff =
-    getStacks(attackerAfter.tokens, "chi", 0) - getStacks(attackerBefore.tokens, "chi", 0);
+    getStacks(attackerAfter.tokens, "chi", 0) -
+    getStacks(attackerBefore.tokens, "chi", 0);
   if (chiDiff > 0) {
-    lines.push(
-      `${attackerBefore.hero.name} gains ${resourceTag("Chi")} (+${chiDiff}).`
-    );
+    lines.push(describeStatusGain("Chi", chiDiff, attackerAfter, true));
   }
   const evasiveDiff =
-    getStacks(attackerAfter.tokens, "evasive", 0) - getStacks(attackerBefore.tokens, "evasive", 0);
+    getStacks(attackerAfter.tokens, "evasive", 0) -
+    getStacks(attackerBefore.tokens, "evasive", 0);
   if (evasiveDiff > 0) {
+    lines.push(describeStatusGain("Evasive", evasiveDiff, attackerAfter, true));
+  }
+  const preventDiff =
+    getStacks(defenderAfter.tokens, "prevent_half", 0) -
+    getStacks(defenderBefore.tokens, "prevent_half", 0);
+  if (preventDiff > 0) {
     lines.push(
-      `${attackerBefore.hero.name} gains ${resourceTag("Evasive")} (+${evasiveDiff}).`
+      `${defenderAfter.hero.name} gains ${statusTag("Prevent Half")} (${formatStacks(
+        preventDiff
+      )}).`
     );
   }
   return lines;
@@ -91,6 +113,7 @@ export const buildAttackResolutionLines = ({
   defenderBefore,
   defenderAfter,
   baseBlock,
+  defenseTokenDelta,
   attackTotals,
   defenseTotals,
   damageDealt,
@@ -103,6 +126,7 @@ export const buildAttackResolutionLines = ({
   defenderBefore: PlayerState;
   defenderAfter: PlayerState;
   baseBlock: number;
+  defenseTokenDelta?: { chiDelta: number; evasiveDelta: number; burnDelta: number };
   attackTotals: AggregatedStatusSpends;
   defenseTotals: AggregatedStatusSpends;
   damageDealt: number;
@@ -151,6 +175,29 @@ export const buildAttackResolutionLines = ({
     defenderBefore,
     defenderAfter
   );
+  if (defenseTokenDelta) {
+    if (defenseTokenDelta.chiDelta > 0) {
+      statusLines.push(
+        `${defenderBefore.hero.name} gains ${statusTag("Chi")} (+${
+          defenseTokenDelta.chiDelta
+        }).`
+      );
+    }
+    if (defenseTokenDelta.evasiveDelta > 0) {
+      statusLines.push(
+        `${defenderBefore.hero.name} gains ${statusTag("Evasive")} (+${
+          defenseTokenDelta.evasiveDelta
+        }).`
+      );
+    }
+    if (defenseTokenDelta.burnDelta > 0) {
+      statusLines.push(
+        `${defenderBefore.hero.name} suffers ${statusTag("Burn")} (${formatStacks(
+          getStacks(defenderAfter.tokens, "burn", 0)
+        )}).`
+      );
+    }
+  }
   statusLines.forEach((line) => lines.push(indentLog(line)));
 
   return lines;

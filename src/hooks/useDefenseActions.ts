@@ -127,6 +127,7 @@ type UseDefenseActionsArgs = {
   }) => void;
   triggerDefenseBuffs: (phase: StatusTimingPhase, owner: Side) => void;
   applyDefenseVersionOverride: (hero: Hero) => Hero;
+  queueDefenseResolution: (payload: { resolve: () => void; defenderSide: Side }) => void;
 };
 
 const mapDefenseSchemaLog = (
@@ -247,6 +248,7 @@ export function useDefenseActions({
   queuePendingDefenseGrants,
   triggerDefenseBuffs,
   applyDefenseVersionOverride,
+  queueDefenseResolution,
 }: UseDefenseActionsArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
@@ -399,6 +401,7 @@ export function useDefenseActions({
     popDamage,
     pushLog,
     setPlayer,
+    queueDefenseResolution,
   });
   const resolveDefenseWithEvents = useCallback(
     (
@@ -605,6 +608,7 @@ export function useDefenseActions({
     queuePendingDefenseGrants,
     triggerDefenseBuffs,
     applyDefenseVersionOverride,
+    queueDefenseResolution,
   });
 
   const {

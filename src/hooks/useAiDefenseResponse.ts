@@ -211,6 +211,7 @@ export function useAiDefenseResponse({
             defenseAbilityName,
           });
           triggerDefenseBuffs("nextDefenseCommit", defenderSide);
+          triggerDefenseBuffs("postDamageApply", defenderSide);
         });
       };
 
@@ -227,6 +228,8 @@ export function useAiDefenseResponse({
         }
         const defenseHero = resolveHeroForDefense(defenderState.hero);
         const useSchema = isDefenseSchemaEnabled(defenseHero);
+        const defenseDiceCount =
+          useSchema && defenseHero.defenseSchema ? defenseHero.defenseSchema.dice : undefined;
         animateDefenseRoll(
           (rolledDice) => {
             if (useSchema && defenseHero.defenseSchema) {
@@ -237,13 +240,30 @@ export function useAiDefenseResponse({
               defender: defenderState,
               incomingDamage: effectiveAbility.damage,
             });
-              if (schemaOutcome.pendingStatusGrants.length) {
-                queuePendingDefenseGrants({
-                  grants: schemaOutcome.pendingStatusGrants,
-                  attackerSide,
-                  defenderSide,
-                });
-              }
+            if (schemaOutcome.pendingStatusGrants.length) {
+              pushLog(
+                schemaOutcome.pendingStatusGrants.map((grant) => {
+                  const targetName =
+                    grant.target === "opponent"
+                      ? attacker.hero.name
+                      : defenderState.hero.name;
+                  const timingLabel =
+                    grant.usablePhase === "immediate"
+                      ? "now"
+                      : grant.usablePhase === "nextTurn"
+                      ? "next turn"
+                      : grant.usablePhase ?? "later";
+                  return `[Status Pending] ${targetName} will gain ${grant.status} (${grant.stacks ?? 1} stack${
+                    (grant.stacks ?? 1) === 1 ? "" : "s"
+                  }) at ${timingLabel}.`;
+                })
+              );
+              queuePendingDefenseGrants({
+                grants: schemaOutcome.pendingStatusGrants,
+                attackerSide,
+                defenderSide,
+              });
+            }
 
               const defenderAfterSchema = schemaOutcome.updatedDefender;
               if (defenderAfterSchema !== defenderState) {
@@ -253,13 +273,13 @@ export function useAiDefenseResponse({
                 setPlayer(attackerSide, schemaOutcome.updatedAttacker);
               }
 
-              const defenseSpendRequests = buildDefenseSpendRequests(
-                defenderAfterSchema,
-                effectiveAbility.damage,
-                schemaOutcome.baseResolution.baseBlock,
-                defenderSide,
-                getStatusBudget
-              );
+            const defenseSpendRequests = buildDefenseSpendRequests(
+              defenderAfterSchema,
+              effectiveAbility.damage,
+              schemaOutcome.baseResolution.baseBlock,
+              defenderSide,
+              getStatusBudget
+            );
               const defensePlan = buildDefensePlan({
                 defender: defenderAfterSchema,
                 incomingDamage: effectiveAbility.damage,
@@ -369,6 +389,7 @@ export function useAiDefenseResponse({
             onTick: (frame) => {
               patchAiDefense({ defenseDice: frame });
             },
+            diceCount: defenseDiceCount,
           }
         );
       };

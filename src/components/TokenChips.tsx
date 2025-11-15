@@ -70,6 +70,15 @@ const CHIP_CONFIG: ChipConfig[] = [
     tooltip: "Spend to roll 5+ and dodge an incoming attack.",
     showMultiplier: true,
   },
+  {
+    id: "prevent_half",
+    background: "rgba(250,204,21,.25)",
+    border: "1px solid #facc15",
+    fallbackName: "Prevent Half",
+    fallbackIcon: "PH",
+    tooltip: "Your next incoming damage is reduced by 50%.",
+    showMultiplier: true,
+  },
 ];
 
 export default function TokenChips({ tokens }: { tokens: Tokens }) {

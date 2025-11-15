@@ -5,10 +5,8 @@ import HPBar from "./HPBar";
 import TokenChips from "./TokenChips";
 import DamageOverlay from "./DamageOverlay";
 import { useGame } from "../context/GameContext";
-import { useGameData } from "../context/GameController";
-import { DefenseSchemaPanel } from "./DefenseSchemaPanel";
-import { getStatus } from "../engine/status";
-import type { StatusTimingPhase } from "../engine/status/types";
+import { useGameController } from "../context/GameController";
+import { getStacks, setStacks, type StatusId } from "../engine/status";
 import styles from "./PlayerPanel.module.css";
 
 type PlayerPanelProps = {
@@ -17,11 +15,7 @@ type PlayerPanelProps = {
 
 export function PlayerPanel({ side }: PlayerPanelProps) {
   const { state } = useGame();
-  const {
-    pendingDefenseBuffs,
-    defenseBuffExpirations,
-    defenseRoll,
-  } = useGameData();
+  const { attackStatusRequests, defenseStatusRequests } = useGameController();
   const player = state.players[side];
   const shake = state.fx.shake[side];
   const floatDamage = state.fx.floatDamage[side];
@@ -31,37 +25,25 @@ export function PlayerPanel({ side }: PlayerPanelProps) {
     side === "you"
       ? `You - ${player.hero.name}`
       : `Opponent - ${player.hero.name} (AI)`;
-
-  const formatPhase = (phase: StatusTimingPhase | undefined) => {
-    if (!phase) return "—";
-    return phase
-      .replace(/([a-z])([A-Z])/g, "$1 $2")
-      .replace(/:/g, " ")
-      .replace(/\b\w/g, (char) => char.toUpperCase());
-  };
-
-  const ownedPendingBuffs = useMemo(
-    () =>
-      pendingDefenseBuffs
-        .filter((buff) => buff.owner === side)
-        .map((buff) => {
-          const status = getStatus(buff.statusId);
-          return {
-            ...buff,
-            displayName: status?.name ?? buff.statusId,
-          };
-        }),
-    [pendingDefenseBuffs, side]
-  );
-
-  const ownedRecentExpirations = useMemo(
-    () =>
-      defenseBuffExpirations
-        .filter((buff) => buff.owner === side)
-        .slice(-3)
-        .reverse(),
-    [defenseBuffExpirations, side]
-  );
+  const displayTokens = useMemo(() => {
+    if (side !== "you") {
+      return player.tokens;
+    }
+    let adjusted = player.tokens;
+    const applyRequest = (requests: Record<StatusId, number>) => {
+      Object.entries(requests).forEach(([rawId, amount]) => {
+        if (amount <= 0) return;
+        const statusId = rawId as StatusId;
+        const current = getStacks(adjusted, statusId, 0);
+        if (current <= 0) return;
+        const nextValue = Math.max(0, current - amount);
+        adjusted = setStacks(adjusted, statusId, nextValue);
+      });
+    };
+    applyRequest(attackStatusRequests);
+    applyRequest(defenseStatusRequests);
+    return adjusted;
+  }, [attackStatusRequests, defenseStatusRequests, player.tokens, side]);
 
   return (
     <Section title={title} active={active}>
@@ -75,54 +57,14 @@ export function PlayerPanel({ side }: PlayerPanelProps) {
           <HPBar hp={player.hp} max={player.hero.maxHp} />
           <div className={styles.statusRow}>
             <div className='label'>Statuses</div>
-            <TokenChips tokens={player.tokens} />
+            <TokenChips tokens={displayTokens} />
           </div>
         </div>
-        {ownedPendingBuffs.length > 0 && (
-          <div className={styles.defenseBuffSection}>
-            <div className={styles.defenseBuffHeader}>Defense Buffs</div>
-            <ul className={styles.defenseBuffList}>
-              {ownedPendingBuffs.map((buff) => (
-                <li key={buff.id} className={styles.defenseBuffItem}>
-                  <span className={styles.defenseBuffName}>
-                    {buff.displayName}
-                  </span>
-                  <span className={styles.defenseBuffMeta}>
-                    x{buff.stacks} · Ready: {formatPhase(buff.usablePhase)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {ownedRecentExpirations.length > 0 && (
-          <div className={styles.defenseBuffSection}>
-            <div className={styles.defenseBuffHeader}>
-              Expired Defense Buffs
-            </div>
-            <ul className={styles.defenseBuffList}>
-              {ownedRecentExpirations.map((buff) => {
-                const status = getStatus(buff.statusId);
-                return (
-                  <li key={`${buff.id}-expired`} className={styles.defenseBuffItem}>
-                    <span className={styles.defenseBuffName}>
-                      {status?.name ?? buff.statusId}
-                    </span>
-                    <span className={styles.defenseBuffMeta}>
-                      {buff.reason} · {buff.expiredAt.cause === "ko" ? "KO" : formatPhase(buff.expiredAt.phase)}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
         {floatDamage && (
           <div className={styles.floatOverlay}>
             <DamageOverlay val={floatDamage.val} kind={floatDamage.kind} />
           </div>
         )}
-        <DefenseSchemaPanel hero={player.hero} activeSchema={defenseRoll?.schema ?? null} />
       </div>
     </Section>
   );

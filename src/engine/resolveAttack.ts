@@ -1,4 +1,4 @@
-import { applyAttack, applyAbilityEffects } from "../game/engine";
+import { applyAttack, applyAbilityEffects, type AbilityEffectDelta } from "../game/engine";
 import type { AttackContext, AttackResolution } from "../game/combat/types";
 import type { Side, PlayerState } from "../game/types";
 import { buildAttackResolutionLines } from "../game/logging/combatLog";
@@ -113,6 +113,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
   let nextDefender = defenderState;
   let damageDealt = 0;
   let reflectDealt = 0;
+  let defenseTokenDelta: AbilityEffectDelta | undefined;
   const wasNegated = defenseTotals.negateIncoming;
 
   if (!wasNegated) {
@@ -121,7 +122,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
       damage: attackDamage,
     };
 
-    const [attackerAfter, defenderAfter] = applyAttack(
+    const [attackerAfter, defenderAfter, _notes, delta] = applyAttack(
       attackerState,
       defenderState,
       effectiveAbility,
@@ -129,6 +130,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
         defense: defenseState,
       }
     );
+    defenseTokenDelta = delta;
 
     nextAttacker = attackerAfter;
     nextDefender = defenderAfter;
@@ -147,6 +149,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     defenderBefore: defenderState,
     defenderAfter: nextDefender,
     baseBlock,
+    defenseTokenDelta,
     attackTotals,
     defenseTotals,
     damageDealt,

@@ -19,10 +19,7 @@ export const DefenseDevPanel = () => {
   const { state } = useGame();
   const { defenseRoll } = useGameData();
   const stats = useStatsTracker();
-  const {
-    devDefenseOverrides,
-    setDefenseVersionOverride,
-  } = useGameController();
+  const { devDefenseOverrides, setDefenseVersionOverride } = useGameController();
   const [collapsed, setCollapsed] = useState(false);
 
   const totals = stats.getSnapshot()?.gameStats?.defenseMeta?.totals;
@@ -85,6 +82,7 @@ export const DefenseDevPanel = () => {
               aiHero.id
             )}
           </div>
+          {/* Manual Step removed */}
           <div className={styles.section}>
             <div className={styles.sectionTitle}>Rule Diagnostics</div>
             {schemaRules.length === 0 ? (
