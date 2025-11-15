@@ -331,7 +331,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const phase = state.phase;
 
   const applyPendingDefenseBuff = useCallback(
-    (buff: PendingDefenseBuff) => {
+    (buff: PendingDefenseBuff, trigger: PendingDefenseBuffTrigger) => {
       if (buff.kind !== "status") return;
       const snapshot = latestState.current;
       const player = snapshot.players[buff.owner];
@@ -341,16 +341,34 @@ export const GameController = ({ children }: { children: ReactNode }) => {
       if (typeof buff.stackCap === "number") {
         nextStacks = Math.min(nextStacks, buff.stackCap);
       }
-      const statusDef = getStatus(buff.statusId);
-      if (typeof statusDef?.maxStacks === "number") {
-        nextStacks = Math.min(nextStacks, statusDef.maxStacks);
-      }
-      if (nextStacks === currentStacks) return;
-      const nextTokens = setStacks(player.tokens, buff.statusId, nextStacks);
-      setPlayer(buff.owner, { ...player, tokens: nextTokens }, "pendingDefenseBuff:apply");
-      pushLog(
-        `[Status Ready] ${player.hero.name} gains ${buff.statusId} (${nextStacks} stack${
-          nextStacks === 1 ? "" : "s"
+        const statusDef = getStatus(buff.statusId);
+        if (typeof statusDef?.maxStacks === "number") {
+          nextStacks = Math.min(nextStacks, statusDef.maxStacks);
+        }
+        if (nextStacks === currentStacks) return;
+        if (import.meta.env?.DEV) {
+          defenseDebugLog("pendingDefenseBuff:apply", {
+            buffId: buff.id,
+            statusId: buff.statusId,
+            owner: buff.owner,
+            triggerPhase: trigger.phase,
+            triggerOwner: trigger.owner,
+            createdAt: buff.createdAt,
+            usablePhase: buff.usablePhase,
+            stacksGranted: buff.stacks,
+            stackCap: buff.stackCap ?? null,
+            beforeStacks: currentStacks,
+            afterStacks: nextStacks,
+            source: buff.source ?? null,
+            triggerTurnId: trigger.turnId,
+            triggerRound: trigger.round,
+          });
+        }
+        const nextTokens = setStacks(player.tokens, buff.statusId, nextStacks);
+        setPlayer(buff.owner, { ...player, tokens: nextTokens }, "pendingDefenseBuff:apply");
+        pushLog(
+          `[Status Ready] ${player.hero.name} gains ${buff.statusId} (${nextStacks} stack${
+            nextStacks === 1 ? "" : "s"
         }).`
       );
     },
@@ -564,11 +582,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
       }
       if (ready.length) {
         ready.forEach((buff) => {
-          if (buff.usablePhase === "immediate") {
-            applyPendingDefenseBuff(buff);
-          } else {
-            applyPendingDefenseBuff(buff);
-          }
+          applyPendingDefenseBuff(buff, trigger);
         });
       }
       dispatch({ type: "SET_PENDING_DEFENSE_BUFFS", buffs: pending });

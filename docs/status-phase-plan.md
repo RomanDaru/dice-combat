@@ -27,6 +27,7 @@
 - **Action**: Include ruleId/effectId + phase in defenseDebugLog when a buff applies (DEV only).
 - **Risk**: log spam.
   - **Mitigation**: keep verbose logs behind defenseDebugLog (DEV builds only).
+- **2025-02-14 Update**: `applyPendingDefenseBuff` now emits `defenseDebugLog("pendingDefenseBuff:apply", …)` that carries the trigger phase/owner, stack delta, and any `ruleId`/`effectId` source so we can trace Chi/Prevent Half grants precisely (`src/context/GameController.tsx:334-368`). Residual risk: log only fires in DEV, so we still rely on telemetry for PROD debugging.
 
 ### 4) Prevent Half timing
 - **Why**: default usablePhase is still preApplyDamage. We want nextDefenseCommit so stack works only next defense.
