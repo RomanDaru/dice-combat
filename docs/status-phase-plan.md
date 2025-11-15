@@ -63,6 +63,7 @@
 - **2025-02-15 Regression Test & Fix**:
   - `src/context/__tests__/virtualTokens.test.ts` covers the Chi scenario (1 owned, spend 1, pending +2) and asserts the derived view stays at 0 plus surfaces the pending buff metadata once `nextDefenseCommit` eventually fires.
   - `virtualTokens` no longer adds pending buffs at derivation time; PlayerPanel now reflects only actual tokens minus outstanding spend requests, so Chi stacks appear only after `applyPendingDefenseBuff` runs (`src/context/GameController.tsx:806-839`, `src/context/virtualTokens.ts:1-74`). Spend controls still need to switch to the shared selector (TODO).
+- **2025-02-15 Status Cleanse Dice Tray**: Burn/Evasive cleanse rolls were inaccessible because the dice tray auto-closed outside `roll`/`defense`/initial phases. Added a guard so if `pendingStatusClear?.side === "you"` we keep the tray open during upkeep (`src/context/GameController.tsx:1660-1679`). Players can now roll to cleanse statuses without leaving the current turn.
 
 ## 3. Preconditions & Guardrails
 - Commit after each completed step (small, focused commits to keep history clean). 

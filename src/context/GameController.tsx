@@ -1677,8 +1677,16 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     const inPlayerRollPhase = state.phase === "roll" && turn === "you";
     const inDefensePhase = state.phase === "defense";
     const duringInitialRoll = state.initialRoll.inProgress;
+    const playerStatusClearActive =
+      Boolean(state.pendingStatusClear) &&
+      state.pendingStatusClear?.side === "you";
 
-    if (inPlayerRollPhase || inDefensePhase || duringInitialRoll) {
+    if (
+      inPlayerRollPhase ||
+      inDefensePhase ||
+      duringInitialRoll ||
+      playerStatusClearActive
+    ) {
       return;
     }
 
@@ -1687,6 +1695,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     diceTrayVisible,
     state.phase,
     state.initialRoll.inProgress,
+    state.pendingStatusClear,
     turn,
     closeDiceTray,
   ]);
