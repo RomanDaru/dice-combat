@@ -30,7 +30,7 @@ const defaultTargetForEffect = (
   }
 };
 const DEFAULT_GAIN_STATUS_PHASE: StatusTimingPhase = "nextTurn";
-const DEFAULT_PREVENT_PHASE: StatusTimingPhase = "preApplyDamage";
+const DEFAULT_PREVENT_PHASE: StatusTimingPhase = "nextDefenseCommit";
 
 export const PREVENT_HALF_STATUS_ID: StatusId = "prevent_half";
 

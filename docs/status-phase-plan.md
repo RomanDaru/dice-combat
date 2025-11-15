@@ -37,6 +37,7 @@
   - Add integration test (schema roll -> pending buff -> next defense) verifying stack application.
 - **Risk**: buff never activates if owner dies before next defense or trigger missing.
   - **Mitigation**: add guard in partitionBuffsByKo (buff expires gracefully); integration tests.
+- **2025-02-14 Update**: DEFAULT_PREVENT_PHASE now points to `nextDefenseCommit`, so schema prevent-half grants only become usable on the following defense (`src/defense/effects.ts:32-35`). Need to follow up with an integration test to ensure delayed buffs really arrive before the next roll.
 
 ### 5) Virtual tokens for Chi
 - **Why**: we want engine + UI to read the same (tokens - requested + pending grants) view. Currently only PlayerPanel shows virtual counts.
