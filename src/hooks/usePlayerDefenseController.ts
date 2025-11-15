@@ -591,6 +591,8 @@ export function usePlayerDefenseController({
               abilityName: formatAbilityName(pendingAttack.ability),
               defenseAbilityName,
             });
+            triggerDefenseBuffs("nextDefenseCommit", pendingAttack.defender);
+            triggerDefenseBuffs("postDamageApply", pendingAttack.defender);
             return;
           }
 

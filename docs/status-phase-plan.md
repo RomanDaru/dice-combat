@@ -20,6 +20,7 @@
   - Confirm AI + player flows both fire preDefenseRoll, preApplyDamage, nextDefenseCommit, postDamageApply consistently.
 - **Risk**: double-trigger (buff applied twice) or missing trigger (buff stuck pending).
   - **Mitigation**: temporarily extend defenseDebugLog payload with { phase, owner, buffId } to monitor.
+- **2025-02-14 Update**: Player-side status reactions were skipping the `nextDefenseCommit`/`postDamageApply` triggers, so Prevent Half/Chi grants queued for that phase never applied if a reaction ended the defense early. Added explicit triggers after the reaction-only resolution path in `src/hooks/usePlayerDefenseController.ts:563-595`. Risk: we still lack an automated regression test, so if that code path changes again the omission could return unnoticed.
 
 ### 3) Grant metadata & logging
 - **Why**: Even though buildPendingDefenseBuffsFromGrants already stores source, applyPendingDefenseBuff logs are opaque.
