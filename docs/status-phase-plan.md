@@ -46,6 +46,7 @@
   - **Mitigation**: keep engine operations on actual player.tokens; derived view used for UI/validation only. Unit-test the selector (Chi 3, request 2, pending grant 1 -> view = 2).
 
 ## 3. Preconditions & Guardrails
+- Commit after each completed step (small, focused commits to keep history clean). 
 - 100% schema/Defense v2. Legacy board and UI remain untouched until backend is stable.
 - Before each change, add trace logs or tests so we know behavior changed intentionally.
 
@@ -62,3 +63,4 @@
 
 ---
 This doc is the authoritative plan for the phase refactor. Once complete, we can move to Variant A (Status runtime contract).
+
