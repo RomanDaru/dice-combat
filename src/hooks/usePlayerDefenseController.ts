@@ -49,6 +49,7 @@ export type PlayerDefenseState = {
   selectedCombo: Combo | null;
   baseResolution: BaseDefenseResolution;
   schemaLogs?: string[];
+  tokenSnapshot?: Tokens | null;
 };
 
 type UsePlayerDefenseControllerArgs = {

@@ -100,6 +100,7 @@ import {
   type VirtualTokenDerivationBreakdown,
 } from "./virtualTokens";
 import { getPlayerSnapshot, setPlayerSnapshot } from "./playerSnapshot";
+import type { PlayerDefenseState } from "../hooks/usePlayerDefenseController";
 
 const DEF_DIE_INDEX = 2;
 const ROLL_ANIM_MS = 1300;
@@ -119,14 +120,6 @@ const createDefenseTelemetryTotals = () => ({
 });
 const createTurnId = () =>
   `turn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-
-type PlayerDefenseState = {
-  roll: DefenseRollResult;
-  selectedCombo: Combo | null;
-  baseResolution: BaseDefenseResolution;
-  schemaLogs?: string[];
-  tokenSnapshot: Tokens | null;
-};
 
 type DefenseBuffExpirationRecord = PendingDefenseBuff & {
   reason: string;
@@ -582,10 +575,10 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
   >([]);
   const [queuedDefenseResolution, setQueuedDefenseResolution] = useState<{
     resolve: () => void;
-    defender: Side;
+    defenderSide: Side;
   } | null>(null);
   const queueDefenseResolution = useCallback(
-    (payload: { resolve: () => void; defender: Side }) => {
+    (payload: { resolve: () => void; defenderSide: Side }) => {
       setQueuedDefenseResolution(payload);
     },
     []
