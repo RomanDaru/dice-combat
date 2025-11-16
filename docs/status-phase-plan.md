@@ -38,6 +38,25 @@
 - **Risk**: buff never activates if owner dies before next defense or trigger missing.
   - **Mitigation**: add guard in partitionBuffsByKo (buff expires gracefully); integration tests.
 - **2025-02-14 Update**: DEFAULT_PREVENT_PHASE now points to `nextDefenseCommit`, so schema prevent-half grants only become usable on the following defense (`src/defense/effects.ts:32-35`). Need to follow up with an integration test to ensure delayed buffs really arrive before the next roll.
+- **2025-02-16 Regression Report**:
+  - No prompt shown when Prevent Half stack becomes available (player can't opt-in/out); stack is consumed silently and doesn't halve damage-only the token is removed. Need to trace `pre_defense_reaction` behavior + prompt flow in `useDefenseActions`/`usePlayerDefenseController` to ensure Prevent Half uses the same reaction pipeline as Evasive.
+  - Evasive can still reach 3 stacks even though the design cap is 2. Either `maxStacks` in `defineStatus("evasive")` is wrong or schema grants bypass the clamp (likely due to pending buff application ignoring `stackCap`). Audit `applyPendingDefenseBuff` to ensure it honors status `maxStacks` + effect `stackCap`.
+
+#### 2025-11-16 Implementation Log
+| Timestamp (local, `Get-Date`) | File(s) | Change | Rationale |
+| --- | --- | --- | --- |
+| 2025-11-15 23:13:48 +01:00 | `src/engine/status/behaviors/preDefenseReaction.ts` | Extended reaction behavior with `damageMultiplier` handling so spends can scale remaining damage instead of only negate/block. | Prevent Half needs to halve damage and future reactions may want similar behavior. |
+| 2025-11-15 23:13:55 +01:00 | `src/game/combat/preDefenseReactions.ts` | Added `requiresRoll`/`diceCount=0` metadata for no-roll reactions. | Keeps the descriptor accurate so the UI/controller can skip fake dice sequences for Prevent Half. |
+| 2025-11-15 23:14:22 +01:00 | `src/hooks/usePlayerDefenseController.ts` | Updated reaction handling to respect `requiresRoll` (skip dice tray) while still routing through `resolveAttack`. | Ensures Prevent Half prompts correctly even without a reaction roll. |
+| 2025-11-15 23:15:17 +01:00 | `src/engine/status/types.ts` | Added `damageMultiplier` to `StatusSpendApplyResult`. | Exposes the new mitigation signal to the resolve pipeline/logging. |
+| 2025-11-15 23:16:05 +01:00 | `src/engine/resolveAttack.ts` | Introduced mitigation helpers (collect multipliers, apply post-block, emit logs). | Makes Prevent Half actually halve incoming damage and records the prevented amount. |
+| 2025-11-15 23:16:45 +01:00 | `src/engine/__tests__/resolveAttack.test.ts` | Added regression tests for mitigation spends with/without base block. | Protects the new damage-halving path from regressions. |
+| 2025-11-15 23:17:08 +01:00 | `src/engine/status/defs.ts` | Defined `prevent_half` (no-roll reaction, max 2) and clamped `evasive.maxStacks` to 2. | Gives Prevent Half a runtime contract and enforces the Evasive stack cap engine-side. |
+| 2025-11-15 23:17:17 +01:00 | `src/context/GameController.tsx` | Pending defense buff application now clamps via status `maxStacks` in addition to per-grant caps. | Stops pending grants (like Evasive) from bypassing their global stack limits. |
+| 2025-11-15 23:22:14 +01:00 | `docs/status-phase-plan.md` | Logged this work with precise timestamps for Variant B tracking. | Keeps plan documentation aligned with real changes. |
+| 2025-11-15 23:24:04 +01:00 | _Status_ | **No git commit yet**; work remains staged for review/tests. | Reminder that these Variant B fixes still need a commit after verification. |
+| 2025-11-15 23:35:14 +01:00 | `src/context/GameController.tsx` | Fixed HP regressions by tracking `latestPlayersRef` so pending buff grants no longer overwrite freshly updated player HP. | Player HUD now stays in sync with combat log when buffs resolve right after damage. |
+| 2025-11-16 07:53:51 +01:00 | `src/components/PlayerPanel.tsx`, `src/context/GameController.tsx` | Player HUD now renders actual token stacks (no pending/grant illusions) and `setPlayer` dev logs include HP deltas for both sides. | Removes virtual token confusion and gives us concrete HP diagnostics whenever damage lands. |
 
 ### 5) Virtual tokens for Chi
 - **Why**: we want engine + UI to read the same (tokens - requested + pending grants) view. Currently only PlayerPanel shows virtual counts.

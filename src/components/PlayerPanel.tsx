@@ -24,7 +24,8 @@ export function PlayerPanel({ side }: PlayerPanelProps) {
     side === "you"
       ? `You - ${player.hero.name}`
       : `Opponent - ${player.hero.name} (AI)`;
-  const displayTokens = virtualTokens[side] ?? player.tokens;
+  const displayTokens =
+    side === "you" ? virtualTokens.you ?? player.tokens : player.tokens;
 
   return (
     <Section title={title} active={active}>
