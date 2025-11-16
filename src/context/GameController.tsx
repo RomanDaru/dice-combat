@@ -1481,6 +1481,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     scheduleCallback,
     applyDefenseVersionOverride,
     queueDefenseResolution,
+    setPlayer,
   });
 
   const onConfirmDefense = useCallback(() => {

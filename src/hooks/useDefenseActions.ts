@@ -128,6 +128,7 @@ type UseDefenseActionsArgs = {
   triggerDefenseBuffs: (phase: StatusTimingPhase, owner: Side) => void;
   applyDefenseVersionOverride: (hero: Hero) => Hero;
   queueDefenseResolution: (payload: { resolve: () => void; defenderSide: Side }) => void;
+  setPlayer: (side: Side, player: PlayerState, reason?: string) => void;
 };
 
 const mapDefenseSchemaLog = (
@@ -249,6 +250,7 @@ export function useDefenseActions({
   triggerDefenseBuffs,
   applyDefenseVersionOverride,
   queueDefenseResolution,
+  setPlayer,
 }: UseDefenseActionsArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
@@ -379,13 +381,6 @@ export function useDefenseActions({
       }
     },
     [dispatch, resetDefenseRequests, setPlayerDefenseState]
-  );
-
-  const setPlayer = useCallback(
-    (side: Side, player: PlayerState, meta?: string) => {
-      dispatch({ type: "SET_PLAYER", side, player, meta: meta ?? "useDefenseActions" });
-    },
-    [dispatch]
   );
 
   const { resolveDefenseWithEvents: baseResolveDefense } = useDefenseResolution({
