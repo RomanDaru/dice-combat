@@ -1,0 +1,596 @@
+[DefenseDebug] defenseStatusRequests:update 
+Object {  }
+​
+<prototype>: Object { … }
+debug.ts:4:13
+[DefenseDebug] defenseStatusRequests:update 
+Object {  }
+​
+<prototype>: Object { … }
+debug.ts:4:13
+[DefenseDebug] schemaDefenseRoll 
+Object { hero: "Shadow Monk", dice: (4) […], baseBlock: 2, pendingStatusGrants: (2) […], defenderTokensBefore: {…}, defenderTokensAfter: {…} }
+​
+baseBlock: 2
+​
+defenderTokensAfter: Object { chi: 1 }
+​​
+chi: 1
+​​
+<prototype>: Object { … }
+​
+defenderTokensBefore: Object { chi: 1 }
+​​
+chi: 1
+​​
+<prototype>: Object { … }
+​
+dice: Array(4) [ 3, 5, 6, … ]
+​​
+0: 3
+​​
+1: 5
+​​
+2: 6
+​​
+3: 3
+​​
+length: 4
+​​
+<prototype>: Array []
+​
+hero: "Shadow Monk"
+​
+pendingStatusGrants: Array [ {…}, {…} ]
+​​
+0: Object { status: "chi", target: "self", stacks: 1, … }
+​​
+1: Object { status: "prevent_half", target: "self", stacks: 1, … }
+​​
+length: 2
+​​
+<prototype>: Array []
+​
+<prototype>: Object { … }
+debug.ts:4:13
+[DefenseDebug] virtualTokens:derive 
+Array [ {…}, {…} ]
+​
+0: Object { side: "you", actualStacks: {…}, requestDeltaApplied: false, … }
+​​
+actualStacks: Object { chi: 1 }
+​​
+afterRequests: Object { chi: 1 }
+​​
+pendingBuffSummary: Array [ {…}, {…} ]
+​​
+requestDeltaApplied: false
+​​
+side: "you"
+​​
+<prototype>: Object { … }
+​
+1: Object { side: "ai", actualStacks: {}, requestDeltaApplied: false, … }
+​​
+actualStacks: Object {  }
+​​
+afterRequests: Object {  }
+​​
+pendingBuffSummary: Array []
+​​
+requestDeltaApplied: false
+​​
+side: "ai"
+​​
+<prototype>: Object { … }
+​
+length: 2
+​
+<prototype>: Array []
+debug.ts:4:13
+[DefenseDebug] virtualTokens:derive 
+Array [ {…}, {…} ]
+​
+0: Object { side: "you", actualStacks: {…}, requestDeltaApplied: false, … }
+​​
+actualStacks: Object { chi: 1 }
+​​
+afterRequests: Object { chi: 1 }
+​​
+pendingBuffSummary: Array [ {…}, {…} ]
+​​
+requestDeltaApplied: false
+​​
+side: "you"
+​​
+<prototype>: Object { … }
+​
+1: Object { side: "ai", actualStacks: {}, requestDeltaApplied: false, … }
+​​
+actualStacks: Object {  }
+​​
+afterRequests: Object {  }
+​​
+pendingBuffSummary: Array []
+​​
+requestDeltaApplied: false
+​​
+side: "ai"
+​​
+<prototype>: Object { … }
+​
+length: 2
+​
+<prototype>: Array []
+debug.ts:4:13
+[DefenseDebug] confirmDefense 
+Object { attacker: "ai", defender: "you", baseBlock: 2, defenseStatusRequests: {}, defenderTokens: {…} }
+​
+attacker: "ai"
+​
+baseBlock: 2
+​
+defender: "you"
+​
+defenderTokens: Object { chi: 1 }
+​​
+chi: 1
+​​
+<prototype>: Object { … }
+​
+defenseStatusRequests: Object {  }
+​​
+<prototype>: Object { … }
+​
+<prototype>: Object { … }
+debug.ts:4:13
+[DefenseDebug] defensePlan 
+Object { incomingDamage: 7, baseBlock: 2, bonusBlock: 0, spendRequests: {}, statusSpends: [], defenderTokensBefore: {…}, defenderTokensAfter: {…} }
+​
+baseBlock: 2
+​
+bonusBlock: 0
+​
+defenderTokensAfter: Object { chi: 1 }
+​​
+chi: 1
+​​
+<prototype>: Object { … }
+​
+defenderTokensBefore: Object { chi: 1 }
+​​
+chi: 1
+​​
+<prototype>: Object { … }
+​
+incomingDamage: 7
+​
+spendRequests: Object {  }
+​​
+<prototype>: Object { … }
+​
+statusSpends: Array []
+​​
+length: 0
+​​
+<prototype>: Array []
+​
+<prototype>: Object { … }
+debug.ts:4:13
+[DefenseDebug] defenseResolution 
+Object { summary: {…}, defenseStatusSpends: [] }
+​
+defenseStatusSpends: Array []
+​​
+length: 0
+​​
+<prototype>: Array []
+​
+summary: Object { damageDealt: 5, blocked: 2, reflected: 0, … }
+​​
+attackDamage: 7
+​​
+attackerDefeated: false
+​​
+attackerStatusDiff: Object {  }
+​​​
+<prototype>: Object { … }
+​​
+baseBlock: 2
+​​
+baseDamage: 7
+​​
+blocked: 2
+​​
+damageDealt: 5
+​​
+defenderDefeated: false
+​​
+defenderStatusDiff: Object { burn: 1 }
+​​​
+burn: 1
+​​​
+<prototype>: Object { … }
+​​
+defenseAbilityId: null
+​​
+modifiedBaseDamage: 7
+​​
+negated: false
+​​
+reflected: 0
+​​
+totalBlock: 2
+​​
+<prototype>: Object { … }
+​
+<prototype>: Object { … }
+debug.ts:4:13
+[DefenseDebug] pendingDefenseBuff:apply 
+Object { buffId: "pdb_turn_mi1da4yk_ht8hi8_mi1dahi6_1", statusId: "prevent_half", owner: "you", triggerPhase: "nextDefenseCommit", triggerOwner: "you", createdAt: {…}, usablePhase: "nextDefenseCommit", stacksGranted: 1, stackCap: null, beforeStacks: 0, … }
+​
+afterStacks: 1
+​
+beforeStacks: 0
+​
+buffId: "pdb_turn_mi1da4yk_ht8hi8_mi1dahi6_1"
+​
+createdAt: Object { round: 1, turnId: "turn_mi1da4yk_ht8hi8" }
+​​
+round: 1
+​​
+turnId: "turn_mi1da4yk_ht8hi8"
+​​
+<prototype>: Object { … }
+​
+owner: "you"
+​
+source: Object { ruleId: "monk_prevent_on_6", effectId: undefined }
+​​
+effectId: undefined
+​​
+ruleId: "monk_prevent_on_6"
+​​
+<prototype>: Object { … }
+​
+stackCap: null
+​
+stacksGranted: 1
+​
+statusId: "prevent_half"
+​
+triggerOwner: "you"
+​
+triggerPhase: "nextDefenseCommit"
+​
+triggerRound: 1
+​
+triggerTurnId: "turn_mi1da4yk_ht8hi8"
+​
+usablePhase: "nextDefenseCommit"
+​
+<prototype>: Object { … }
+debug.ts:4:13
+[DefenseDebug] setPlayer 
+Object { side: "you", reason: "pendingDefenseBuff:apply", hpBefore: 30, hpAfter: 30, tokensBefore: {…}, tokensAfter: {…} }
+​
+hpAfter: 30
+​
+hpBefore: 30
+​
+reason: "pendingDefenseBuff:apply"
+​
+side: "you"
+​
+tokensAfter: Object { chi: 1, prevent_half: 1 }
+​​
+chi: 1
+​​
+prevent_half: 1
+​​
+<prototype>: Object { … }
+​
+tokensBefore: Object { chi: 1 }
+​​
+chi: 1
+​​
+<prototype>: Object { … }
+​
+<prototype>: Object { … }
+debug.ts:4:13
+[DefenseDebug] pendingDefenseBuff:apply 
+Object { buffId: "pdb_turn_mi1da4yk_ht8hi8_mi1dahi6_0", statusId: "chi", owner: "you", triggerPhase: "postDamageApply", triggerOwner: "you", createdAt: {…}, usablePhase: "postDamageApply", stacksGranted: 1, stackCap: 3, beforeStacks: 1, … }
+​
+afterStacks: 2
+​
+beforeStacks: 1
+​
+buffId: "pdb_turn_mi1da4yk_ht8hi8_mi1dahi6_0"
+​
+createdAt: Object { round: 1, turnId: "turn_mi1da4yk_ht8hi8" }
+​​
+round: 1
+​​
+turnId: "turn_mi1da4yk_ht8hi8"
+​​
+<prototype>: Object { … }
+​
+owner: "you"
+​
+source: Object { ruleId: "monk_gain_chi_per_45", effectId: undefined }
+​​
+effectId: undefined
+​​
+ruleId: "monk_gain_chi_per_45"
+​​
+<prototype>: Object { … }
+​
+stackCap: 3
+​
+stacksGranted: 1
+​
+statusId: "chi"
+​
+triggerOwner: "you"
+​
+triggerPhase: "postDamageApply"
+​
+triggerRound: 1
+​
+triggerTurnId: "turn_mi1da4yk_ht8hi8"
+​
+usablePhase: "postDamageApply"
+​
+<prototype>: Object { … }
+debug.ts:4:13
+[DefenseDebug] setPlayer 
+Object { side: "you", reason: "pendingDefenseBuff:apply", hpBefore: 30, hpAfter: 30, tokensBefore: {…}, tokensAfter: {…} }
+​
+hpAfter: 30
+​
+hpBefore: 30
+​
+reason: "pendingDefenseBuff:apply"
+​
+side: "you"
+​
+tokensAfter: Object { chi: 2, prevent_half: 1 }
+​​
+chi: 2
+​​
+prevent_half: 1
+​​
+<prototype>: Object { … }
+​
+tokensBefore: Object { chi: 1, prevent_half: 1 }
+​​
+chi: 1
+​​
+prevent_half: 1
+​​
+<prototype>: Object { … }
+​
+<prototype>: Object { … }
+debug.ts:4:13
+[DefenseDebug] virtualTokens:derive 
+Array [ {…}, {…} ]
+​
+0: Object { side: "you", actualStacks: {…}, requestDeltaApplied: false, … }
+​​
+actualStacks: Object { chi: 2, prevent_half: 1 }
+​​
+afterRequests: Object { chi: 2, prevent_half: 1 }
+​​
+pendingBuffSummary: Array [ {…} ]
+​​
+requestDeltaApplied: false
+​​
+side: "you"
+​​
+<prototype>: Object { … }
+​
+1: Object { side: "ai", actualStacks: {}, requestDeltaApplied: false, … }
+​​
+actualStacks: Object {  }
+​​
+afterRequests: Object {  }
+​​
+pendingBuffSummary: Array []
+​​
+requestDeltaApplied: false
+​​
+side: "ai"
+​​
+<prototype>: Object { … }
+​
+length: 2
+​
+<prototype>: Array []
+debug.ts:4:13
+[DefenseDebug] virtualTokens:derive 
+Array [ {…}, {…} ]
+​
+0: Object { side: "you", actualStacks: {…}, requestDeltaApplied: false, … }
+​​
+actualStacks: Object { chi: 2, prevent_half: 1 }
+​​​
+chi: 2
+​​​
+prevent_half: 1
+​​​
+<prototype>: Object { … }
+​​
+afterRequests: Object { chi: 2, prevent_half: 1 }
+​​​
+chi: 2
+​​​
+prevent_half: 1
+​​​
+<prototype>: Object { … }
+​​
+pendingBuffSummary: Array [ {…} ]
+​​​
+0: Object { id: "pdb_turn_mi1da4yk_ht8hi8_mi1dahi6_1", statusId: "prevent_half", stacks: 1, … }
+​​​
+length: 1
+​​​
+<prototype>: Array []
+​​
+requestDeltaApplied: false
+​​
+side: "you"
+​​
+<prototype>: Object { … }
+​
+1: Object { side: "ai", actualStacks: {}, requestDeltaApplied: false, … }
+​​
+actualStacks: Object {  }
+​​​
+<prototype>: Object { … }
+​​
+afterRequests: Object {  }
+​​​
+<prototype>: Object { … }
+​​
+pendingBuffSummary: Array []
+​​​
+length: 0
+​​​
+<prototype>: Array []
+​​
+requestDeltaApplied: false
+​​
+side: "ai"
+​​
+<prototype>: Object { … }
+​
+length: 2
+​
+<prototype>: Array []
+debug.ts:4:13
+[DefenseDebug] defenseStatusRequests:update 
+Object {  }
+​
+<prototype>: Object { … }
+debug.ts:4:13
+[DefenseDebug] virtualTokens:derive 
+Array [ {…}, {…} ]
+​
+0: Object { side: "you", actualStacks: {…}, requestDeltaApplied: false, … }
+​​
+actualStacks: Object { chi: 2, prevent_half: 1 }
+​​​
+chi: 2
+​​​
+prevent_half: 1
+​​​
+<prototype>: Object { … }
+​​
+afterRequests: Object { chi: 2, prevent_half: 1 }
+​​​
+chi: 2
+​​​
+prevent_half: 1
+​​​
+<prototype>: Object { … }
+​​
+pendingBuffSummary: Array [ {…} ]
+​​​
+0: Object { id: "pdb_turn_mi1da4yk_ht8hi8_mi1dahi6_1", statusId: "prevent_half", stacks: 1, … }
+​​​
+length: 1
+​​​
+<prototype>: Array []
+​​
+requestDeltaApplied: false
+​​
+side: "you"
+​​
+<prototype>: Object { … }
+​
+1: Object { side: "ai", actualStacks: {}, requestDeltaApplied: false, … }
+​​
+actualStacks: Object {  }
+​​​
+<prototype>: Object { … }
+​​
+afterRequests: Object {  }
+​​​
+<prototype>: Object { … }
+​​
+pendingBuffSummary: Array []
+​​​
+length: 0
+​​​
+<prototype>: Array []
+​​
+requestDeltaApplied: false
+​​
+side: "ai"
+​​
+<prototype>: Object { … }
+​
+length: 2
+​
+<prototype>: Array []
+debug.ts:4:13
+[DefenseDebug] virtualTokens:derive 
+Array [ {…}, {…} ]
+​
+0: Object { side: "you", actualStacks: {…}, requestDeltaApplied: false, … }
+​​
+actualStacks: Object { chi: 2, prevent_half: 1 }
+​​​
+chi: 2
+​​​
+prevent_half: 1
+​​​
+<prototype>: Object { … }
+​​
+afterRequests: Object { chi: 2, prevent_half: 1 }
+​​​
+chi: 2
+​​​
+prevent_half: 1
+​​​
+<prototype>: Object { … }
+​​
+pendingBuffSummary: Array [ {…} ]
+​​​
+0: Object { id: "pdb_turn_mi1da4yk_ht8hi8_mi1dahi6_1", statusId: "prevent_half", stacks: 1, … }
+​​​
+length: 1
+​​​
+<prototype>: Array []
+​​
+requestDeltaApplied: false
+​​
+side: "you"
+​​
+<prototype>: Object { … }
+​
+1: Object { side: "ai", actualStacks: {}, requestDeltaApplied: false, … }
+​​
+actualStacks: Object {  }
+​​​
+<prototype>: Object { … }
+​​
+afterRequests: Object {  }
+​​​
+<prototype>: Object { … }
+​​
+pendingBuffSummary: Array []
+​​​
+length: 0
+​​​
+<prototype>: Array []
+​​
+requestDeltaApplied: false
+​​
+side: "ai"
+​​
+<prototype>: Object { … }
+​
+length: 2
+​
+<prototype>: Array []

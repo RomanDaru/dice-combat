@@ -34,11 +34,37 @@ defineStatus({
     successThreshold: 5,
   },
   attachment: { transferable: false },
-  maxStacks: 3,
+  maxStacks: 2,
   spend: {
     costStacks: 1,
     allowedPhases: ["defenseRoll"],
     needsRoll: true,
+  },
+});
+
+defineStatus({
+  id: "prevent_half",
+  name: "Prevent Half",
+  icon: "PH",
+  polarity: "positive",
+  activation: "active",
+  windows: ["preDefense:start"],
+  behaviorId: "pre_defense_reaction",
+  behaviorConfig: {
+    successDamageMultiplier: 0.5,
+    ui: {
+      rolling: "Preparing Prevent Half...",
+      success: "Prevent Half halves the incoming damage.",
+      failure: "Prevent Half fizzles. Roll for Defense!",
+    },
+    successLog: "Prevent Half halves the incoming damage.",
+  },
+  attachment: { transferable: false },
+  maxStacks: 2,
+  spend: {
+    costStacks: 1,
+    allowedPhases: ["defenseRoll"],
+    needsRoll: false,
   },
 });
 

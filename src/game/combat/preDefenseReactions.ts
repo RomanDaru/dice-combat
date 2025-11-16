@@ -13,6 +13,7 @@ export type PreDefenseReactionDescriptor = {
   icon: string;
   costStacks: number;
   diceCount: number;
+  requiresRoll: boolean;
   rollLabel: string;
   messages: PreDefenseReactionMessages;
 };
@@ -27,11 +28,11 @@ type PreDefenseReactionBehaviorConfig = {
   ui?: Partial<PreDefenseReactionMessages>;
 };
 
-const asPositiveInteger = (value: unknown, fallback = 1): number => {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+const asNonNegativeInteger = (value: unknown, fallback = 1): number => {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
     return fallback;
   }
-  return Math.floor(value);
+  return Math.max(0, Math.floor(value));
 };
 
 const buildMessages = (
@@ -70,7 +71,11 @@ export const getPreDefenseReactionDescriptor = (
     return null;
   }
   const spendMeta = def.spend as typeof def.spend & { diceCount?: number };
-  const diceCount = asPositiveInteger(spendMeta.diceCount, 1);
+  const requiresRoll = spendMeta.needsRoll !== false;
+  const diceCount = asNonNegativeInteger(
+    spendMeta.diceCount,
+    requiresRoll ? 1 : 0
+  );
   const config = (def.behaviorConfig ??
     {}) as PreDefenseReactionBehaviorConfig | undefined;
   return {
@@ -79,6 +84,7 @@ export const getPreDefenseReactionDescriptor = (
     icon: def.icon,
     costStacks: def.spend.costStacks,
     diceCount,
+    requiresRoll,
     rollLabel: `${def.name} Roll`,
     messages: buildMessages(def.name, config),
   };

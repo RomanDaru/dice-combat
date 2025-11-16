@@ -397,6 +397,7 @@ export function useDefenseActions({
     pushLog,
     setPlayer,
     queueDefenseResolution,
+    triggerDefenseBuffs,
   });
   const resolveDefenseWithEvents = useCallback(
     (

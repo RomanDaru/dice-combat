@@ -123,8 +123,7 @@ export function createInitialState(
   const youPlayer = createPlayer(youHero);
   const aiPlayer = createPlayer(aiHero);
   const startMessage = `Start of battle. (${youPlayer.hero.name} HP: ${youPlayer.hp}/${youPlayer.hero.maxHp}, ${aiPlayer.hero.name} HP: ${aiPlayer.hp}/${aiPlayer.hero.maxHp})`;
-  setPlayerSnapshots({ you: youPlayer, ai: aiPlayer });
-  return {
+  const initial: GameState = {
     players: {
       you: youPlayer,
       ai: aiPlayer,
@@ -169,12 +168,9 @@ export function createInitialState(
     pendingDefenseBuffs: [],
   };
   setPlayerSnapshots({ you: youPlayer, ai: aiPlayer });
-  return {
-    players: {
-      you: youPlayer,
-      ai: aiPlayer,
-    },
+  return initial;
 }
+
 
 export type GameAction =
   | {

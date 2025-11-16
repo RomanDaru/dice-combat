@@ -210,8 +210,6 @@ export function useAiDefenseResponse({
             abilityName: formatAbilityName(effectiveAbility),
             defenseAbilityName,
           });
-          triggerDefenseBuffs("nextDefenseCommit", defenderSide);
-          triggerDefenseBuffs("postDamageApply", defenderSide);
         });
       };
 

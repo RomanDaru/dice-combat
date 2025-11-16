@@ -9,6 +9,15 @@ type PreDefenseReactionConfig = {
   failBlock?: number;
   successLog?: string;
   failureLog?: string;
+  successDamageMultiplier?: number;
+  failureDamageMultiplier?: number;
+};
+
+const clampMultiplier = (value: number): number => {
+  if (!Number.isFinite(value)) return 1;
+  if (value < 0) return 0;
+  if (value > 1) return 1;
+  return value;
 };
 
 const buildSuccessResult = (
@@ -29,6 +38,11 @@ const buildSuccessResult = (
   if (typeof config.successBlock === "number") {
     result.bonusBlock = config.successBlock;
   }
+  if (typeof config.successDamageMultiplier === "number") {
+    result.damageMultiplier = clampMultiplier(
+      config.successDamageMultiplier
+    );
+  }
   return result;
 };
 
@@ -44,6 +58,11 @@ const buildFailureResult = (
   if (typeof config.failBlock === "number") {
     result.bonusBlock = config.failBlock;
   }
+  if (typeof config.failureDamageMultiplier === "number") {
+    result.damageMultiplier = clampMultiplier(
+      config.failureDamageMultiplier
+    );
+  }
   return result;
 };
 
@@ -51,10 +70,12 @@ export const preDefenseReactionBehavior: StatusBehaviorHandlers = {
   applySpend: ({ def, config, ctx }) => {
     const cfg = (config ?? {}) as PreDefenseReactionConfig;
     const threshold = cfg.successThreshold ?? 0;
-    if (typeof ctx.roll !== "number") {
+    const requiresRoll = def.spend?.needsRoll !== false;
+    if (requiresRoll && typeof ctx.roll !== "number") {
       return null;
     }
-    const roll = ctx.roll;
+    const roll =
+      typeof ctx.roll === "number" ? ctx.roll : threshold;
     const negateOnSuccess = Boolean(cfg.negateOnSuccess);
     if (roll >= threshold) {
       return buildSuccessResult(def.name, roll, negateOnSuccess, cfg);

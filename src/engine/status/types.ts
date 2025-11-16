@@ -62,6 +62,11 @@ export type StatusSpendApplyResult = {
   negateIncoming?: boolean;
   log?: string;
   success?: boolean;
+  /**
+   * Multiplies the remaining post-block damage when applied.
+   * Values should be 0..1 (e.g., 0.5 halves the damage).
+   */
+  damageMultiplier?: number;
 };
 
 export type StatusSpendApplyContext = {

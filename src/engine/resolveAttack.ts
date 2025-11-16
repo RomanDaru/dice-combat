@@ -2,7 +2,12 @@ import { applyAttack, applyAbilityEffects, type AbilityEffectDelta } from "../ga
 import type { AttackContext, AttackResolution } from "../game/combat/types";
 import type { Side, PlayerState } from "../game/types";
 import { buildAttackResolutionLines } from "../game/logging/combatLog";
-import { aggregateStatusSpendSummaries, applyModifiers } from "./status";
+import {
+  aggregateStatusSpendSummaries,
+  applyModifiers,
+  getStatus,
+  type StatusSpendSummary,
+} from "./status";
 import { TURN_TRANSITION_DELAY_MS } from "../game/flow/turnEnd";
 
 const diffTokens = (before: PlayerState, after: PlayerState) => {
@@ -20,6 +25,58 @@ const diffTokens = (before: PlayerState, after: PlayerState) => {
     }
   });
   return diff;
+};
+
+const clampDamageMultiplier = (value: number): number => {
+  if (!Number.isFinite(value)) return 1;
+  if (value < 0) return 0;
+  if (value > 1) return 1;
+  return value;
+};
+
+const hasDamageMitigationEffect = (summary: StatusSpendSummary) =>
+  summary.results.some(
+    (result) => typeof result.damageMultiplier === "number"
+  );
+
+const collectDamageMitigationEffects = (
+  summaries: StatusSpendSummary[]
+) => {
+  const effects: Array<{ id: string; multiplier: number }> = [];
+  summaries.forEach((summary) => {
+    summary.results.forEach((result) => {
+      if (typeof result.damageMultiplier !== "number") return;
+      effects.push({
+        id: summary.id,
+        multiplier: clampDamageMultiplier(result.damageMultiplier),
+      });
+    });
+  });
+  return effects;
+};
+
+const applyDamageMitigationEffects = (
+  remainingDamage: number,
+  effects: Array<{ id: string; multiplier: number }>
+): { prevented: number; logs: string[] } => {
+  if (remainingDamage <= 0 || effects.length === 0) {
+    return { prevented: 0, logs: [] };
+  }
+  const logs: string[] = [];
+  let working = remainingDamage;
+  effects.forEach(({ id, multiplier }) => {
+    const next = Math.floor(working * multiplier);
+    const prevented = working - next;
+    if (prevented > 0) {
+      const label = getStatus(id)?.name ?? id;
+      logs.push(`${label} reduced damage by ${prevented}.`);
+    }
+    working = next;
+  });
+  return {
+    prevented: remainingDamage - working,
+    logs,
+  };
 };
 
 export function resolveAttack(context: AttackContext): AttackResolution {
@@ -78,7 +135,9 @@ export function resolveAttack(context: AttackContext): AttackResolution {
       ? defenseStatusSpendsRaw
       : defenseStatusSpendsRaw.filter(
           (spend) =>
-            spend.negateIncoming || (spend.bonusDamage ?? 0) !== 0
+            spend.negateIncoming ||
+            (spend.bonusDamage ?? 0) !== 0 ||
+            hasDamageMitigationEffect(spend)
         );
 
   const defenseTotals = aggregateStatusSpendSummaries(defenseStatusSpends);
@@ -96,7 +155,21 @@ export function resolveAttack(context: AttackContext): AttackResolution {
   const baseBlock = modifiedBaseBlock;
   const effectiveBonusBlock =
     modifiedBaseBlock > 0 ? defenseTotals.bonusBlock : 0;
-  const totalBlock = Math.max(0, modifiedBaseBlock + effectiveBonusBlock);
+  const blockBeforeMitigation = Math.max(
+    0,
+    modifiedBaseBlock + effectiveBonusBlock
+  );
+  const mitigationEffects = collectDamageMitigationEffects(
+    defenseStatusSpends
+  );
+  const mitigationOutcome = applyDamageMitigationEffects(
+    Math.max(0, attackDamage - blockBeforeMitigation),
+    mitigationEffects
+  );
+  const totalBlock = blockBeforeMitigation + mitigationOutcome.prevented;
+  if (mitigationOutcome.logs.length) {
+    defenseTotals.logs.push(...mitigationOutcome.logs);
+  }
   const defenseState = defenseResolution
     ? {
         ...defenseResolution,

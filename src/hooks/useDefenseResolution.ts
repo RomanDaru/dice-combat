@@ -4,6 +4,7 @@ import { getCueDuration } from "../config/cueDurations";
 import type { CombatEvent } from "../game/combat/types";
 import type { GameState } from "../game/state";
 import type { PlayerState, Side } from "../game/types";
+import type { StatusTimingPhase } from "../engine/status/types";
 import { resolveAttack } from "../engine/resolveAttack";
 import { defenseDebugLog } from "../utils/debug";
 
@@ -158,6 +159,7 @@ type UseDefenseResolutionArgs = {
   ) => void;
   setPlayer: (side: Side, player: PlayerState) => void;
   queueDefenseResolution?: (payload: { resolve: () => void; defenderSide: Side }) => void;
+  triggerDefenseBuffs: (phase: StatusTimingPhase, owner: Side) => void;
 };
 
 export function useDefenseResolution({
@@ -174,6 +176,7 @@ export function useDefenseResolution({
   pushLog,
   setPlayer,
   queueDefenseResolution,
+  triggerDefenseBuffs,
 }: UseDefenseResolutionArgs) {
   const resolveDefenseWithEvents = useCallback<DefenseResolutionHandler>(
     (resolution, context) => {
@@ -206,6 +209,8 @@ export function useDefenseResolution({
         resolution.fx.forEach(({ side, amount, kind }) =>
           popDamage(side, amount, kind)
         );
+        triggerDefenseBuffs("nextDefenseCommit", defenderSide);
+        triggerDefenseBuffs("postDamageApply", defenderSide);
 
       let summaryDelay = 600;
 
@@ -280,6 +285,7 @@ export function useDefenseResolution({
       setPhase,
       setPlayer,
       queueDefenseResolution,
+      triggerDefenseBuffs,
     ]
   );
 
