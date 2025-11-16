@@ -683,14 +683,26 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     skipDispatch?: boolean;
   };
 
+  const pendingDefenseBuffsBufferRef = useRef<PendingDefenseBuff[] | null>(null);
+
+  useEffect(() => {
+    pendingDefenseBuffsBufferRef.current = null;
+  }, [state.pendingDefenseBuffs]);
+
   const releasePendingDefenseBuffs = useCallback(
     (
       trigger: PendingDefenseBuffTrigger,
       options?: ReleasePendingOptions
     ): PendingDefenseBuff[] => {
       const snapshot = latestState.current;
+       const playerLookup = {
+         you: getPlayerSnapshot("you") ?? snapshot.players.you,
+         ai: getPlayerSnapshot("ai") ?? snapshot.players.ai,
+       };
       const sourceBuffs =
-        options?.pendingOverride ?? snapshot.pendingDefenseBuffs;
+        options?.pendingOverride ??
+        pendingDefenseBuffsBufferRef.current ??
+        snapshot.pendingDefenseBuffs;
       if (!sourceBuffs.length) {
         return sourceBuffs;
       }
@@ -715,7 +727,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
           turnId: trigger.turnId,
         });
         expired.forEach(({ buff, reason }) => {
-          const owner = snapshot.players[buff.owner];
+          const owner = playerLookup[buff.owner];
           if (!owner) return;
           pushLog(
             `[Defense] ${owner.hero.name}'s ${buff.statusId} expires${
@@ -729,6 +741,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
           applyPendingDefenseBuff(buff, trigger);
         });
       }
+      pendingDefenseBuffsBufferRef.current = pending;
       if (!options?.skipDispatch) {
         dispatch({ type: "SET_PENDING_DEFENSE_BUFFS", buffs: pending });
       }
@@ -757,7 +770,9 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
   const triggerDefenseBuffsBatch = useCallback(
     (entries: Array<{ phase: StatusTimingPhase; owner: Side }>) => {
       if (!entries.length) return;
-      let working = latestState.current.pendingDefenseBuffs;
+      let working =
+        pendingDefenseBuffsBufferRef.current ??
+        latestState.current.pendingDefenseBuffs;
       let changed = false;
       entries.forEach(({ phase, owner }) => {
         const next = releasePendingDefenseBuffs(

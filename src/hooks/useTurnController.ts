@@ -326,7 +326,7 @@ export function useGameFlow({
         computedRound = prevRound + 1;
       }
       onTurnPrepare?.({ side: next, round: computedRound });
-      snapshot = mergeSnapshotWithPlayerSnapshots(snapshot);
+      snapshot = mergeSnapshotWithPlayerSnapshots(latestState.current);
       const turnResult = resolveTurnStart(snapshot, next);
       const beforePlayer = snapshot.players[next];
       const prevLogLength = snapshot.log?.length ?? 0;
