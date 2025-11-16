@@ -99,7 +99,7 @@ import {
   deriveVirtualTokensForSide,
   type VirtualTokenDerivationBreakdown,
 } from "./virtualTokens";
-import { getPlayerSnapshot } from "./playerSnapshot";
+import { getPlayerSnapshot, setPlayerSnapshot } from "./playerSnapshot";
 
 const DEF_DIE_INDEX = 2;
 const ROLL_ANIM_MS = 1300;
