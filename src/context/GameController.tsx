@@ -272,7 +272,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
         ...latestPlayersRef.current,
         [side]: player,
       };
-      dispatch({ type: "SET_PLAYER", side, player });
+      dispatch({ type: "SET_PLAYER", side, player, meta: reason ?? "GameController:setPlayer" });
     },
     [dispatch]
   );

@@ -66,7 +66,12 @@ export function useStatusManager({
 
   const setPlayer = useCallback(
     (side: Side, player: PlayerState) => {
-      dispatch({ type: "SET_PLAYER", side, player });
+      dispatch({
+        type: "SET_PLAYER",
+        side,
+        player,
+        meta: "useStatusManager",
+      });
     },
     [dispatch]
   );

@@ -382,8 +382,8 @@ export function useDefenseActions({
   );
 
   const setPlayer = useCallback(
-    (side: Side, player: PlayerState) => {
-      dispatch({ type: "SET_PLAYER", side, player });
+    (side: Side, player: PlayerState, meta?: string) => {
+      dispatch({ type: "SET_PLAYER", side, player, meta: meta ?? "useDefenseActions" });
     },
     [dispatch]
   );

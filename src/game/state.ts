@@ -12,6 +12,7 @@ import {
   PendingDefenseBuff,
 } from "./types";
 import { normalizeSeed } from "../engine/rng";
+import { defenseDebugLog } from "../utils/debug";
 
 type FloatDamage = { val: number; kind: "hit" | "reflect" };
 
@@ -184,6 +185,7 @@ export type GameAction =
       type: "SET_PLAYER";
       side: Side;
       player: PlayerState;
+      meta?: string | null;
     }
   | {
       type: "SET_PLAYERS";
@@ -255,11 +257,23 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         log: next.length > MAX_LOG ? next.slice(next.length - MAX_LOG) : next,
       };
     }
-    case "SET_PLAYER":
+    case "SET_PLAYER": {
+      if (import.meta.env?.DEV) {
+        const before = state.players[action.side];
+        defenseDebugLog("reducer:setPlayer", {
+          side: action.side,
+          source: action.meta ?? null,
+          hpBefore: before?.hp ?? null,
+          hpAfter: action.player.hp,
+          tokensBefore: before?.tokens ?? null,
+          tokensAfter: action.player.tokens,
+        });
+      }
       return {
         ...state,
         players: { ...state.players, [action.side]: action.player },
       };
+    }
     case "SET_PLAYERS":
       return {
         ...state,

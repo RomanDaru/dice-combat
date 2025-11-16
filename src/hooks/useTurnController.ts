@@ -343,7 +343,12 @@ export function useGameFlow({
       });
       resetRoll();
 
-      dispatch({ type: "SET_PLAYER", side: next, player: turnResult.updatedPlayer });
+      dispatch({
+        type: "SET_PLAYER",
+        side: next,
+        player: turnResult.updatedPlayer,
+        meta: "useTurnController:turnStart",
+      });
 
       if (turnResult.statusDamage > 0) {
         const heroName = turnResult.updatedPlayer.hero.name;
