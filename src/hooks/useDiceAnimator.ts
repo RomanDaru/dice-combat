@@ -203,12 +203,9 @@ export function useDiceAnimator({
 
   const restoreDiceAfterDefense = useCallback(() => {
     const savedDice = latestState.current.savedDefenseDice;
-    if (savedDice) {
-      scheduleTimeout(() => {
-        setDice(savedDice);
-        setSavedDiceForDefense(null);
-      }, 300);
-    }
+    if (!savedDice) return;
+    setDice(savedDice);
+    setSavedDiceForDefense(null);
   }, [latestState, setDice, setSavedDiceForDefense]);
 
   return {
