@@ -268,12 +268,13 @@ const applyApplyStatusToOpponent = (
       ? Math.max(0, Math.floor(effect.amount * Math.max(0, matchCount)))
       : effect.stacks ?? 1;
   const target: DefenseEffectTarget = "opponent";
-  const usablePhase = DEFAULT_GAIN_STATUS_PHASE;
+  const usablePhase = effect.usablePhase ?? DEFAULT_GAIN_STATUS_PHASE;
   result.status.push({
     status: effect.status as StatusId,
     target,
     stacks,
     usablePhase,
+    stackCap: effect.stackCap,
     expires: effect.expires,
     carryOverOnKO: effect.carryOverOnKO,
     source,

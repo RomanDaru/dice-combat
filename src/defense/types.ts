@@ -140,6 +140,7 @@ export type ApplyStatusToOpponentEffectConfig = DefenseEffectCommon & {
   stacks?: number;
   amount?: number;
   stackCap?: number;
+  usablePhase?: StatusTimingPhase;
   expires?: DefenseStatusExpiry;
   carryOverOnKO?: DefenseCarryOverPolicy;
 };

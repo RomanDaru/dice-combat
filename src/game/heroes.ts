@@ -107,7 +107,12 @@ export const HEROES: Record<HeroId, Hero> = {
           label: "Smolder Guard – Burn",
           matcher: { type: "countField", fieldId: "FACE_6", min: 1, cap: 1 },
           effects: [
-            { type: "applyStatusToOpponent", status: "burn", stacks: 1 },
+            {
+              type: "applyStatusToOpponent",
+              status: "burn",
+              stacks: 1,
+              usablePhase: "immediate",
+            },
           ],
         },
       ],
