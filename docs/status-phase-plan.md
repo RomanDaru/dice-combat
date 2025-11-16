@@ -57,6 +57,7 @@
 | 2025-11-15 23:24:04 +01:00 | _Status_ | **No git commit yet**; work remains staged for review/tests. | Reminder that these Variant B fixes still need a commit after verification. |
 | 2025-11-15 23:35:14 +01:00 | `src/context/GameController.tsx` | Fixed HP regressions by tracking `latestPlayersRef` so pending buff grants no longer overwrite freshly updated player HP. | Player HUD now stays in sync with combat log when buffs resolve right after damage. |
 | 2025-11-16 07:53:51 +01:00 | `src/components/PlayerPanel.tsx`, `src/context/GameController.tsx` | Player HUD now renders actual token stacks (no pending/grant illusions) and `setPlayer` dev logs include HP deltas for both sides. | Removes virtual token confusion and gives us concrete HP diagnostics whenever damage lands. |
+| 2025-11-16 08:11:07 +01:00 | `src/hooks/useDefenseResolution.ts` | Added DEV-only `resolveDefense:setPlayer` logs (hp/tokens before/after) right when damage is applied. | Lets us capture the exact HP change during resolution without relying on later buff logs. |
 
 ### 5) Virtual tokens for Chi
 - **Why**: we want engine + UI to read the same (tokens - requested + pending grants) view. Currently only PlayerPanel shows virtual counts.
