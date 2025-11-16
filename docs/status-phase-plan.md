@@ -2,7 +2,9 @@
 
 # Status Phase & Buff Synchronization Plan (Variant B)
 
-**Goal**: Align status spend/grant phases so Chi, Prevent Half, and other statuses behave deterministically. Based on docs/status-core-plan.md – we are executing Variant B.
+**Goal**: Align status spend/grant phases so Chi, Prevent Half, and other statuses behave deterministically. Based on docs/status-core-plan.md - we are executing Variant B.
+
+> ✅ **Status** (2025-11-17): Variant B implementation is complete. All steps below have shipped (Chi spends/grants ordering, Prevent Half timing, virtual tokens, and opponent-status grants like Pyromancer Burn), and regression tests + docs cover the final behavior.
 
 ## 1. High-Level Steps
 1. ✅ **Status phase enum in place** – audit complete. `StatusTimingPhase` remains the single source of truth (`src/engine/status/types.ts:22`), and every grant/buff helper now imports it instead of raw strings (spot-checked key callsites `src/context/GameController.tsx:586`, `src/game/defenseBuffs.ts:5`, `src/hooks/usePlayerDefenseController.ts:27`). No changes needed right now; future additions must extend the enum rather than pushing ad-hoc literals.
