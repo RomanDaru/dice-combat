@@ -265,6 +265,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
           tokensAfter: player.tokens,
         });
       }
+      setPlayerSnapshot(side, player);
       dispatch({ type: "SET_PLAYER", side, player, meta: reason ?? "GameController:setPlayer" });
     },
     [dispatch]
