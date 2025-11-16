@@ -11,6 +11,7 @@ import {
 } from "../game/flow/cues";
 import { getCueDuration } from "../config/cueDurations";
 import { getStatus } from "../engine/status";
+import { getPlayerSnapshot } from "../context/playerSnapshot";
 
 export type { Cue, ActiveCue } from "../game/flow/cues";
 
@@ -312,7 +313,7 @@ export function useGameFlow({
 
   const startTurn = useCallback(
     (next: Side, afterReady?: () => void): boolean => {
-      const snapshot = latestState.current;
+      let snapshot = latestState.current;
       const prevTurn = snapshot.turn;
       const prevRound = snapshot.round;
       if (!roundAnchorRef.current) {
@@ -325,6 +326,7 @@ export function useGameFlow({
         computedRound = prevRound + 1;
       }
       onTurnPrepare?.({ side: next, round: computedRound });
+      snapshot = mergeSnapshotWithPlayerSnapshots(snapshot);
       const turnResult = resolveTurnStart(snapshot, next);
       const beforePlayer = snapshot.players[next];
       const prevLogLength = snapshot.log?.length ?? 0;
@@ -555,3 +557,25 @@ export function useGameFlow({
     interruptCue,
   };
 }
+export const mergeSnapshotWithPlayerSnapshots = (
+  snapshot: GameState
+): GameState => {
+  const youSnapshot = getPlayerSnapshot("you");
+  const aiSnapshot = getPlayerSnapshot("ai");
+  const nextYou = youSnapshot ?? snapshot.players.you;
+  const nextAi = aiSnapshot ?? snapshot.players.ai;
+  if (
+    nextYou === snapshot.players.you &&
+    nextAi === snapshot.players.ai
+  ) {
+    return snapshot;
+  }
+  return {
+    ...snapshot,
+    players: {
+      ...snapshot.players,
+      you: nextYou,
+      ai: nextAi,
+    },
+  };
+};

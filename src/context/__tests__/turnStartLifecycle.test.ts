@@ -6,6 +6,10 @@ import {
   prepareDefenseTurnStart,
 } from "../GameController";
 import type { Side } from "../../game/types";
+import { mergeSnapshotWithPlayerSnapshots } from "../../hooks/useTurnController";
+import { createInitialState } from "../../game/state";
+import { resolveTurnStart } from "../../game/flow";
+import { setPlayerSnapshot, setPlayerSnapshots } from "../playerSnapshot";
 
 const createRef = <T,>(value: T): MutableRefObject<T> =>
   ({ current: value } as MutableRefObject<T>);
@@ -82,5 +86,21 @@ describe("turn start lifecycle helpers", () => {
     });
     expect(firstPlayerRef.current).toBe("ai");
     expect(updateGameMeta).toHaveBeenCalledWith({ firstPlayer: "ai" });
+  });
+
+  it("makes freshly released statuses visible to resolveTurnStart", () => {
+    const state = createInitialState();
+    const youWithBurn = {
+      ...state.players.you,
+      tokens: { ...state.players.you.tokens, burn: 2 },
+    };
+    setPlayerSnapshot("you", youWithBurn);
+    setPlayerSnapshot("ai", state.players.ai);
+
+    const merged = mergeSnapshotWithPlayerSnapshots(state);
+    const result = resolveTurnStart(merged, "you");
+
+    expect(result.statusDamage).toBeGreaterThan(0);
+    setPlayerSnapshots(state.players);
   });
 });

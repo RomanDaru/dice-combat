@@ -160,6 +160,9 @@ type UseDefenseResolutionArgs = {
   setPlayer: (side: Side, player: PlayerState) => void;
   queueDefenseResolution?: (payload: { resolve: () => void; defenderSide: Side }) => void;
   triggerDefenseBuffs: (phase: StatusTimingPhase, owner: Side) => void;
+  triggerDefenseBuffsBatch?: (
+    entries: Array<{ phase: StatusTimingPhase; owner: Side }>
+  ) => void;
 };
 
 export function useDefenseResolution({
@@ -177,6 +180,7 @@ export function useDefenseResolution({
   setPlayer,
   queueDefenseResolution,
   triggerDefenseBuffs,
+  triggerDefenseBuffsBatch,
 }: UseDefenseResolutionArgs) {
   const resolveDefenseWithEvents = useCallback<DefenseResolutionHandler>(
     (resolution, context) => {
@@ -209,8 +213,15 @@ export function useDefenseResolution({
         resolution.fx.forEach(({ side, amount, kind }) =>
           popDamage(side, amount, kind)
         );
-        triggerDefenseBuffs("nextDefenseCommit", defenderSide);
-        triggerDefenseBuffs("nextDefenseCommit", attackerSide);
+        if (triggerDefenseBuffsBatch) {
+          triggerDefenseBuffsBatch([
+            { phase: "nextDefenseCommit", owner: defenderSide },
+            { phase: "nextDefenseCommit", owner: attackerSide },
+          ]);
+        } else {
+          triggerDefenseBuffs("nextDefenseCommit", defenderSide);
+          triggerDefenseBuffs("nextDefenseCommit", attackerSide);
+        }
         triggerDefenseBuffs("postDamageApply", defenderSide);
 
       let summaryDelay = 600;

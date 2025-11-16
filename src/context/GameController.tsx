@@ -678,15 +678,34 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     []
   );
 
+  type ReleasePendingOptions = {
+    pendingOverride?: PendingDefenseBuff[];
+    skipDispatch?: boolean;
+  };
+
   const releasePendingDefenseBuffs = useCallback(
-    (trigger: PendingDefenseBuffTrigger) => {
+    (
+      trigger: PendingDefenseBuffTrigger,
+      options?: ReleasePendingOptions
+    ): PendingDefenseBuff[] => {
       const snapshot = latestState.current;
-      if (!snapshot.pendingDefenseBuffs.length) return;
+      const sourceBuffs =
+        options?.pendingOverride ?? snapshot.pendingDefenseBuffs;
+      if (!sourceBuffs.length) {
+        return sourceBuffs;
+      }
       const { ready, pending, expired } = partitionPendingDefenseBuffs(
-        snapshot.pendingDefenseBuffs,
+        sourceBuffs,
         trigger
       );
-      if (!ready.length && !expired.length) return;
+      const hasCountdownUpdates =
+        ready.length === 0 &&
+        expired.length === 0 &&
+        pending.length === sourceBuffs.length &&
+        pending.some((buff, index) => buff !== sourceBuffs[index]);
+      if (!ready.length && !expired.length && !hasCountdownUpdates) {
+        return sourceBuffs;
+      }
 
       if (expired.length) {
         archiveExpiredDefenseBuffs(expired, {
@@ -710,7 +729,10 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
           applyPendingDefenseBuff(buff, trigger);
         });
       }
-      dispatch({ type: "SET_PENDING_DEFENSE_BUFFS", buffs: pending });
+      if (!options?.skipDispatch) {
+        dispatch({ type: "SET_PENDING_DEFENSE_BUFFS", buffs: pending });
+      }
+      return pending;
     },
     [
       applyPendingDefenseBuff,
@@ -731,6 +753,32 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
       });
     },
     [releasePendingDefenseBuffs, state.round]
+  );
+  const triggerDefenseBuffsBatch = useCallback(
+    (entries: Array<{ phase: StatusTimingPhase; owner: Side }>) => {
+      if (!entries.length) return;
+      let working = latestState.current.pendingDefenseBuffs;
+      let changed = false;
+      entries.forEach(({ phase, owner }) => {
+        const next = releasePendingDefenseBuffs(
+          {
+            phase,
+            owner,
+            turnId: currentTurnIdRef.current,
+            round: state.round,
+          },
+          { pendingOverride: working, skipDispatch: true }
+        );
+        if (next !== working) {
+          changed = true;
+          working = next;
+        }
+      });
+      if (changed) {
+        dispatch({ type: "SET_PENDING_DEFENSE_BUFFS", buffs: working });
+      }
+    },
+    [dispatch, latestState, releasePendingDefenseBuffs, state.round]
   );
   const expireBuffsOnKo = useCallback(
     (side: Side) => {
@@ -1568,6 +1616,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     setDefenseStatusRollDisplay: setDefenseStatusRoll,
     queuePendingDefenseGrants: enqueuePendingDefenseGrants,
     triggerDefenseBuffs,
+    triggerDefenseBuffsBatch,
     enqueueCue,
     interruptCue,
     scheduleCallback,

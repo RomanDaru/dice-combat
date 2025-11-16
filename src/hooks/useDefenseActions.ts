@@ -126,6 +126,9 @@ type UseDefenseActionsArgs = {
     defenderSide: Side;
   }) => void;
   triggerDefenseBuffs: (phase: StatusTimingPhase, owner: Side) => void;
+  triggerDefenseBuffsBatch: (
+    entries: Array<{ phase: StatusTimingPhase; owner: Side }>
+  ) => void;
   applyDefenseVersionOverride: (hero: Hero) => Hero;
   queueDefenseResolution: (payload: { resolve: () => void; defenderSide: Side }) => void;
   setPlayer: (side: Side, player: PlayerState, reason?: string) => void;
@@ -248,6 +251,7 @@ export function useDefenseActions({
   scheduleCallback,
   queuePendingDefenseGrants,
   triggerDefenseBuffs,
+  triggerDefenseBuffsBatch,
   applyDefenseVersionOverride,
   queueDefenseResolution,
   setPlayer,
@@ -398,6 +402,7 @@ export function useDefenseActions({
     setPlayer,
     queueDefenseResolution,
     triggerDefenseBuffs,
+    triggerDefenseBuffsBatch,
   });
   const resolveDefenseWithEvents = useCallback(
     (

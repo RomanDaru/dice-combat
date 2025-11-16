@@ -87,6 +87,7 @@ const createHook = () => {
     pushLog: vi.fn(),
     setPlayer: vi.fn(),
     triggerDefenseBuffs: vi.fn(),
+    triggerDefenseBuffsBatch: vi.fn(),
   };
 
   const { result } = renderHook(() => useDefenseResolution(args));
@@ -188,19 +189,13 @@ describe("useDefenseResolution - defense summary cue", () => {
       abilityName: "Moon Slash",
     });
 
-    expect(args.triggerDefenseBuffs).toHaveBeenCalledTimes(3);
-    expect(args.triggerDefenseBuffs).toHaveBeenNthCalledWith(
-      1,
-      "nextDefenseCommit",
-      "you"
-    );
-    expect(args.triggerDefenseBuffs).toHaveBeenNthCalledWith(
-      2,
-      "nextDefenseCommit",
-      "ai"
-    );
-    expect(args.triggerDefenseBuffs).toHaveBeenNthCalledWith(
-      3,
+    expect(args.triggerDefenseBuffsBatch).toHaveBeenCalledTimes(1);
+    expect(args.triggerDefenseBuffsBatch).toHaveBeenCalledWith([
+      { phase: "nextDefenseCommit", owner: "you" },
+      { phase: "nextDefenseCommit", owner: "ai" },
+    ]);
+    expect(args.triggerDefenseBuffs).toHaveBeenCalledTimes(1);
+    expect(args.triggerDefenseBuffs).toHaveBeenCalledWith(
       "postDamageApply",
       "you"
     );
