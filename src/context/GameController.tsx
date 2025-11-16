@@ -1599,6 +1599,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     getDefenseDecisionLatency,
     clearDefenseDecisionLatency,
     consumeUpkeepDamage,
+    recordPlayerTurn: stats.recordTurn,
     rolling,
     ability,
     dice,
