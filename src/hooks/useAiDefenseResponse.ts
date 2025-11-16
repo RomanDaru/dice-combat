@@ -176,6 +176,7 @@ export function useAiDefenseResponse({
         additionalSpends: StatusSpendSummary[] = [],
         attackerOverride?: PlayerState
       ) => {
+        triggerDefenseBuffs("postDefenseRoll", defenderSide);
         triggerDefenseBuffs("preApplyDamage", defenderSide);
         scheduleCallback(600, () => {
           closeDiceTray();
@@ -230,9 +231,6 @@ export function useAiDefenseResponse({
           useSchema && defenseHero.defenseSchema ? defenseHero.defenseSchema.dice : undefined;
         animateDefenseRoll(
           (rolledDice) => {
-            const releasePostDefenseRoll = () => {
-              triggerDefenseBuffs("postDefenseRoll", defenderSide);
-            };
             if (useSchema && defenseHero.defenseSchema) {
             const schemaOutcome = resolveDefenseSchemaRoll({
               hero: defenseHero,
@@ -273,7 +271,6 @@ export function useAiDefenseResponse({
               if (schemaOutcome.updatedAttacker !== attacker) {
                 setPlayer(attackerSide, schemaOutcome.updatedAttacker);
               }
-              releasePostDefenseRoll();
 
             const defenseSpendRequests = buildDefenseSpendRequests(
               defenderAfterSchema,
@@ -345,7 +342,6 @@ export function useAiDefenseResponse({
               ? selectHighestBlockOption(defenseRollResult)
               : selectDefenseOptionByCombo(defenseRollResult, null);
             const baseResolution = resolveDefenseSelection(selection);
-            releasePostDefenseRoll();
 
             const defenseSpendRequests = buildDefenseSpendRequests(
               defenderState,

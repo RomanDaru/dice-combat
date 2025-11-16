@@ -232,6 +232,7 @@ export function usePlayerDefenseController({
         pendingDefenseSpends
       );
 
+      triggerDefenseBuffs("postDefenseRoll", pendingAttack.defender);
       triggerDefenseBuffs("preApplyDamage", pendingAttack.defender);
       const resolution = resolveAttack({
         source: "ai",
@@ -315,9 +316,6 @@ export function usePlayerDefenseController({
     const defenseDiceCount =
       useSchema && defenderHero.defenseSchema ? defenderHero.defenseSchema.dice : undefined;
     animateDefenseRoll((rolledDice) => {
-      const releasePostDefenseRoll = () => {
-        triggerDefenseBuffs("postDefenseRoll", defenderSide);
-      };
       if (useSchema && defenderHero.defenseSchema) {
         const defenderTokensBefore = { ...defender.tokens };
         const schemaOutcome = resolveDefenseSchemaRoll({
@@ -388,7 +386,6 @@ export function usePlayerDefenseController({
           schemaLogs: schemaOutcome.logs,
           tokenSnapshot: defenderTokensBefore,
         });
-        releasePostDefenseRoll();
         return;
       }
       const rollResult = evaluateDefenseRoll(defender.hero, rolledDice);
@@ -410,7 +407,6 @@ export function usePlayerDefenseController({
         baseResolution: initialBaseResolution,
         tokenSnapshot: { ...defender.tokens },
       });
-      releasePostDefenseRoll();
     }, 700, { diceCount: defenseDiceCount });
   }, [
     animateDefenseRoll,
@@ -567,6 +563,7 @@ export function usePlayerDefenseController({
           const reactionDefense = combineDefenseSpends(null, [
             reactionSummary,
           ]);
+          triggerDefenseBuffs("postDefenseRoll", pendingAttack.defender);
           triggerDefenseBuffs("preApplyDamage", pendingAttack.defender);
           const resolution = resolveAttack({
             source: "ai",
