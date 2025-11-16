@@ -294,6 +294,7 @@ export function resolveAttack(context: AttackContext): AttackResolution {
     nextSide,
     events,
     summary,
+    defense: defenseState,
   };
 
   if (wasNegated) {

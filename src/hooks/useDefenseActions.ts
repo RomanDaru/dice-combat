@@ -41,7 +41,8 @@ import type {
 import type { DefenseStatusGrant } from "../defense/effects";
 import type { DefenseSchemaResolution } from "../defense/resolver";
 import type { DefenseVersion } from "../defense/types";
-import type { DefenseSchemaLog } from "../stats/types";
+import { ENABLE_DEFENSE_V2 } from "../config/featureFlags";
+import { DEFENSE_DSL_VERSION } from "../config/buildInfo";
 import type { StatusSpendSummary } from "../engine/status";
 import type { TurnEndResolution } from "../game/flow/turnEnd";
 import type { Cue } from "../game/flow/cues";
@@ -509,7 +510,11 @@ export function useDefenseActions({
           );
           if (telemetryDelta) {
             stats.updateGameMeta({
-              defenseMeta: { totals: telemetryDelta },
+              defenseMeta: {
+                enableDefenseV2: ENABLE_DEFENSE_V2,
+                defenseDslVersion: DEFENSE_DSL_VERSION,
+                totals: telemetryDelta,
+              },
             });
           }
         }
@@ -609,7 +614,6 @@ export function useDefenseActions({
     queuePendingDefenseGrants,
     triggerDefenseBuffs,
     applyDefenseVersionOverride,
-    queueDefenseResolution,
   });
 
   const {

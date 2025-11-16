@@ -102,6 +102,7 @@ export type AttackResolution = {
     attackerStatusDiff: Record<string, number>;
     defenderStatusDiff: Record<string, number>;
   };
+  defense?: ResolvedDefenseState | null;
 };
 
 export type EvasiveAttemptPlan = {
