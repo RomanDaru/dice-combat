@@ -148,6 +148,12 @@ export const resolveDefenseSchemaRoll = ({
   defender: PlayerState;
   incomingDamage: number;
 }): SchemaDefenseRollOutcome => {
+  const expectedDice = hero.defenseSchema.dice;
+  if (dice.length !== expectedDice) {
+    throw new Error(
+      `resolveDefenseSchemaRoll expected ${expectedDice} dice but received ${dice.length}`
+    );
+  }
   const typedDice = coerceDice(dice);
   const schema = resolveDefenseSchema({
     schema: hero.defenseSchema,

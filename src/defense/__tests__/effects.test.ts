@@ -80,7 +80,7 @@ describe("executeDefenseEffects", () => {
     expect(status[0]).toMatchObject({
       status: PREVENT_HALF_STATUS_ID,
       stacks: 3,
-      usablePhase: "preApplyDamage",
+      usablePhase: "nextDefenseCommit",
     });
   });
 

@@ -23,6 +23,7 @@ type UseGameFlowArgs = {
   popDamage: (side: Side, amount: number, kind?: "hit" | "reflect") => void;
   onTransitionChange: (transition: ActiveTransition | null) => void;
   onCueChange: (cue: ActiveCue | null) => void;
+  onTurnPrepare?: (payload: { side: Side; round: number }) => void;
   onTurnStart?: (payload: {
     side: Side;
     round: number;
@@ -189,6 +190,7 @@ export function useGameFlow({
   popDamage,
   onTransitionChange,
   onCueChange,
+  onTurnPrepare,
   onTurnStart,
 }: UseGameFlowArgs) {
   const { state, dispatch } = useGame();
@@ -313,10 +315,6 @@ export function useGameFlow({
       const snapshot = latestState.current;
       const prevTurn = snapshot.turn;
       const prevRound = snapshot.round;
-      const turnResult = resolveTurnStart(snapshot, next);
-      const beforePlayer = snapshot.players[next];
-      const prevLogLength = snapshot.log?.length ?? 0;
-      const upkeepCueDurations: number[] = [];
       if (!roundAnchorRef.current) {
         roundAnchorRef.current = next;
       }
@@ -326,6 +324,11 @@ export function useGameFlow({
       } else if (next === roundAnchorRef.current) {
         computedRound = prevRound + 1;
       }
+      onTurnPrepare?.({ side: next, round: computedRound });
+      const turnResult = resolveTurnStart(snapshot, next);
+      const beforePlayer = snapshot.players[next];
+      const prevLogLength = snapshot.log?.length ?? 0;
+      const upkeepCueDurations: number[] = [];
       if (computedRound !== prevRound) {
         dispatch({ type: "SET_ROUND", round: computedRound });
       }
@@ -479,6 +482,7 @@ export function useGameFlow({
       resetRoll,
       latestState,
       schedulePhaseChange,
+      onTurnPrepare,
       onTurnStart,
     ]
   );

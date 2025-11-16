@@ -138,6 +138,117 @@ type DefenseBuffExpirationRecord = PendingDefenseBuff & {
   };
 };
 
+type PendingUpkeepRecord = Record<
+  Side,
+  {
+    turnId: string;
+    amount: number;
+  }
+>;
+
+type TurnStartPrepDeps = {
+  currentTurnIdRef: React.MutableRefObject<string>;
+  pendingUpkeepRef: React.MutableRefObject<PendingUpkeepRecord>;
+  releasePendingDefenseBuffs: (trigger: PendingDefenseBuffTrigger) => void;
+};
+
+export const prepareDefenseTurnStart = (
+  deps: TurnStartPrepDeps,
+  payload: { side: Side; round: number }
+) => {
+  const nextTurnId = createTurnId();
+  deps.currentTurnIdRef.current = nextTurnId;
+  deps.pendingUpkeepRef.current[payload.side] = {
+    turnId: nextTurnId,
+    amount: 0,
+  };
+  deps.releasePendingDefenseBuffs({
+    phase: "nextTurn",
+    owner: payload.side,
+    turnId: nextTurnId,
+    round: payload.round,
+  });
+  deps.releasePendingDefenseBuffs({
+    phase: "turnStart",
+    owner: payload.side,
+    turnId: nextTurnId,
+    round: payload.round,
+  });
+};
+
+type TurnStartStatsDeps = {
+  currentTurnIdRef: React.MutableRefObject<string>;
+  pendingUpkeepRef: React.MutableRefObject<PendingUpkeepRecord>;
+  stats: {
+    recordTurn: (input: {
+      turnId: string;
+      round: number;
+      attackerSide: Side;
+      defenderSide: Side;
+      abilityId: string | null;
+      combo: string | null;
+      pass: boolean;
+      phaseDamage: {
+        attack: number;
+        counter: number;
+        upkeepDot: number;
+        collateral: number;
+      };
+      damageWithoutBlock: number;
+      damageBlocked: number;
+      damagePrevented: number;
+      counterDamage: number;
+      actualDamage: number;
+    }) => void;
+    updateGameMeta: (meta: { firstPlayer: Side }) => void;
+  };
+  firstPlayerRef: React.MutableRefObject<Side | null>;
+};
+
+export const applyDefenseTurnStartStats = (
+  deps: TurnStartStatsDeps,
+  payload: {
+    side: Side;
+    round: number;
+    statusDamage: number;
+    hpAfter: number;
+  }
+) => {
+  const { side, round, statusDamage, hpAfter } = payload;
+  const activeTurnId = deps.currentTurnIdRef.current;
+  deps.pendingUpkeepRef.current[side] = {
+    turnId: activeTurnId,
+    amount: statusDamage,
+  };
+  if (statusDamage > 0 && hpAfter <= 0) {
+    deps.stats.recordTurn({
+      turnId: activeTurnId,
+      round: Math.max(1, round || 1),
+      attackerSide: side,
+      defenderSide: side,
+      abilityId: null,
+      combo: null,
+      pass: true,
+      phaseDamage: {
+        attack: 0,
+        counter: 0,
+        upkeepDot: statusDamage,
+        collateral: 0,
+      },
+      damageWithoutBlock: 0,
+      damageBlocked: 0,
+      damagePrevented: 0,
+      counterDamage: 0,
+      actualDamage: 0,
+    });
+    deps.pendingUpkeepRef.current[side] = { turnId: activeTurnId, amount: 0 };
+  }
+  if (deps.firstPlayerRef.current === null) {
+    deps.firstPlayerRef.current = side;
+    deps.stats.updateGameMeta({ firstPlayer: side });
+  }
+};
+
 const mapBuffForStats = (buff: PendingDefenseBuff) => ({
   id: buff.id,
   owner: buff.owner,
@@ -274,7 +385,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const statsSeedRef = useRef<number | null>(null);
   const statsFinalizedRef = useRef(false);
   const currentTurnIdRef = useRef(createTurnId());
-  const pendingUpkeepRef = useRef<Record<Side, { turnId: string; amount: number }>>({
+  const pendingUpkeepRef = useRef<PendingUpkeepRecord>({
     you: { turnId: currentTurnIdRef.current, amount: 0 },
     ai: { turnId: currentTurnIdRef.current, amount: 0 },
   });
@@ -696,6 +807,20 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     }
     lastRoundRef.current = state.round;
   }, [state.round, triggerDefenseBuffs]);
+  const prepareTurnStart = useCallback(
+    (payload: { side: Side; round: number }) => {
+      prepareDefenseTurnStart(
+        {
+          currentTurnIdRef,
+          pendingUpkeepRef,
+          releasePendingDefenseBuffs,
+        },
+        payload
+      );
+    },
+    [releasePendingDefenseBuffs]
+  );
+
   const handleTurnStartStats = useCallback(
     ({
       side,
@@ -707,51 +832,17 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
       round: number;
       statusDamage: number;
       hpAfter: number;
-    }) => {
-      const nextTurnId = createTurnId();
-      currentTurnIdRef.current = nextTurnId;
-      pendingUpkeepRef.current[side] = { turnId: nextTurnId, amount: statusDamage };
-      if (statusDamage > 0 && hpAfter <= 0) {
-        stats.recordTurn({
-          turnId: nextTurnId,
-          round: Math.max(1, round || 1),
-          attackerSide: side,
-          defenderSide: side,
-          abilityId: null,
-          combo: null,
-          pass: true,
-          phaseDamage: {
-            attack: 0,
-            counter: 0,
-            upkeepDot: statusDamage,
-            collateral: 0,
-          },
-          damageWithoutBlock: 0,
-          damageBlocked: 0,
-          damagePrevented: 0,
-          counterDamage: 0,
-          actualDamage: 0,
-        });
-        pendingUpkeepRef.current[side] = { turnId: nextTurnId, amount: 0 };
-      }
-      releasePendingDefenseBuffs({
-        phase: "nextTurn",
-        owner: side,
-        turnId: nextTurnId,
-        round,
-      });
-      releasePendingDefenseBuffs({
-        phase: "turnStart",
-        owner: side,
-        turnId: nextTurnId,
-        round,
-      });
-      if (firstPlayerRef.current === null) {
-        firstPlayerRef.current = side;
-        stats.updateGameMeta({ firstPlayer: side });
-      }
-    },
-    [releasePendingDefenseBuffs, stats]
+    }) =>
+      applyDefenseTurnStartStats(
+        {
+          currentTurnIdRef,
+          pendingUpkeepRef,
+          stats,
+          firstPlayerRef,
+        },
+        { side, round, statusDamage, hpAfter }
+      ),
+    [stats]
   );
   const openDiceTray = useCallback(() => {
     setDefenseStatusMessage(null);
@@ -1255,6 +1346,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     popDamage,
     onTransitionChange: setActiveTransition,
     onCueChange: setActiveCue,
+    onTurnPrepare: prepareTurnStart,
     onTurnStart: handleTurnStartStats,
   });
   scheduleCallbackRef.current = scheduleCallback;

@@ -74,3 +74,68 @@ describe("evaluateDefenseMatcher - pairsField", () => {
     expect(result.metadata?.totalPairs).toBe(2);
   });
 });
+
+describe("evaluateDefenseMatcher - exactFace", () => {
+  it("matches when the requested face appears enough times", () => {
+    const result = evaluateDefenseMatcher(
+      schema,
+      { type: "exactFace", face: 6, count: 2 },
+      [6, 6, 2, 3, 5]
+    );
+
+    expect(result.matched).toBe(true);
+    expect(result.matchCount).toBe(2);
+    expect(result.matchedDiceIndexes.sort()).toEqual([0, 1]);
+  });
+
+  it("fails when not enough dice match the face", () => {
+    const result = evaluateDefenseMatcher(
+      schema,
+      { type: "exactFace", face: 5, count: 2 },
+      [6, 2, 3, 4, 5]
+    );
+
+    expect(result.matched).toBe(false);
+    expect(result.matchCount).toBe(1);
+    expect(result.matchedDiceIndexes).toEqual([]);
+  });
+});
+
+describe("evaluateDefenseMatcher - combo", () => {
+  it("matches field recipes and captures indexes", () => {
+    const result = evaluateDefenseMatcher(
+      schema,
+      {
+        type: "combo",
+        fields: [
+          { id: "LOW", min: 1 },
+          { id: "HIGH", min: 1 },
+        ],
+        allowExtra: true,
+      },
+      [1, 5, 3, 4, 2]
+    );
+
+    expect(result.matched).toBe(true);
+    expect(result.matchCount).toBe(2);
+    expect(result.matchedDiceIndexes.sort()).toEqual([0, 1]);
+  });
+
+  it("fails when extra dice are present and allowExtra is false", () => {
+    const result = evaluateDefenseMatcher(
+      schema,
+      {
+        type: "combo",
+        fields: [
+          { id: "LOW", min: 1 },
+          { id: "MID", min: 1 },
+        ],
+        allowExtra: false,
+      },
+      [1, 2, 3, 4, 5]
+    );
+
+    expect(result.matched).toBe(false);
+    expect(result.matchedDiceIndexes).toEqual([]);
+  });
+});

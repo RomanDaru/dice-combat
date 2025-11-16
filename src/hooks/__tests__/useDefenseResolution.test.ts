@@ -188,7 +188,7 @@ describe("useDefenseResolution - defense summary cue", () => {
       abilityName: "Moon Slash",
     });
 
-    expect(args.triggerDefenseBuffs).toHaveBeenCalledTimes(2);
+    expect(args.triggerDefenseBuffs).toHaveBeenCalledTimes(3);
     expect(args.triggerDefenseBuffs).toHaveBeenNthCalledWith(
       1,
       "nextDefenseCommit",
@@ -196,6 +196,11 @@ describe("useDefenseResolution - defense summary cue", () => {
     );
     expect(args.triggerDefenseBuffs).toHaveBeenNthCalledWith(
       2,
+      "nextDefenseCommit",
+      "ai"
+    );
+    expect(args.triggerDefenseBuffs).toHaveBeenNthCalledWith(
+      3,
       "postDamageApply",
       "you"
     );

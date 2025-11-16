@@ -210,6 +210,7 @@ export function useDefenseResolution({
           popDamage(side, amount, kind)
         );
         triggerDefenseBuffs("nextDefenseCommit", defenderSide);
+        triggerDefenseBuffs("nextDefenseCommit", attackerSide);
         triggerDefenseBuffs("postDamageApply", defenderSide);
 
       let summaryDelay = 600;

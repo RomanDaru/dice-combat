@@ -5,6 +5,8 @@ import type {
   DefenseMatcherConfig,
   DefenseSchema,
   PairsFieldMatcherConfig,
+  ExactFaceMatcherConfig,
+  ComboMatcherConfig,
 } from "./types";
 
 export type DefenseRollStats = {
@@ -107,6 +109,78 @@ const evaluatePairsFieldMatcher = (
   };
 };
 
+const evaluateExactFaceMatcher = (
+  matcher: ExactFaceMatcherConfig,
+  stats: DefenseRollStats
+): DefenseMatcherEvaluation => {
+  const matchedDiceIndexes = stats.dice.reduce<number[]>((acc, face, index) => {
+    if (face === matcher.face) {
+      acc.push(index);
+    }
+    return acc;
+  }, []);
+  const totalMatches = matchedDiceIndexes.length;
+  const matched = totalMatches >= matcher.count;
+  return {
+    matched,
+    matchCount: totalMatches,
+    matchedDiceIndexes: matched ? matchedDiceIndexes : [],
+    fieldTotals: stats.fieldTotals,
+    metadata: {
+      face: matcher.face,
+    },
+  };
+};
+
+const evaluateComboMatcher = (
+  matcher: ComboMatcherConfig,
+  stats: DefenseRollStats
+): DefenseMatcherEvaluation => {
+  const requirements = matcher.fields ?? [];
+  if (!requirements.length) {
+    return {
+      matched: false,
+      matchCount: 0,
+      matchedDiceIndexes: [],
+      fieldTotals: stats.fieldTotals,
+      metadata: { requirements: [] },
+    };
+  }
+  const allowExtra = matcher.allowExtra !== false;
+  const breakdown = requirements.map((req) => {
+    const available = stats.diceIndexesByField[req.id]?.length ?? 0;
+    return {
+      fieldId: req.id,
+      required: req.min,
+      available,
+    };
+  });
+  const matched = breakdown.every((entry) => {
+    if (entry.available < entry.required) return false;
+    if (!allowExtra && entry.available > entry.required) return false;
+    return true;
+  });
+  const matchCount = matched
+    ? breakdown.reduce((sum, entry) => sum + entry.required, 0)
+    : 0;
+  const matchedDiceIndexes = matched
+    ? breakdown.flatMap((entry) => {
+        const indexes = stats.diceIndexesByField[entry.fieldId] ?? [];
+        return indexes.slice(0, entry.required);
+      })
+    : [];
+  return {
+    matched,
+    matchCount,
+    matchedDiceIndexes,
+    fieldTotals: stats.fieldTotals,
+    metadata: {
+      allowExtra,
+      requirements: breakdown,
+    },
+  };
+};
+
 export const evaluateDefenseMatcher = (
   schema: DefenseSchema,
   matcher: DefenseMatcherConfig,
@@ -119,9 +193,10 @@ export const evaluateDefenseMatcher = (
       return evaluateCountFieldMatcher(matcher, rollStats);
     case "pairsField":
       return evaluatePairsFieldMatcher(matcher, rollStats);
-     case "exactFace":
-     case "combo":
-      throw new Error(`Matcher type "${matcher.type}" is not supported in runtime yet.`);
+    case "exactFace":
+      return evaluateExactFaceMatcher(matcher, rollStats);
+    case "combo":
+      return evaluateComboMatcher(matcher, rollStats);
     default:
       // Exhaustive guard to surface unhandled matcher types during development.
       const _exhaustive: never = matcher;

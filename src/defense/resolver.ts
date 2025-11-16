@@ -15,7 +15,7 @@ import type {
   DefenseStatusGrant,
   DefenseParticipantSnapshot,
 } from "./effects";
-import type { StatusStacks } from "../engine/status";
+import { getStatus, type StatusStacks } from "../engine/status";
 
 export type DefenseRuleExecution = {
   id: string;
@@ -60,8 +60,54 @@ export type ResolveDefenseSchemaArgs = {
 const asParticipantSnapshot = (
   stacks?: StatusStacks
 ): DefenseParticipantSnapshot => ({
-  statuses: stacks ?? {},
+  statuses: stacks ? { ...stacks } : {},
 });
+
+const clampStacksForGrant = (
+  current: number,
+  grant: DefenseStatusGrant
+): number => {
+  const stacksToAdd = grant.stacks ?? 0;
+  if (stacksToAdd <= 0) {
+    return current;
+  }
+  let next = current + stacksToAdd;
+  if (typeof grant.stackCap === "number") {
+    next = Math.min(next, grant.stackCap);
+  }
+  const statusDef = getStatus(grant.status);
+  if (typeof statusDef?.maxStacks === "number") {
+    next = Math.min(next, statusDef.maxStacks);
+  }
+  return Math.max(0, next);
+};
+
+const applyGrantToSnapshot = (
+  snapshot: DefenseParticipantSnapshot,
+  grant: DefenseStatusGrant
+) => {
+  const current = snapshot.statuses[grant.status] ?? 0;
+  const next = clampStacksForGrant(current, grant);
+  if (next === current) return;
+  snapshot.statuses = {
+    ...snapshot.statuses,
+    [grant.status]: next,
+  };
+};
+
+const mergeStatusGrantsIntoParticipants = (
+  participants: {
+    self: DefenseParticipantSnapshot;
+    opponent: DefenseParticipantSnapshot;
+  },
+  grants: DefenseStatusGrant[]
+) => {
+  grants.forEach((grant) => {
+    const targetSnapshot =
+      grant.target === "opponent" ? participants.opponent : participants.self;
+    applyGrantToSnapshot(targetSnapshot, grant);
+  });
+};
 
 const collectLogsForRule = (
   rule: DefenseRule,
@@ -223,6 +269,9 @@ export const resolveDefenseSchema = ({
     const outcome = resolveRule(schema, rule, diceValues, stats, participants);
     rules.push(outcome.execution);
     logs.push(...outcome.logs);
+    if (outcome.execution.status.length) {
+      mergeStatusGrantsIntoParticipants(participants, outcome.execution.status);
+    }
   });
 
   const blockStages = aggregateBlockStages(rules, "self");

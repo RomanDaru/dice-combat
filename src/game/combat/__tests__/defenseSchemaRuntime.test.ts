@@ -43,7 +43,7 @@ const makePlayer = (tokens: PlayerState["tokens"] = {}): PlayerState => ({
   tokens: { ...tokens },
 });
 
-describe("defenseSchemaRuntime – gainStatus handling", () => {
+describe("defenseSchemaRuntime - gainStatus handling", () => {
   it("queues chi gains for the next turn", () => {
     const result = resolveDefenseSchemaRoll({
       hero: schemaHero,
@@ -79,5 +79,17 @@ describe("defenseSchemaRuntime – gainStatus handling", () => {
     const cap = grant.stackCap ?? currentStacks + grant.stacks;
     const nextStacks = Math.min(cap, currentStacks + grant.stacks);
     expect(nextStacks).toBe(3);
+  });
+
+  it("throws when dice count does not match the schema definition", () => {
+    expect(() =>
+      resolveDefenseSchemaRoll({
+        hero: schemaHero,
+        dice: [4, 4, 5],
+        attacker: makePlayer(),
+        defender: makePlayer(),
+        incomingDamage: 4,
+      })
+    ).toThrow(/expected 4 dice but received 3/i);
   });
 });

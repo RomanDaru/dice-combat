@@ -296,13 +296,14 @@ export function usePlayerDefenseController({
     if (!pendingAttack || pendingAttack.defender !== "you") return;
     if (playerDefenseState) return;
 
-    triggerDefenseBuffs("preDefenseRoll", pendingAttack.defender);
+    const defenderSide = pendingAttack.defender;
+    triggerDefenseBuffs("preDefenseRoll", defenderSide);
     setDefenseStatusMessage(null);
     setDefenseStatusRollDisplay(null);
     openDiceTray();
     const snapshot = latestState.current;
     const attacker = snapshot.players[pendingAttack.attacker];
-    const defender = snapshot.players[pendingAttack.defender];
+    const defender = snapshot.players[defenderSide];
     if (!attacker || !defender || attacker.hp <= 0 || defender.hp <= 0) {
       return;
     }
@@ -313,6 +314,9 @@ export function usePlayerDefenseController({
     const defenseDiceCount =
       useSchema && defenderHero.defenseSchema ? defenderHero.defenseSchema.dice : undefined;
     animateDefenseRoll((rolledDice) => {
+      const releasePostDefenseRoll = () => {
+        triggerDefenseBuffs("postDefenseRoll", defenderSide);
+      };
       if (useSchema && defenderHero.defenseSchema) {
         const defenderTokensBefore = { ...defender.tokens };
         const schemaOutcome = resolveDefenseSchemaRoll({
@@ -383,6 +387,7 @@ export function usePlayerDefenseController({
           schemaLogs: schemaOutcome.logs,
           tokenSnapshot: defenderTokensBefore,
         });
+        releasePostDefenseRoll();
         return;
       }
       const rollResult = evaluateDefenseRoll(defender.hero, rolledDice);
@@ -404,6 +409,7 @@ export function usePlayerDefenseController({
         baseResolution: initialBaseResolution,
         tokenSnapshot: { ...defender.tokens },
       });
+      releasePostDefenseRoll();
     }, 700, { diceCount: defenseDiceCount });
   }, [
     animateDefenseRoll,

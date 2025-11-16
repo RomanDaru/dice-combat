@@ -74,4 +74,44 @@ describe("resolveDefenseSchema", () => {
     expect(result.statusGrants).toHaveLength(0);
     expect(result.checkpoints.finalDamage).toBe(1); // 5 raw - 4 block cap
   });
+
+  it("propagates granted statuses to later rule conditions", () => {
+    const chainingSchema: DefenseSchema = {
+      dice: 3,
+      fields: [
+        { id: "LOW", faces: [1, 2, 3] },
+        { id: "HIGH", faces: [4, 5, 6] },
+      ],
+      rules: [
+        {
+          id: "gain_chi",
+          matcher: { type: "countField", fieldId: "LOW", min: 1 },
+          effects: [{ type: "gainStatus", status: "chi", stacks: 1 }],
+        },
+        {
+          id: "chi_block",
+          matcher: { type: "countField", fieldId: "HIGH", min: 1 },
+          effects: [
+            {
+              type: "flatBlock",
+              amount: 4,
+              conditions: {
+                requiresSelfStatus: { status: "chi", minStacks: 1 },
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = resolveDefenseSchema({
+      schema: chainingSchema,
+      dice: [1, 5, 4],
+      incomingDamage: 10,
+    });
+
+    const blockRule = result.rules.find((rule) => rule.id === "chi_block");
+    expect(blockRule?.matched).toBe(true);
+    expect(result.totalBlock).toBe(4);
+  });
 });
