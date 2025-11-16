@@ -99,6 +99,7 @@ import {
   deriveVirtualTokensForSide,
   type VirtualTokenDerivationBreakdown,
 } from "./virtualTokens";
+import { getPlayerSnapshot } from "./playerSnapshot";
 
 const DEF_DIE_INDEX = 2;
 const ROLL_ANIM_MS = 1300;
@@ -251,14 +252,10 @@ const GameControllerContext = createContext<ControllerContext | null>(null);
 export const GameController = ({ children }: { children: ReactNode }) => {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
-  const latestPlayersRef = useRef(state.players);
-  useEffect(() => {
-    latestPlayersRef.current = state.players;
-  }, [state.players]);
   const setPlayer = useCallback(
     (side: Side, player: PlayerState, reason?: string) => {
       if (import.meta.env?.DEV) {
-        const before = latestPlayersRef.current[side];
+        const before = getPlayerSnapshot(side);
         defenseDebugLog("setPlayer", {
           side,
           reason,
@@ -268,10 +265,6 @@ export const GameController = ({ children }: { children: ReactNode }) => {
           tokensAfter: player.tokens,
         });
       }
-      latestPlayersRef.current = {
-        ...latestPlayersRef.current,
-        [side]: player,
-      };
       dispatch({ type: "SET_PLAYER", side, player, meta: reason ?? "GameController:setPlayer" });
     },
     [dispatch]
@@ -350,7 +343,7 @@ export const GameController = ({ children }: { children: ReactNode }) => {
   const applyPendingDefenseBuff = useCallback(
     (buff: PendingDefenseBuff, trigger: PendingDefenseBuffTrigger) => {
       if (buff.kind !== "status") return;
-      const player = latestPlayersRef.current[buff.owner];
+      const player = getPlayerSnapshot(buff.owner);
       if (!player) return;
       const currentStacks = getStacks(player.tokens, buff.statusId, 0);
       let nextStacks = currentStacks + buff.stacks;

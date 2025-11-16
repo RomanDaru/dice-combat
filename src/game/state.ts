@@ -13,6 +13,7 @@ import {
 } from "./types";
 import { normalizeSeed } from "../engine/rng";
 import { defenseDebugLog } from "../utils/debug";
+import { setPlayerSnapshot, setPlayerSnapshots } from "../context/playerSnapshot";
 
 type FloatDamage = { val: number; kind: "hit" | "reflect" };
 
@@ -122,6 +123,7 @@ export function createInitialState(
   const youPlayer = createPlayer(youHero);
   const aiPlayer = createPlayer(aiHero);
   const startMessage = `Start of battle. (${youPlayer.hero.name} HP: ${youPlayer.hp}/${youPlayer.hero.maxHp}, ${aiPlayer.hero.name} HP: ${aiPlayer.hp}/${aiPlayer.hero.maxHp})`;
+  setPlayerSnapshots({ you: youPlayer, ai: aiPlayer });
   return {
     players: {
       you: youPlayer,
@@ -166,6 +168,12 @@ export function createInitialState(
     },
     pendingDefenseBuffs: [],
   };
+  setPlayerSnapshots({ you: youPlayer, ai: aiPlayer });
+  return {
+    players: {
+      you: youPlayer,
+      ai: aiPlayer,
+    },
 }
 
 export type GameAction =
@@ -230,12 +238,14 @@ export type GameAction =
     };
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
-    case "RESET":
-      return createInitialState(
+    case "RESET": {
+      const nextState = createInitialState(
         action.payload.youHero,
         action.payload.aiHero,
         action.payload.seed
       );
+      return nextState;
+    }
     case "SET_PHASE":
       return { ...state, phase: action.phase };
     case "SET_TURN":
@@ -258,6 +268,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
     case "SET_PLAYER": {
+      setPlayerSnapshot(action.side, action.player);
       if (import.meta.env?.DEV) {
         const before = state.players[action.side];
         defenseDebugLog("reducer:setPlayer", {
@@ -275,6 +286,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
     case "SET_PLAYERS":
+      setPlayerSnapshots(action.players);
       return {
         ...state,
         players: action.players,
