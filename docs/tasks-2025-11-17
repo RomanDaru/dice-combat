@@ -86,9 +86,9 @@ Notes
 
 ## 5. Variant A Runtime Contract Refresh (status-agnostic)
 
-- [ ] Aktualizovat `docs/status-core-plan.md` (Variant A) tak, aby definoval univerzalny runtime kontrakt (ziadne status-specific instrukcie) a aby opisoval ako maju nove statusy pouzivat `defineStatus`, `StatusTimingPhase`, pending buff pipeline a lifecycle eventy.
-- [ ] Vybudovat data-driven Vitest pokrytie pre cele spektrum statusov: generator cez `listStatuses()` si vyberie statusy s `spend`/`behaviorId` a spusti scenare (grant pred spendom, spend bez grantov, paralelne pending buffy, turn-limited budgety). Ziadne hardcodovanie na Chi/Evasive/Prevent Half.
-- [ ] Instrumentovat runtime (`setStacks`, `addStacks`, `spendStatus`, `spendStatusMany`, `applyModifiers`) aby publikoval `StatusLifecycleEvent` udalosti, ktore vie konzumovat UI, AI aj telemetry.
+- [x] Aktualizovat `docs/status-core-plan.md` (Variant A) tak, aby definoval univerzalny runtime kontrakt (ziadne status-specific instrukcie) a aby opisoval ako maju nove statusy pouzivat `defineStatus`, `StatusTimingPhase`, pending buff pipeline a lifecycle eventy.
+- [x] Vybudovat data-driven Vitest pokrytie pre cele spektrum statusov: generator cez `listStatuses()` si vyberie statusy s `spend`/`behaviorId` a spusti scenare (grant pred spendom, spend bez grantov, paralelne pending buffy, turn-limited budgety). Ziadne hardcodovanie na Chi/Evasive/Prevent Half.
+- [x] Instrumentovat runtime (`setStacks`, `addStacks`, `spendStatus`, `spendStatusMany`, `applyModifiers`) aby publikoval `StatusLifecycleEvent` udalosti, ktore vie konzumovat UI, AI aj telemetry.
 - [ ] Rozsirit `StatusBehaviorHandlers` o nove hooky tak, aby kazdy status mohol dodat vlastnu logiku bez `if (statusId === ...)` vetiev. Behavior konfiguracia sa stane jedine miesto, kde sa riesi specificka funkcionalita.
 - [ ] Zjednotit logging/telemetry okolo novych eventov (Combat log, stats, `defenseDebugLog`) a zdokumentovat proces priradovania vysvetleni pre hraca.
 
@@ -101,6 +101,8 @@ Work log (Defense v2 only)
 - Activity: Implemented prvotnu infra pre StatusLifecycleEvent (typy, dev sink, runtime set/add/spend instrumentacia + pendingDefenseBuff metadata). Zatial len defenseDebugLog sink bez telemetry/testov.
 - Timestamp: pondelok, 17. novembra 2025 19:59:13 (Get-Date)
 - Activity: Dokoncena prvotna integracia lifecycle eventov - multi-sink + register API, GameController zbiera a drainuje eventy do stats, useDefenseActions ich zapisuje do StatsTurnInput, stats typy rozsierene a pridany genericky Vitest (npx vitest run src/engine/status/__tests__/lifecycleMatrix.test.ts).
+- Timestamp: pondelok, 17. novembra 2025 20:01:40 (Get-Date)
+- Activity: Upkeep death logging pripojene na drainStatusLifecycleEvents aby sa eventy neprelievali do dalsieho turnu.
 
 
 ---

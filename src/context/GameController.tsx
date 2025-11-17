@@ -211,6 +211,7 @@ type TurnStartStatsDeps = {
     updateGameMeta: (meta: { firstPlayer: Side }) => void;
   };
   firstPlayerRef: React.MutableRefObject<Side | null>;
+  drainStatusLifecycleEvents: () => StatusLifecycleEvent[];
 };
 
 export const applyDefenseTurnStartStats = (
@@ -229,6 +230,7 @@ export const applyDefenseTurnStartStats = (
     amount: statusDamage,
   };
   if (statusDamage > 0 && hpAfter <= 0) {
+    const lifecycleEvents = deps.drainStatusLifecycleEvents();
     deps.stats.recordTurn({
       turnId: activeTurnId,
       round: Math.max(1, round || 1),
@@ -248,6 +250,8 @@ export const applyDefenseTurnStartStats = (
       damagePrevented: 0,
       counterDamage: 0,
       actualDamage: 0,
+      statusEvents:
+        lifecycleEvents.length > 0 ? lifecycleEvents : undefined,
     });
     deps.pendingUpkeepRef.current[side] = { turnId: activeTurnId, amount: 0 };
   }
@@ -933,10 +937,11 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
           pendingUpkeepRef,
           stats,
           firstPlayerRef,
+          drainStatusLifecycleEvents,
         },
         { side, round, statusDamage, hpAfter }
       ),
-    [stats]
+    [drainStatusLifecycleEvents, stats]
   );
   const openDiceTray = useCallback(() => {
     setDefenseStatusMessage(null);
