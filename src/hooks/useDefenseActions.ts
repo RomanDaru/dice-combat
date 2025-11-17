@@ -527,7 +527,15 @@ export function useDefenseActions({
           if (ENABLE_DEFENSE_V2 && defenseVersionUsed === "v1") {
             stats.updateGameMeta({
               defenseMeta: {
-                totals: { v1WhileV2Emits: 1 },
+                totals: {
+                  blockFromDefenseRoll: 0,
+                  blockFromStatuses: 0,
+                  preventHalfEvents: 0,
+                  preventAllEvents: 0,
+                  reflectSum: 0,
+                  wastedBlockSum: 0,
+                  v1WhileV2Emits: 1,
+                },
               },
             });
           }
