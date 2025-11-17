@@ -136,13 +136,15 @@ type UseDefenseActionsArgs = {
 };
 
 const mapDefenseSchemaLog = (
-  schema?: DefenseSchemaResolution | null
+  schema?: DefenseSchemaResolution | null,
+  damageApplied?: number
 ): DefenseSchemaLog | undefined => {
   if (!schema) return undefined;
   return {
     schemaHash: schema.schemaHash ?? null,
     dice: [...schema.dice],
     checkpoints: { ...schema.checkpoints },
+    damageApplied,
     rulesHit: schema.rules.map((rule) => ({
       id: rule.id,
       label: rule.label,
@@ -495,12 +497,16 @@ export function useDefenseActions({
 
         const defenseSelection = resolution.defense?.selection;
         const schemaSnapshot = defenseSelection?.roll.schema ?? null;
-        const defenseVersionUsed: DefenseVersion | undefined = schemaSnapshot
-          ? "v2"
-          : defenseSelection
-          ? "v1"
-          : undefined;
-        const defenseSchemaLog = mapDefenseSchemaLog(schemaSnapshot);
+        // While V2 is enabled, status-only mitigation should still count as v2 (empty dice set)
+        const defenseVersionUsed: DefenseVersion | undefined =
+          ENABLE_DEFENSE_V2
+            ? "v2"
+            : schemaSnapshot
+            ? "v2"
+            : defenseSelection
+            ? "v1"
+            : undefined;
+        const defenseSchemaLog = mapDefenseSchemaLog(schemaSnapshot, actualDamage);
 
         if (summary) {
           const telemetryDelta = buildDefenseTelemetryDelta(
@@ -514,6 +520,14 @@ export function useDefenseActions({
                 enableDefenseV2: ENABLE_DEFENSE_V2,
                 defenseDslVersion: DEFENSE_DSL_VERSION,
                 totals: telemetryDelta,
+              },
+            });
+          }
+          // Telemetry flag if we ever emit v1 while V2 is enabled
+          if (ENABLE_DEFENSE_V2 && defenseVersionUsed === "v1") {
+            stats.updateGameMeta({
+              defenseMeta: {
+                totals: { v1WhileV2Emits: 1 },
               },
             });
           }

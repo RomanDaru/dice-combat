@@ -85,6 +85,8 @@ export type DefenseSchemaLog = {
     afterReflect: number;
     finalDamage: number;
   };
+  // Applied damage from actual combat resolution for integrity checks
+  damageApplied?: number;
   rulesHit: DefenseRuleHitLog[];
 };
 
@@ -145,6 +147,10 @@ export type DefenseTelemetryTotals = {
   preventAllEvents: number;
   reflectSum: number;
   wastedBlockSum: number;
+  // Count of turns where schema.finalDamage != actualDamage
+  schemaDamageDriftCount?: number;
+  // Count of times v1 was emitted while V2 was enabled
+  v1WhileV2Emits?: number;
 };
 
 export type DefenseMeta = {

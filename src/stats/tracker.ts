@@ -136,10 +136,24 @@ export class StatsTracker {
 
   recordTurn(entry: StatsTurnInput) {
     if (!this.game) return;
+    // Clamp blocked + prevented to raw (attack + collateral) before storing
+    const attackBaseRaw =
+      (entry.phaseDamage?.attack ?? entry.damageWithoutBlock ?? 0) +
+      (entry.phaseDamage?.collateral ?? 0);
+    const clampedBlocked = Math.max(
+      0,
+      Math.min(entry.damageBlocked ?? 0, attackBaseRaw)
+    );
+    const clampedPrevented = Math.max(
+      0,
+      Math.min(entry.damagePrevented ?? 0, Math.max(0, attackBaseRaw - clampedBlocked))
+    );
     const turn: TurnStat = {
       id: entry.turnId,
       gameId: this.game.id,
       ...entry,
+      damageBlocked: clampedBlocked,
+      damagePrevented: clampedPrevented,
     };
     this.turns = [...this.turns, turn];
     if (entry.defenseVersion) {
@@ -327,6 +341,8 @@ export class StatsTracker {
       {};
     const capHits: Record<string, number> = {};
 
+    let schemaDamageDriftCount = 0;
+    const driftIssueLines: string[] = [];
     this.turns.forEach((turn) => {
       const phase = turn.phaseDamage;
       if (typeof turn.round === "number") {
@@ -410,6 +426,20 @@ export class StatsTracker {
             capHits[id] = (capHits[id] ?? 0) + hits;
           }
         });
+      }
+      // Integrity guardrail: compare schema.finalDamage vs applied actualDamage
+      if (
+        turn.defenseSchema?.checkpoints?.finalDamage != null &&
+        typeof turn.actualDamage === "number"
+      ) {
+        const schemaFinal = turn.defenseSchema.checkpoints.finalDamage;
+        const applied = turn.defenseSchema.damageApplied ?? turn.actualDamage;
+        if (schemaFinal !== applied) {
+          schemaDamageDriftCount += 1;
+          driftIssueLines.push(
+            `turn ${turn.id} schema.finalDamage=${schemaFinal} vs applied=${applied}`
+          );
+        }
       }
     });
 
@@ -498,7 +528,26 @@ export class StatsTracker {
         ([round, count]) => `round ${round} has ${count} turns (expected <= 2)`
       );
 
-    const integrity = this.computeIntegrity(finalHp, roundIssues);
+    const integrityBase = this.computeIntegrity(finalHp, roundIssues);
+    const mergedLog = [integrityBase.log, ...driftIssueLines].filter(Boolean).join("; ");
+    const integrity: StatsIntegrity = {
+      ...integrityBase,
+      log: mergedLog.length ? mergedLog : undefined,
+    };
+    // Surface drift metric for dashboards
+    if (this.game.defenseMeta) {
+      const existingTotals = this.game.defenseMeta.totals ?? createDefenseTelemetryTotals();
+      this.game = {
+        ...this.game,
+        defenseMeta: {
+          ...this.game.defenseMeta,
+          totals: {
+            ...existingTotals,
+            schemaDamageDriftCount: (existingTotals.schemaDamageDriftCount ?? 0) + schemaDamageDriftCount,
+          },
+        },
+      };
+    }
 
     this.game = {
       ...this.game,

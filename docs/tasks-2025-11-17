@@ -1,0 +1,41 @@
+# Defense Integrity Fix Tasklist
+
+> **Process guardrails**: Every change here targets the new defense v2 schema runtime exclusively. For each step, document the work thoroughly and commit/push immediately with the actual local timestamp (`Get-Date` output) included in the log/plan entry so we keep an auditable history.
+> **Diff hygiene**: When tackling these tasks, always note the precise files (and line ranges if possible) touched in each commit so code review can trace the fix quickly.
+
+## Context
+
+Integrity drift in session `game_mi23otmj_obxsr9` exposed multiple mismatches between the defense DSL outputs and the damage that actually landed. To keep tomorrow's work focused, the checklist below captures each fix along with concrete subtasks.
+
+---
+
+## 1. Align `defenseSchema.finalDamage` with applied damage
+
+- [ ] Trace how `finalDamage` is computed inside the defense DSL (`src/engine/defense/dsl/*`) versus how `applyDefenseResults` subtracts mitigation from HP.
+- [ ] Normalize both paths to use the same clamping logic (never let `finalDamage` go below zero, mirror rounding rules, etc.).
+- [ ] Extend the schema snapshot to include a `damageApplied` field coming directly from combat resolution so logging can assert equality during capture.
+- [ ] Add a regression test in `src/__tests__/defenseIntegrity.test.ts` that replays the logged turn `turn_mi23q7z3_zi8nx9` and fails if schema damage diverges from applied damage.
+
+## 2. Clamp `damageBlocked` / `damagePrevented` totals per turn
+
+- [ ] In the aggregator (`src/stats/builders/turnStatsBuilder.ts`), cap `blocked + prevented` at `rawDamage` before writing `turnStats` and `gameStats.defenseMeta`.
+- [ ] Recompute `hpDrift` after the change using the provided log to confirm drift == 0.
+- [ ] Backfill unit coverage for the cap logic (a synthetic turn where prevent + block > raw).
+
+## 3. Keep status-only mitigation on the v2 pipeline
+
+- [ ] Locate the branching logic that labeled `turn_mi23ug21_l387sy` as `defenseVersion: "v1"` (likely in `resolveDefense.ts`).
+- [ ] Remove the fallback unless we truly load an old schema version; status-driven prevents should still flow through v2 with an empty dice array.
+- [ ] Update telemetry to flag when we ever emit `defenseVersion: "v1"` while `enableDefenseV2` is true.
+
+## 4. Telemetry guardrails
+
+- [ ] Enhance the integrity job (see `src/stats/integrity/recomputeHp.ts`) to compare `schema.finalDamage` vs. `turn.actualDamage` and include a readable diff in the log.
+- [ ] Add a dashboard-ready metric (Prometheus counter or log label) that increments whenever drift != 0 so we can alert earlier.
+
+---
+
+### Notes
+
+- Keep commits granular (one per numbered section) so we can bisect issues quickly.
+- Follow the "one concern = one module" rule: shared utilities (e.g., `clampDamage`) should live in `src/engine/defense/utils/` and be reused across both logging and HP application.
