@@ -527,6 +527,8 @@ export function useDefenseActions({
           if (ENABLE_DEFENSE_V2 && defenseVersionUsed === "v1") {
             stats.updateGameMeta({
               defenseMeta: {
+                enableDefenseV2: ENABLE_DEFENSE_V2,
+                defenseDslVersion: DEFENSE_DSL_VERSION,
                 totals: {
                   blockFromDefenseRoll: 0,
                   blockFromStatuses: 0,
