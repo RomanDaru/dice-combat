@@ -1,6 +1,8 @@
 import type {
   StatusDef,
   StatusId,
+  StatusLifecycleEvent,
+  StatusLifecycleEventType,
   StatusModifyContext,
   StatusPhase,
   StatusSpendApplyContext,
@@ -11,7 +13,6 @@ import type {
 import { getStatus } from "./registry";
 import { getBehaviorHandlers } from "./behaviors";
 import { publishStatusLifecycleEvent } from "./lifecycle";
-import type { StatusLifecycleEventType } from "./types";
 
 export type StatusStacks = Record<StatusId, number>;
 
@@ -23,6 +24,36 @@ const clampStacks = (def: StatusDef, stacks: number) => {
   return Math.max(0, stacks);
 };
 
+const notifyBehaviorLifecycle = (
+  def: StatusDef | undefined,
+  event: StatusLifecycleEvent
+) => {
+  if (!def) return;
+  const behavior = getBehaviorHandlers(def.behaviorId);
+  const lifecycle = behavior?.lifecycle;
+  if (!lifecycle) return;
+  const ctx = { def, config: def.behaviorConfig, event };
+  switch (event.type) {
+    case "grant":
+      lifecycle.onGrant?.(ctx);
+      break;
+    case "spend":
+      lifecycle.onSpend?.(ctx);
+      break;
+    case "consume":
+      lifecycle.onConsume?.(ctx);
+      break;
+    case "expire":
+      lifecycle.onExpire?.(ctx);
+      break;
+    case "tick":
+      lifecycle.onTick?.(ctx);
+      break;
+    default:
+      break;
+  }
+};
+
 const emitLifecycleDelta = (
   id: StatusId,
   delta: number,
@@ -32,7 +63,8 @@ const emitLifecycleDelta = (
   if (!delta) return;
   const type: StatusLifecycleEventType =
     meta?.eventType ?? (delta > 0 ? "grant" : "consume");
-  publishStatusLifecycleEvent({
+  const def = getStatus(id);
+  const event: StatusLifecycleEvent = {
     type,
     statusId: id,
     delta,
@@ -42,7 +74,9 @@ const emitLifecycleDelta = (
     ownerLabel: meta?.ownerLabel ?? null,
     source: meta?.source,
     note: meta?.note,
-  });
+  };
+  publishStatusLifecycleEvent(event);
+  notifyBehaviorLifecycle(def, event);
 };
 
 export function getStacks(
