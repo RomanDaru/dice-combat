@@ -87,3 +87,10 @@ Notes
 
 - Keep commits granular (one per numbered section) so we can bisect issues quickly.
 - Follow the "one concern = one module" rule: shared utilities (e.g., `clampDamage`) should live in `src/engine/defense/utils/` and be reused across both logging and HP application.
+
+- Additional Timestamp: 
+pondelok, 17. novembra 2025 19:03:04
+
+
+
+- Commit: cd80765 — guardrail robustness (actualDamage fallback->damageApplied) in tracker + test case.
