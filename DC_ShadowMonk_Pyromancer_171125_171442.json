@@ -1,0 +1,1731 @@
+{
+  "gameStats": {
+    "id": "game_mi3cavui_af4kbd",
+    "schemaVersion": "1.0.0",
+    "sessionId": "session_mi3cavt3_eo8aes",
+    "heroId": "Shadow Monk",
+    "opponentHeroId": "Pyromancer",
+    "heroVersion": {
+      "Shadow Monk": "0.2.1",
+      "Pyromancer": "0.7.2"
+    },
+    "rulesVersion": "0.9.3",
+    "buildHash": "abc123",
+    "seed": 2459162502,
+    "startedAt": 1763395753914,
+    "metadata": {},
+    "defenseMeta": {
+      "enableDefenseV2": true,
+      "defenseDslVersion": "0.1.0",
+      "defenseSchemaVersion": "0.1.0",
+      "heroDefenseVersion": {
+        "Shadow Monk": "v2",
+        "Pyromancer": "v2"
+      },
+      "heroSchemaHash": {
+        "Shadow Monk": "fh_m4rtkq",
+        "Pyromancer": "fh_1ssdhok"
+      },
+      "totals": {
+        "blockFromDefenseRoll": 20,
+        "blockFromStatuses": 3,
+        "preventHalfEvents": 2,
+        "preventAllEvents": 0,
+        "reflectSum": 0,
+        "wastedBlockSum": 3,
+        "schemaDamageDriftCount": 10
+      },
+      "turnsByVersion": {
+        "v1": 0,
+        "v2": 11
+      }
+    },
+    "defenseBuffs": {
+      "pending": [],
+      "expired": []
+    },
+    "firstPlayer": "ai",
+    "endedAt": 1763396082290,
+    "winner": "you",
+    "resultType": "win",
+    "roundsPlayed": 6,
+    "hpRemainingWinner": 9,
+    "hpRemainingLoser": 0,
+    "integrity": {
+      "ok": false,
+      "recomputedHpYou": 20,
+      "recomputedHpAi": 5,
+      "hpDriftYou": 11,
+      "hpDriftAi": 5,
+      "log": "you drift 11; ai drift 5; turn turn_mi3caz4m_t5uvfh schema.finalDamage=4 vs applied=1; turn turn_mi3cblm6_u5qija schema.finalDamage=3 vs applied=2; turn turn_mi3cc8sk_azi0n7 schema.finalDamage=7 vs applied=4; turn turn_mi3ccvz1_qjmsle schema.finalDamage=4 vs applied=3; turn turn_mi3cdhr4_d7s610 schema.finalDamage=3 vs applied=0; turn turn_mi3cf6n7_wk176h schema.finalDamage=5 vs applied=3; turn turn_mi3cftj8_5f5nki schema.finalDamage=2 vs applied=0; turn turn_mi3cgf47_wqt1xa schema.finalDamage=11 vs applied=10; turn turn_mi3cgxbo_v2ceus schema.finalDamage=1 vs applied=0; turn turn_mi3chgtx_9lccdl schema.finalDamage=11 vs applied=7"
+    },
+    "tempoSeconds": 328.376,
+    "avgTurnTimeSec": 29.852363636363634,
+    "roundsPerMinute": 1.0963042366068168,
+    "maxDamageSingleTurn": 10,
+    "dprNet": 3.1818181818181817,
+    "dprNetBySide": {
+      "you": 5,
+      "ai": 1.6666666666666667
+    },
+    "atkEvBySide": {
+      "you": -2,
+      "ai": -3.6666666666666665
+    },
+    "defEvBySide": {
+      "you": 3.6666666666666665,
+      "ai": 2
+    },
+    "abilityValue": {
+      "Pyromancer:4OAK": -6,
+      "Shadow Monk:3OAK": -2,
+      "Pyromancer:FULL_HOUSE": -4,
+      "Shadow Monk:SMALL_STRAIGHT": -2,
+      "Pyromancer:PAIR_PAIR": -4,
+      "Pyromancer:3OAK": 0,
+      "Shadow Monk:LARGE_STRAIGHT": 0,
+      "Shadow Monk:5OAK": -4
+    },
+    "pickRate": {
+      "Pyromancer:4OAK": 0.5,
+      "Shadow Monk:3OAK": 1,
+      "Pyromancer:FULL_HOUSE": 0.5,
+      "Shadow Monk:SMALL_STRAIGHT": 1,
+      "Pyromancer:PAIR_PAIR": 1,
+      "Pyromancer:3OAK": 1,
+      "Shadow Monk:LARGE_STRAIGHT": 0.5,
+      "Shadow Monk:5OAK": 0.3333333333333333
+    },
+    "opportunityRate": {
+      "Pyromancer:4OAK": 0.3333333333333333,
+      "Shadow Monk:3OAK": 0.2,
+      "Pyromancer:FULL_HOUSE": 0.3333333333333333,
+      "Shadow Monk:SMALL_STRAIGHT": 0.4,
+      "Pyromancer:PAIR_PAIR": 0.5,
+      "Pyromancer:3OAK": 0.16666666666666666,
+      "Shadow Monk:LARGE_STRAIGHT": 0.4,
+      "Shadow Monk:5OAK": 0.6
+    },
+    "abilityDamage": {
+      "Pyromancer:4OAK": 1,
+      "Shadow Monk:3OAK": 2,
+      "Pyromancer:FULL_HOUSE": 4,
+      "Shadow Monk:SMALL_STRAIGHT": 6,
+      "Pyromancer:3OAK": 5,
+      "Shadow Monk:LARGE_STRAIGHT": 10,
+      "Shadow Monk:5OAK": 7
+    },
+    "abilityHits": {
+      "Pyromancer:4OAK": 1,
+      "Shadow Monk:3OAK": 1,
+      "Pyromancer:FULL_HOUSE": 1,
+      "Shadow Monk:SMALL_STRAIGHT": 2,
+      "Pyromancer:PAIR_PAIR": 3,
+      "Pyromancer:3OAK": 1,
+      "Shadow Monk:LARGE_STRAIGHT": 1,
+      "Shadow Monk:5OAK": 1
+    },
+    "combosTriggered": {
+      "4OAK": 2,
+      "3OAK": 5,
+      "FULL_HOUSE": 1,
+      "SMALL_STRAIGHT": 3,
+      "PAIR_PAIR": 3,
+      "LARGE_STRAIGHT": 1,
+      "5OAK": 1
+    },
+    "statusSummary": {
+      "applied": {
+        "burn": 1,
+        "evasive": 2
+      },
+      "avgLifetimeTurns": {
+        "burn": 1,
+        "chi": 1,
+        "prevent_half": 1
+      }
+    }
+  },
+  "turnStats": [
+    {
+      "id": "turn_mi3caz4m_t5uvfh",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3caz4m_t5uvfh",
+      "round": 1,
+      "attackerSide": "ai",
+      "defenderSide": "you",
+      "abilityId": "Pyromancer:4OAK",
+      "combo": "4OAK",
+      "expectedDamage": 7,
+      "attackDice": [
+        1,
+        3,
+        1,
+        1,
+        1
+      ],
+      "opportunityCount": 2,
+      "pickCount": 1,
+      "combosTriggered": {
+        "4OAK": 1,
+        "3OAK": 1
+      },
+      "phaseDamage": {
+        "attack": 7,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "actualDamage": 1,
+      "damageBlocked": 3,
+      "damageWithoutBlock": 7,
+      "damagePrevented": 3,
+      "counterDamage": 0,
+      "defenseAbilityId": null,
+      "defenseDice": [
+        4,
+        3,
+        1,
+        3
+      ],
+      "defensePromptToChoiceMs": 15706,
+      "statusApplied": {
+        "burn": 1
+      },
+      "defenderStatusDiff": {
+        "burn": 1
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": null,
+        "incomingAbilityId": "Pyromancer:4OAK",
+        "blocked": 3,
+        "prevented": 3,
+        "reflected": 0
+      },
+      "defenseVersion": "v2",
+      "defenseSchema": {
+        "schemaHash": "fh_m4rtkq",
+        "dice": [
+          4,
+          3,
+          1,
+          3
+        ],
+        "checkpoints": {
+          "rawDamage": 7,
+          "afterFlat": 7,
+          "afterPrevent": 7,
+          "afterBlock": 4,
+          "afterReflect": 4,
+          "finalDamage": 4
+        },
+        "rulesHit": [
+          {
+            "id": "monk_block_per_123",
+            "label": "Stone Skin – Block",
+            "matched": true,
+            "matchCount": 3,
+            "effects": [
+              {
+                "type": "blockPer",
+                "target": "self",
+                "outcome": "applied",
+                "value": 3
+              }
+            ]
+          },
+          {
+            "id": "monk_gain_chi_per_45",
+            "label": "Stone Skin – Chi",
+            "matched": true,
+            "matchCount": 1,
+            "effects": [
+              {
+                "type": "gainStatus",
+                "target": "self",
+                "outcome": "applied",
+                "value": 1,
+                "metadata": {
+                  "status": "chi"
+                }
+              }
+            ]
+          },
+          {
+            "id": "monk_prevent_on_6",
+            "label": "Stone Skin – Prevent Half",
+            "matched": false,
+            "matchCount": 0,
+            "effects": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "turn_mi3cblm6_u5qija",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cblm6_u5qija",
+      "round": 1,
+      "attackerSide": "you",
+      "defenderSide": "ai",
+      "abilityId": "Shadow Monk:3OAK",
+      "combo": "3OAK",
+      "expectedDamage": 4,
+      "attackDice": [
+        6,
+        6,
+        4,
+        6,
+        1
+      ],
+      "opportunityCount": 1,
+      "pickCount": 1,
+      "combosTriggered": {
+        "3OAK": 1
+      },
+      "actualDamage": 2,
+      "damageBlocked": 1,
+      "damageWithoutBlock": 4,
+      "damagePrevented": 1,
+      "counterDamage": 0,
+      "phaseDamage": {
+        "attack": 4,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "defenseAbilityId": null,
+      "defenseDice": [
+        5,
+        1,
+        1
+      ],
+      "statusLifetimeTurns": {
+        "burn": [
+          1
+        ]
+      },
+      "statusRemovalReasons": {
+        "burn": {
+          "natural": 1,
+          "cleanse": 0,
+          "transfer": 0,
+          "cap": 0
+        }
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": null,
+        "incomingAbilityId": "Shadow Monk:3OAK",
+        "blocked": 1,
+        "prevented": 1,
+        "reflected": 0
+      },
+      "defenseVersion": "v2",
+      "defenseSchema": {
+        "schemaHash": "fh_1ssdhok",
+        "dice": [
+          5,
+          1,
+          1
+        ],
+        "checkpoints": {
+          "rawDamage": 4,
+          "afterFlat": 4,
+          "afterPrevent": 4,
+          "afterBlock": 3,
+          "afterReflect": 3,
+          "finalDamage": 3
+        },
+        "rulesHit": [
+          {
+            "id": "pyro_block_per_45",
+            "label": "Smolder Guard – Block",
+            "matched": true,
+            "matchCount": 1,
+            "effects": [
+              {
+                "type": "blockPer",
+                "target": "self",
+                "outcome": "applied",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "id": "pyro_burn_on_6",
+            "label": "Smolder Guard – Burn",
+            "matched": false,
+            "matchCount": 0,
+            "effects": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "turn_mi3cc8sk_azi0n7",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cc8sk_azi0n7",
+      "round": 2,
+      "attackerSide": "ai",
+      "defenderSide": "you",
+      "abilityId": "Pyromancer:FULL_HOUSE",
+      "combo": "FULL_HOUSE",
+      "expectedDamage": 8,
+      "attackDice": [
+        4,
+        4,
+        5,
+        4,
+        5
+      ],
+      "opportunityCount": 2,
+      "pickCount": 1,
+      "combosTriggered": {
+        "FULL_HOUSE": 1,
+        "3OAK": 1
+      },
+      "phaseDamage": {
+        "attack": 8,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "actualDamage": 4,
+      "damageBlocked": 2,
+      "damageWithoutBlock": 8,
+      "damagePrevented": 2,
+      "counterDamage": 0,
+      "defenseAbilityId": null,
+      "defenseDice": [
+        1,
+        5,
+        6,
+        6
+      ],
+      "defensePromptToChoiceMs": 15037,
+      "statusLifetimeTurns": {
+        "chi": [
+          1
+        ]
+      },
+      "statusRemovalReasons": {
+        "chi": {
+          "natural": 1,
+          "cleanse": 0,
+          "transfer": 0,
+          "cap": 0
+        }
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": null,
+        "incomingAbilityId": "Pyromancer:FULL_HOUSE",
+        "blocked": 2,
+        "prevented": 2,
+        "reflected": 0
+      },
+      "defenseVersion": "v2",
+      "defenseSchema": {
+        "schemaHash": "fh_m4rtkq",
+        "dice": [
+          1,
+          5,
+          6,
+          6
+        ],
+        "checkpoints": {
+          "rawDamage": 8,
+          "afterFlat": 8,
+          "afterPrevent": 8,
+          "afterBlock": 7,
+          "afterReflect": 7,
+          "finalDamage": 7
+        },
+        "rulesHit": [
+          {
+            "id": "monk_block_per_123",
+            "label": "Stone Skin – Block",
+            "matched": true,
+            "matchCount": 1,
+            "effects": [
+              {
+                "type": "blockPer",
+                "target": "self",
+                "outcome": "applied",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "id": "monk_gain_chi_per_45",
+            "label": "Stone Skin – Chi",
+            "matched": true,
+            "matchCount": 1,
+            "effects": [
+              {
+                "type": "gainStatus",
+                "target": "self",
+                "outcome": "applied",
+                "value": 1,
+                "metadata": {
+                  "status": "chi"
+                }
+              }
+            ]
+          },
+          {
+            "id": "monk_prevent_on_6",
+            "label": "Stone Skin – Prevent Half",
+            "matched": true,
+            "matchCount": 1,
+            "effects": [
+              {
+                "type": "preventHalf",
+                "target": "self",
+                "outcome": "applied",
+                "value": 1,
+                "metadata": {
+                  "status": "prevent_half"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "turn_mi3ccvz1_qjmsle",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3ccvz1_qjmsle",
+      "round": 2,
+      "attackerSide": "you",
+      "defenderSide": "ai",
+      "abilityId": "Shadow Monk:SMALL_STRAIGHT",
+      "combo": "SMALL_STRAIGHT",
+      "expectedDamage": 5,
+      "attackDice": [
+        5,
+        4,
+        6,
+        3,
+        1
+      ],
+      "opportunityCount": 1,
+      "pickCount": 1,
+      "combosTriggered": {
+        "SMALL_STRAIGHT": 1
+      },
+      "actualDamage": 3,
+      "damageBlocked": 1,
+      "damageWithoutBlock": 5,
+      "damagePrevented": 1,
+      "counterDamage": 0,
+      "phaseDamage": {
+        "attack": 5,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "defenseAbilityId": null,
+      "defenseDice": [
+        3,
+        3,
+        4
+      ],
+      "statusApplied": {
+        "evasive": 1
+      },
+      "attackerStatusDiff": {
+        "evasive": 1
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": null,
+        "incomingAbilityId": "Shadow Monk:SMALL_STRAIGHT",
+        "blocked": 1,
+        "prevented": 1,
+        "reflected": 0
+      },
+      "defenseVersion": "v2",
+      "defenseSchema": {
+        "schemaHash": "fh_1ssdhok",
+        "dice": [
+          3,
+          3,
+          4
+        ],
+        "checkpoints": {
+          "rawDamage": 5,
+          "afterFlat": 5,
+          "afterPrevent": 5,
+          "afterBlock": 4,
+          "afterReflect": 4,
+          "finalDamage": 4
+        },
+        "rulesHit": [
+          {
+            "id": "pyro_block_per_45",
+            "label": "Smolder Guard – Block",
+            "matched": true,
+            "matchCount": 1,
+            "effects": [
+              {
+                "type": "blockPer",
+                "target": "self",
+                "outcome": "applied",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "id": "pyro_burn_on_6",
+            "label": "Smolder Guard – Burn",
+            "matched": false,
+            "matchCount": 0,
+            "effects": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "turn_mi3cdhr4_d7s610",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cdhr4_d7s610",
+      "round": 3,
+      "attackerSide": "ai",
+      "defenderSide": "you",
+      "abilityId": "Pyromancer:PAIR_PAIR",
+      "combo": "PAIR_PAIR",
+      "expectedDamage": 4,
+      "attackDice": [
+        1,
+        3,
+        3,
+        2,
+        2
+      ],
+      "opportunityCount": 1,
+      "pickCount": 1,
+      "combosTriggered": {
+        "PAIR_PAIR": 1
+      },
+      "phaseDamage": {
+        "attack": 4,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "actualDamage": 0,
+      "damageBlocked": 3,
+      "damageWithoutBlock": 4,
+      "damagePrevented": 1,
+      "counterDamage": 0,
+      "defenseAbilityId": null,
+      "defenseDice": [
+        3,
+        5,
+        6,
+        6
+      ],
+      "defensePromptToChoiceMs": 15316,
+      "statusLifetimeTurns": {
+        "prevent_half": [
+          1
+        ],
+        "chi": [
+          1
+        ]
+      },
+      "statusRemovalReasons": {
+        "prevent_half": {
+          "natural": 1,
+          "cleanse": 0,
+          "transfer": 0,
+          "cap": 0
+        },
+        "chi": {
+          "natural": 1,
+          "cleanse": 0,
+          "transfer": 0,
+          "cap": 0
+        }
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": null,
+        "incomingAbilityId": "Pyromancer:PAIR_PAIR",
+        "blocked": 3,
+        "prevented": 3,
+        "reflected": 0
+      },
+      "defenseVersion": "v2",
+      "defenseSchema": {
+        "schemaHash": "fh_m4rtkq",
+        "dice": [
+          3,
+          5,
+          6,
+          6
+        ],
+        "checkpoints": {
+          "rawDamage": 4,
+          "afterFlat": 4,
+          "afterPrevent": 4,
+          "afterBlock": 3,
+          "afterReflect": 3,
+          "finalDamage": 3
+        },
+        "rulesHit": [
+          {
+            "id": "monk_block_per_123",
+            "label": "Stone Skin – Block",
+            "matched": true,
+            "matchCount": 1,
+            "effects": [
+              {
+                "type": "blockPer",
+                "target": "self",
+                "outcome": "applied",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "id": "monk_gain_chi_per_45",
+            "label": "Stone Skin – Chi",
+            "matched": true,
+            "matchCount": 1,
+            "effects": [
+              {
+                "type": "gainStatus",
+                "target": "self",
+                "outcome": "applied",
+                "value": 1,
+                "metadata": {
+                  "status": "chi"
+                }
+              }
+            ]
+          },
+          {
+            "id": "monk_prevent_on_6",
+            "label": "Stone Skin – Prevent Half",
+            "matched": true,
+            "matchCount": 1,
+            "effects": [
+              {
+                "type": "preventHalf",
+                "target": "self",
+                "outcome": "applied",
+                "value": 1,
+                "metadata": {
+                  "status": "prevent_half"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "turn_mi3ceh09_9wu1hc",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3ceh09_9wu1hc",
+      "round": 4,
+      "attackerSide": "ai",
+      "defenderSide": "you",
+      "abilityId": "Pyromancer:3OAK",
+      "combo": "3OAK",
+      "expectedDamage": 5,
+      "attackDice": [
+        6,
+        4,
+        4,
+        5,
+        4
+      ],
+      "opportunityCount": 1,
+      "pickCount": 1,
+      "combosTriggered": {
+        "3OAK": 1
+      },
+      "phaseDamage": {
+        "attack": 5,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "actualDamage": 5,
+      "damageBlocked": 0,
+      "damageWithoutBlock": 5,
+      "damagePrevented": 0,
+      "counterDamage": 0,
+      "defenseAbilityId": null,
+      "defenseDice": [
+        6,
+        4,
+        5,
+        5
+      ],
+      "defensePromptToChoiceMs": 19796,
+      "defenseEfficacy": {
+        "defenseAbilityId": null,
+        "incomingAbilityId": "Pyromancer:3OAK",
+        "blocked": 0,
+        "prevented": 0,
+        "reflected": 0
+      },
+      "defenseVersion": "v2",
+      "defenseSchema": {
+        "schemaHash": "fh_m4rtkq",
+        "dice": [
+          6,
+          4,
+          5,
+          5
+        ],
+        "checkpoints": {
+          "rawDamage": 5,
+          "afterFlat": 5,
+          "afterPrevent": 5,
+          "afterBlock": 5,
+          "afterReflect": 5,
+          "finalDamage": 5
+        },
+        "rulesHit": [
+          {
+            "id": "monk_block_per_123",
+            "label": "Stone Skin – Block",
+            "matched": false,
+            "matchCount": 0,
+            "effects": []
+          },
+          {
+            "id": "monk_gain_chi_per_45",
+            "label": "Stone Skin – Chi",
+            "matched": true,
+            "matchCount": 3,
+            "effects": [
+              {
+                "type": "gainStatus",
+                "target": "self",
+                "outcome": "applied",
+                "value": 3,
+                "metadata": {
+                  "status": "chi"
+                }
+              }
+            ]
+          },
+          {
+            "id": "monk_prevent_on_6",
+            "label": "Stone Skin – Prevent Half",
+            "matched": true,
+            "matchCount": 1,
+            "effects": [
+              {
+                "type": "preventHalf",
+                "target": "self",
+                "outcome": "applied",
+                "value": 1,
+                "metadata": {
+                  "status": "prevent_half"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "turn_mi3cf6n7_wk176h",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cf6n7_wk176h",
+      "round": 4,
+      "attackerSide": "you",
+      "defenderSide": "ai",
+      "abilityId": "Shadow Monk:SMALL_STRAIGHT",
+      "combo": "SMALL_STRAIGHT",
+      "expectedDamage": 5,
+      "attackDice": [
+        2,
+        3,
+        6,
+        1,
+        4
+      ],
+      "opportunityCount": 1,
+      "pickCount": 1,
+      "combosTriggered": {
+        "SMALL_STRAIGHT": 1
+      },
+      "actualDamage": 3,
+      "damageBlocked": 2,
+      "damageWithoutBlock": 7,
+      "damagePrevented": 2,
+      "counterDamage": 0,
+      "phaseDamage": {
+        "attack": 7,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "defenseAbilityId": null,
+      "defenseDice": [
+        2,
+        4,
+        5
+      ],
+      "statusApplied": {
+        "evasive": 1
+      },
+      "attackerStatusDiff": {
+        "evasive": 1
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": null,
+        "incomingAbilityId": "Shadow Monk:SMALL_STRAIGHT",
+        "blocked": 2,
+        "prevented": 2,
+        "reflected": 0
+      },
+      "defenseVersion": "v2",
+      "defenseSchema": {
+        "schemaHash": "fh_1ssdhok",
+        "dice": [
+          2,
+          4,
+          5
+        ],
+        "checkpoints": {
+          "rawDamage": 7,
+          "afterFlat": 7,
+          "afterPrevent": 7,
+          "afterBlock": 5,
+          "afterReflect": 5,
+          "finalDamage": 5
+        },
+        "rulesHit": [
+          {
+            "id": "pyro_block_per_45",
+            "label": "Smolder Guard – Block",
+            "matched": true,
+            "matchCount": 2,
+            "effects": [
+              {
+                "type": "blockPer",
+                "target": "self",
+                "outcome": "applied",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "id": "pyro_burn_on_6",
+            "label": "Smolder Guard – Burn",
+            "matched": false,
+            "matchCount": 0,
+            "effects": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "turn_mi3cftj8_5f5nki",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cftj8_5f5nki",
+      "round": 5,
+      "attackerSide": "ai",
+      "defenderSide": "you",
+      "abilityId": "Pyromancer:PAIR_PAIR",
+      "combo": "PAIR_PAIR",
+      "expectedDamage": 4,
+      "attackDice": [
+        3,
+        4,
+        6,
+        6,
+        3
+      ],
+      "opportunityCount": 1,
+      "pickCount": 1,
+      "combosTriggered": {
+        "PAIR_PAIR": 1
+      },
+      "phaseDamage": {
+        "attack": 4,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "actualDamage": 0,
+      "damageBlocked": 4,
+      "damageWithoutBlock": 4,
+      "damagePrevented": 0,
+      "counterDamage": 0,
+      "defenseAbilityId": null,
+      "defenseDice": [
+        5,
+        3,
+        4,
+        3
+      ],
+      "defensePromptToChoiceMs": 12995,
+      "statusLifetimeTurns": {
+        "chi": [
+          1
+        ]
+      },
+      "statusRemovalReasons": {
+        "chi": {
+          "natural": 1,
+          "cleanse": 0,
+          "transfer": 0,
+          "cap": 0
+        }
+      },
+      "defenseEfficacy": {
+        "defenseAbilityId": null,
+        "incomingAbilityId": "Pyromancer:PAIR_PAIR",
+        "blocked": 4,
+        "prevented": 4,
+        "reflected": 0
+      },
+      "defenseVersion": "v2",
+      "defenseSchema": {
+        "schemaHash": "fh_m4rtkq",
+        "dice": [
+          5,
+          3,
+          4,
+          3
+        ],
+        "checkpoints": {
+          "rawDamage": 4,
+          "afterFlat": 4,
+          "afterPrevent": 4,
+          "afterBlock": 2,
+          "afterReflect": 2,
+          "finalDamage": 2
+        },
+        "rulesHit": [
+          {
+            "id": "monk_block_per_123",
+            "label": "Stone Skin – Block",
+            "matched": true,
+            "matchCount": 2,
+            "effects": [
+              {
+                "type": "blockPer",
+                "target": "self",
+                "outcome": "applied",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "id": "monk_gain_chi_per_45",
+            "label": "Stone Skin – Chi",
+            "matched": true,
+            "matchCount": 2,
+            "effects": [
+              {
+                "type": "gainStatus",
+                "target": "self",
+                "outcome": "applied",
+                "value": 2,
+                "metadata": {
+                  "status": "chi"
+                }
+              }
+            ]
+          },
+          {
+            "id": "monk_prevent_on_6",
+            "label": "Stone Skin – Prevent Half",
+            "matched": false,
+            "matchCount": 0,
+            "effects": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "turn_mi3cgf47_wqt1xa",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cgf47_wqt1xa",
+      "round": 5,
+      "attackerSide": "you",
+      "defenderSide": "ai",
+      "abilityId": "Shadow Monk:LARGE_STRAIGHT",
+      "combo": "LARGE_STRAIGHT",
+      "expectedDamage": 10,
+      "attackDice": [
+        4,
+        3,
+        2,
+        6,
+        5
+      ],
+      "opportunityCount": 2,
+      "pickCount": 1,
+      "combosTriggered": {
+        "SMALL_STRAIGHT": 1,
+        "LARGE_STRAIGHT": 1
+      },
+      "actualDamage": 10,
+      "damageBlocked": 1,
+      "damageWithoutBlock": 12,
+      "damagePrevented": 1,
+      "counterDamage": 0,
+      "phaseDamage": {
+        "attack": 12,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "defenseAbilityId": null,
+      "defenseDice": [
+        6,
+        6,
+        5
+      ],
+      "defenseEfficacy": {
+        "defenseAbilityId": null,
+        "incomingAbilityId": "Shadow Monk:LARGE_STRAIGHT",
+        "blocked": 1,
+        "prevented": 1,
+        "reflected": 0
+      },
+      "defenseVersion": "v2",
+      "defenseSchema": {
+        "schemaHash": "fh_1ssdhok",
+        "dice": [
+          6,
+          6,
+          5
+        ],
+        "checkpoints": {
+          "rawDamage": 12,
+          "afterFlat": 12,
+          "afterPrevent": 12,
+          "afterBlock": 11,
+          "afterReflect": 11,
+          "finalDamage": 11
+        },
+        "rulesHit": [
+          {
+            "id": "pyro_block_per_45",
+            "label": "Smolder Guard – Block",
+            "matched": true,
+            "matchCount": 1,
+            "effects": [
+              {
+                "type": "blockPer",
+                "target": "self",
+                "outcome": "applied",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "id": "pyro_burn_on_6",
+            "label": "Smolder Guard – Burn",
+            "matched": true,
+            "matchCount": 1,
+            "effects": [
+              {
+                "type": "applyStatusToOpponent",
+                "target": "opponent",
+                "outcome": "applied",
+                "value": 1,
+                "metadata": {
+                  "status": "burn"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "turn_mi3cgxbo_v2ceus",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cgxbo_v2ceus",
+      "round": 6,
+      "attackerSide": "ai",
+      "defenderSide": "you",
+      "abilityId": "Pyromancer:PAIR_PAIR",
+      "combo": "PAIR_PAIR",
+      "expectedDamage": 4,
+      "attackDice": [
+        1,
+        6,
+        4,
+        1,
+        4
+      ],
+      "opportunityCount": 1,
+      "pickCount": 1,
+      "combosTriggered": {
+        "PAIR_PAIR": 1
+      },
+      "phaseDamage": {
+        "attack": 4,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "actualDamage": 0,
+      "damageBlocked": 3,
+      "damageWithoutBlock": 4,
+      "damagePrevented": 1,
+      "counterDamage": 0,
+      "defenseAbilityId": null,
+      "defenseDice": [
+        6,
+        3,
+        2,
+        3
+      ],
+      "defensePromptToChoiceMs": 10259,
+      "defenseEfficacy": {
+        "defenseAbilityId": null,
+        "incomingAbilityId": "Pyromancer:PAIR_PAIR",
+        "blocked": 3,
+        "prevented": 3,
+        "reflected": 0
+      },
+      "defenseVersion": "v2",
+      "defenseSchema": {
+        "schemaHash": "fh_m4rtkq",
+        "dice": [
+          6,
+          3,
+          2,
+          3
+        ],
+        "checkpoints": {
+          "rawDamage": 4,
+          "afterFlat": 4,
+          "afterPrevent": 4,
+          "afterBlock": 1,
+          "afterReflect": 1,
+          "finalDamage": 1
+        },
+        "rulesHit": [
+          {
+            "id": "monk_block_per_123",
+            "label": "Stone Skin – Block",
+            "matched": true,
+            "matchCount": 3,
+            "effects": [
+              {
+                "type": "blockPer",
+                "target": "self",
+                "outcome": "applied",
+                "value": 3
+              }
+            ]
+          },
+          {
+            "id": "monk_gain_chi_per_45",
+            "label": "Stone Skin – Chi",
+            "matched": false,
+            "matchCount": 0,
+            "effects": []
+          },
+          {
+            "id": "monk_prevent_on_6",
+            "label": "Stone Skin – Prevent Half",
+            "matched": true,
+            "matchCount": 1,
+            "effects": [
+              {
+                "type": "preventHalf",
+                "target": "self",
+                "outcome": "applied",
+                "value": 1,
+                "metadata": {
+                  "status": "prevent_half"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "turn_mi3chgtx_9lccdl",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3chgtx_9lccdl",
+      "round": 6,
+      "attackerSide": "you",
+      "defenderSide": "ai",
+      "abilityId": "Shadow Monk:5OAK",
+      "combo": "5OAK",
+      "expectedDamage": 11,
+      "attackDice": [
+        6,
+        6,
+        6,
+        6,
+        6
+      ],
+      "opportunityCount": 3,
+      "pickCount": 1,
+      "combosTriggered": {
+        "5OAK": 1,
+        "4OAK": 1,
+        "3OAK": 1
+      },
+      "actualDamage": 7,
+      "damageBlocked": 0,
+      "damageWithoutBlock": 7,
+      "damagePrevented": 0,
+      "counterDamage": 0,
+      "phaseDamage": {
+        "attack": 7,
+        "counter": 0,
+        "upkeepDot": 0,
+        "collateral": 0
+      },
+      "defenseAbilityId": null,
+      "defenseDice": [
+        6,
+        6,
+        6
+      ],
+      "defenseEfficacy": {
+        "defenseAbilityId": null,
+        "incomingAbilityId": "Shadow Monk:5OAK",
+        "blocked": 0,
+        "prevented": 0,
+        "reflected": 0
+      },
+      "defenseVersion": "v2",
+      "defenseSchema": {
+        "schemaHash": "fh_1ssdhok",
+        "dice": [
+          6,
+          6,
+          6
+        ],
+        "checkpoints": {
+          "rawDamage": 11,
+          "afterFlat": 11,
+          "afterPrevent": 11,
+          "afterBlock": 11,
+          "afterReflect": 11,
+          "finalDamage": 11
+        },
+        "rulesHit": [
+          {
+            "id": "pyro_block_per_45",
+            "label": "Smolder Guard – Block",
+            "matched": false,
+            "matchCount": 0,
+            "effects": []
+          },
+          {
+            "id": "pyro_burn_on_6",
+            "label": "Smolder Guard – Burn",
+            "matched": true,
+            "matchCount": 1,
+            "effects": [
+              {
+                "type": "applyStatusToOpponent",
+                "target": "opponent",
+                "outcome": "applied",
+                "value": 1,
+                "metadata": {
+                  "status": "burn"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "rollStats": [
+    {
+      "id": "roll_mi3cbr4d_8mmywa",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cblm6_u5qija",
+      "side": "you",
+      "round": 1,
+      "attemptIndex": 0,
+      "diceBeforeHold": [
+        2,
+        2,
+        3,
+        4,
+        6
+      ],
+      "holdsUsed": 0,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763395794445
+    },
+    {
+      "id": "roll_mi3cbu2x_0d4g57",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cblm6_u5qija",
+      "side": "you",
+      "round": 1,
+      "attemptIndex": 1,
+      "diceBeforeHold": [
+        6,
+        6,
+        2,
+        4,
+        1
+      ],
+      "holdsUsed": 2,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763395798281
+    },
+    {
+      "id": "roll_mi3cbw1o_adscqc",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cblm6_u5qija",
+      "side": "you",
+      "round": 1,
+      "attemptIndex": 2,
+      "diceBeforeHold": [
+        6,
+        6,
+        5,
+        5,
+        2
+      ],
+      "holdsUsed": 2,
+      "combosAvailable": [
+        "PAIR_PAIR"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763395800828
+    },
+    {
+      "id": "roll_mi3cd19g_rirt48",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3ccvz1_qjmsle",
+      "side": "you",
+      "round": 2,
+      "attemptIndex": 0,
+      "diceBeforeHold": [
+        2,
+        2,
+        3,
+        4,
+        6
+      ],
+      "holdsUsed": 0,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763395854244
+    },
+    {
+      "id": "roll_mi3cd4ys_9ln7vm",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3ccvz1_qjmsle",
+      "side": "you",
+      "round": 2,
+      "attemptIndex": 1,
+      "diceBeforeHold": [
+        5,
+        4,
+        6,
+        3,
+        6
+      ],
+      "holdsUsed": 4,
+      "combosAvailable": [
+        "SMALL_STRAIGHT"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763395859044
+    },
+    {
+      "id": "roll_mi3cd6rx_15w4go",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3ccvz1_qjmsle",
+      "side": "you",
+      "round": 2,
+      "attemptIndex": 2,
+      "diceBeforeHold": [
+        5,
+        4,
+        6,
+        3,
+        6
+      ],
+      "holdsUsed": 4,
+      "combosAvailable": [
+        "SMALL_STRAIGHT"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763395861389
+    },
+    {
+      "id": "roll_mi3ce6se_0taxv4",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3ce55f_cmvqmy",
+      "side": "you",
+      "round": 3,
+      "attemptIndex": 0,
+      "diceBeforeHold": [
+        2,
+        2,
+        3,
+        4,
+        6
+      ],
+      "holdsUsed": 0,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763395908062
+    },
+    {
+      "id": "roll_mi3cea6g_5z0xq5",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3ce55f_cmvqmy",
+      "side": "you",
+      "round": 3,
+      "attemptIndex": 1,
+      "diceBeforeHold": [
+        2,
+        4,
+        2,
+        1,
+        2
+      ],
+      "holdsUsed": 2,
+      "combosAvailable": [
+        "3OAK"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763395912456
+    },
+    {
+      "id": "roll_mi3cecjv_qq2n1p",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3ce55f_cmvqmy",
+      "side": "you",
+      "round": 3,
+      "attemptIndex": 2,
+      "diceBeforeHold": [
+        1,
+        4,
+        2,
+        4,
+        6
+      ],
+      "holdsUsed": 2,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763395915531
+    },
+    {
+      "id": "roll_mi3cfez7_jhubka",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cf6n7_wk176h",
+      "side": "you",
+      "round": 4,
+      "attemptIndex": 0,
+      "diceBeforeHold": [
+        2,
+        2,
+        3,
+        4,
+        6
+      ],
+      "holdsUsed": 0,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763395965331
+    },
+    {
+      "id": "roll_mi3cfi3w_sh6ld1",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cf6n7_wk176h",
+      "side": "you",
+      "round": 4,
+      "attemptIndex": 1,
+      "diceBeforeHold": [
+        2,
+        3,
+        6,
+        1,
+        4
+      ],
+      "holdsUsed": 4,
+      "combosAvailable": [
+        "SMALL_STRAIGHT"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763395969388
+    },
+    {
+      "id": "roll_mi3cfjq0_987okg",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cf6n7_wk176h",
+      "side": "you",
+      "round": 4,
+      "attemptIndex": 2,
+      "diceBeforeHold": [
+        2,
+        3,
+        3,
+        1,
+        4
+      ],
+      "holdsUsed": 4,
+      "combosAvailable": [
+        "SMALL_STRAIGHT"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763395971480
+    },
+    {
+      "id": "roll_mi3cgggt_p3zho2",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cgf47_wqt1xa",
+      "side": "you",
+      "round": 5,
+      "attemptIndex": 0,
+      "diceBeforeHold": [
+        2,
+        2,
+        3,
+        4,
+        6
+      ],
+      "holdsUsed": 0,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763396013917
+    },
+    {
+      "id": "roll_mi3cgk3b_02nd2w",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cgf47_wqt1xa",
+      "side": "you",
+      "round": 5,
+      "attemptIndex": 1,
+      "diceBeforeHold": [
+        4,
+        3,
+        2,
+        2,
+        5
+      ],
+      "holdsUsed": 4,
+      "combosAvailable": [
+        "SMALL_STRAIGHT"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763396018615
+    },
+    {
+      "id": "roll_mi3cglqu_64vvmz",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3cgf47_wqt1xa",
+      "side": "you",
+      "round": 5,
+      "attemptIndex": 2,
+      "diceBeforeHold": [
+        4,
+        3,
+        2,
+        3,
+        5
+      ],
+      "holdsUsed": 4,
+      "combosAvailable": [
+        "SMALL_STRAIGHT"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763396020758
+    },
+    {
+      "id": "roll_mi3chjzx_401u13",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3chgtx_9lccdl",
+      "side": "you",
+      "round": 6,
+      "attemptIndex": 0,
+      "diceBeforeHold": [
+        2,
+        2,
+        3,
+        4,
+        6
+      ],
+      "holdsUsed": 0,
+      "combosAvailable": [],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763396065149
+    },
+    {
+      "id": "roll_mi3chmqw_zs2yst",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3chgtx_9lccdl",
+      "side": "you",
+      "round": 6,
+      "attemptIndex": 1,
+      "diceBeforeHold": [
+        1,
+        6,
+        5,
+        6,
+        6
+      ],
+      "holdsUsed": 3,
+      "combosAvailable": [
+        "3OAK"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763396068712
+    },
+    {
+      "id": "roll_mi3choki_n8j4jh",
+      "gameId": "game_mi3cavui_af4kbd",
+      "turnId": "turn_mi3chgtx_9lccdl",
+      "side": "you",
+      "round": 6,
+      "attemptIndex": 2,
+      "diceBeforeHold": [
+        6,
+        6,
+        3,
+        6,
+        6
+      ],
+      "holdsUsed": 4,
+      "combosAvailable": [
+        "4OAK",
+        "3OAK"
+      ],
+      "selectedCombo": null,
+      "firstRollHit": false,
+      "startedAt": 1763396071074
+    }
+  ]
+}

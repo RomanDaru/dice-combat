@@ -427,14 +427,14 @@ export class StatsTracker {
           }
         });
       }
-      // Integrity guardrail: compare schema.finalDamage vs applied actualDamage
-      if (
-        turn.defenseSchema?.checkpoints?.finalDamage != null &&
-        typeof turn.actualDamage === "number"
-      ) {
+      // Integrity guardrail: compare schema.finalDamage vs applied damage (prefer actualDamage, fall back to damageApplied)
+      if (turn.defenseSchema?.checkpoints?.finalDamage != null) {
         const schemaFinal = turn.defenseSchema.checkpoints.finalDamage;
-        const applied = turn.defenseSchema.damageApplied ?? turn.actualDamage;
-        if (schemaFinal !== applied) {
+        const applied =
+          typeof turn.actualDamage === "number"
+            ? turn.actualDamage
+            : turn.defenseSchema?.damageApplied;
+        if (typeof applied === "number" && schemaFinal !== applied) {
           schemaDamageDriftCount += 1;
           driftIssueLines.push(
             `turn ${turn.id} schema.finalDamage=${schemaFinal} vs applied=${applied}`
