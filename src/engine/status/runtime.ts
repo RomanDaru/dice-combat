@@ -6,9 +6,12 @@ import type {
   StatusSpendApplyContext,
   StatusSpendApplyResult,
   StatusSpendSummary,
+  StatusStackChangeMeta,
 } from "./types";
 import { getStatus } from "./registry";
 import { getBehaviorHandlers } from "./behaviors";
+import { publishStatusLifecycleEvent } from "./lifecycle";
+import type { StatusLifecycleEventType } from "./types";
 
 export type StatusStacks = Record<StatusId, number>;
 
@@ -18,6 +21,28 @@ const clampStacks = (def: StatusDef, stacks: number) => {
     return Math.max(0, Math.min(maxStacks, stacks));
   }
   return Math.max(0, stacks);
+};
+
+const emitLifecycleDelta = (
+  id: StatusId,
+  delta: number,
+  remaining: number,
+  meta?: StatusStackChangeMeta
+) => {
+  if (!delta) return;
+  const type: StatusLifecycleEventType =
+    meta?.eventType ?? (delta > 0 ? "grant" : "consume");
+  publishStatusLifecycleEvent({
+    type,
+    statusId: id,
+    delta,
+    remainingStacks: remaining,
+    timestamp: Date.now(),
+    phase: meta?.phase,
+    ownerLabel: meta?.ownerLabel ?? null,
+    source: meta?.source,
+    note: meta?.note,
+  });
 };
 
 export function getStacks(
@@ -31,8 +56,10 @@ export function getStacks(
 export function setStacks(
   stacks: StatusStacks,
   id: string,
-  next: number
+  next: number,
+  meta?: StatusStackChangeMeta
 ): StatusStacks {
+  const current = stacks[id] ?? 0;
   if (next <= 0 && stacks[id] === undefined) {
     return stacks;
   }
@@ -40,26 +67,25 @@ export function setStacks(
   const clamped = def ? clampStacks(def, next) : Math.max(0, next);
   if (clamped <= 0) {
     const { [id]: _, ...rest } = stacks;
+    if (current > 0) {
+      emitLifecycleDelta(id as StatusId, -current, 0, meta);
+    }
     return rest;
   }
-  return { ...stacks, [id]: clamped };
+  const nextStacks = { ...stacks, [id]: clamped };
+  emitLifecycleDelta(id as StatusId, clamped - current, clamped, meta);
+  return nextStacks;
 }
 
 export function addStacks(
   stacks: StatusStacks,
   id: string,
-  amount: number
+  amount: number,
+  meta?: StatusStackChangeMeta
 ): StatusStacks {
   if (amount === 0) return stacks;
-  const def = getStatus(id);
   const current = stacks[id] ?? 0;
-  const next = current + amount;
-  const clamped = def ? clampStacks(def, next) : Math.max(0, next);
-  if (clamped <= 0) {
-    const { [id]: _, ...rest } = stacks;
-    return rest;
-  }
-  return { ...stacks, [id]: clamped };
+  return setStacks(stacks, id, current + amount, meta);
 }
 
 export type TickResult = {
@@ -94,7 +120,11 @@ export function tickStatuses(current: StatusStacks): TickResult {
       breakdown[id] = (breakdown[id] ?? 0) + result.damage;
     }
     if (result.log) logs.push(result.log);
-    working = setStacks(working, id, result.nextStacks);
+    working = setStacks(working, id, result.nextStacks, {
+      eventType: "tick",
+      phase: "upkeep",
+      note: result.log,
+    });
     const nextStacks = working[id as StatusId] ?? 0;
     if (result.prompt && nextStacks > 0) {
       prompts.push({ id: id as StatusId, stacks: nextStacks });
@@ -155,7 +185,15 @@ export function spendStatus(
     });
   if (!spendResult) return null;
   const remaining = current - def.spend.costStacks;
-  const next = setStacks(stacks, id, remaining);
+  const next = setStacks(stacks, id, remaining, {
+    eventType: "spend",
+    phase,
+    source: {
+      kind: "spendStatus",
+      behaviorId: def.behaviorId,
+    },
+    note: spendResult.log,
+  });
   return { next, spend: spendResult };
 }
 

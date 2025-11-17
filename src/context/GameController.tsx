@@ -30,8 +30,10 @@ import {
   getStatus,
   getStacks,
   listStatuses,
+  registerStatusLifecycleSink,
   setStacks,
   type StatusId,
+  type StatusLifecycleEvent,
   type StatusTimingPhase,
 } from "../engine/status";
 import {
@@ -491,7 +493,18 @@ export const GameController = ({ children }: { children: ReactNode }) => {
           triggerRound: trigger.round,
         });
       }
-      const nextTokens = setStacks(player.tokens, buff.statusId, nextStacks);
+      const nextTokens = setStacks(player.tokens, buff.statusId, nextStacks, {
+        eventType: "grant",
+        ownerLabel: player.hero.id,
+        phase: trigger.phase,
+        source: {
+          kind: "pendingDefenseBuff",
+          ruleId: buff.source?.ruleId,
+          effectId: buff.source?.effectId,
+          buffId: buff.id,
+        },
+        note: `buff:${buff.id}`,
+      });
       setPlayer(
         buff.owner,
         { ...player, tokens: nextTokens },
@@ -532,6 +545,25 @@ export const GameController = ({ children }: { children: ReactNode }) => {
     [dispatch, state.pendingDefenseBuffs, state.round]
   );
   const aiPlayRef = useRef<() => void>(() => {});
+  const statusLifecycleEventsRef = useRef<StatusLifecycleEvent[]>([]);
+  const drainStatusLifecycleEvents = useCallback(() => {
+    const events = statusLifecycleEventsRef.current;
+    statusLifecycleEventsRef.current = [];
+    return events;
+  }, []);
+  useEffect(() => {
+    const dispose = registerStatusLifecycleSink({
+      publish: (event) => {
+        statusLifecycleEventsRef.current = [
+          ...statusLifecycleEventsRef.current,
+          event,
+        ];
+      },
+    });
+    return () => {
+      dispose();
+    };
+  }, []);
   const [attackStatusRequests, setAttackStatusRequests] = useState<
     Record<StatusId, number>
   >({});
@@ -1632,6 +1664,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     queuePendingDefenseGrants: enqueuePendingDefenseGrants,
     triggerDefenseBuffs,
     triggerDefenseBuffsBatch,
+    drainStatusLifecycleEvents,
     enqueueCue,
     interruptCue,
     scheduleCallback,

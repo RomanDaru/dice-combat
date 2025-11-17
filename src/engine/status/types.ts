@@ -245,3 +245,41 @@ export const aggregateStatusSpendSummaries = (
   }
   return aggregated;
 };
+
+export type StatusLifecycleEventType =
+  | "grant"
+  | "spend"
+  | "consume"
+  | "expire"
+  | "tick";
+
+export type StatusLifecycleSource = {
+  kind: string;
+  ruleId?: string;
+  effectId?: string;
+  [key: string]: unknown;
+};
+
+export type StatusLifecycleEvent = {
+  type: StatusLifecycleEventType;
+  statusId: StatusId;
+  delta: number;
+  remainingStacks: number;
+  timestamp: number;
+  phase?: StatusPhase | StatusTimingPhase | string;
+  ownerLabel?: string | null;
+  source?: StatusLifecycleSource;
+  note?: string;
+};
+
+export type StatusLifecycleSink = {
+  publish: (event: StatusLifecycleEvent) => void;
+};
+
+export type StatusStackChangeMeta = {
+  ownerLabel?: string | null;
+  phase?: StatusPhase | StatusTimingPhase | string;
+  source?: StatusLifecycleSource;
+  note?: string;
+  eventType?: StatusLifecycleEventType;
+};

@@ -4,6 +4,7 @@ import {
   aggregateStatusSpendSummaries,
   type StatusId,
 } from "../engine/status";
+import type { StatusLifecycleEvent } from "../engine/status/types";
 import { useGame } from "../context/GameContext";
 import { useActiveAbilities } from "./useActiveAbilities";
 import { useAttackExecution } from "./useAttackExecution";
@@ -133,6 +134,7 @@ type UseDefenseActionsArgs = {
   applyDefenseVersionOverride: (hero: Hero) => Hero;
   queueDefenseResolution: (payload: { resolve: () => void; defenderSide: Side }) => void;
   setPlayer: (side: Side, player: PlayerState, reason?: string) => void;
+  drainStatusLifecycleEvents: () => StatusLifecycleEvent[];
 };
 
 const mapDefenseSchemaLog = (
@@ -258,6 +260,7 @@ export function useDefenseActions({
   applyDefenseVersionOverride,
   queueDefenseResolution,
   setPlayer,
+  drainStatusLifecycleEvents,
 }: UseDefenseActionsArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
@@ -543,6 +546,8 @@ export function useDefenseActions({
           }
         }
 
+        const lifecycleEvents = drainStatusLifecycleEvents();
+
         stats.recordTurn({
           ...draft,
           actualDamage,
@@ -578,6 +583,8 @@ export function useDefenseActions({
             Object.keys(summary.defenderStatusDiff).length > 0
               ? summary.defenderStatusDiff
               : undefined,
+          statusEvents:
+            lifecycleEvents.length > 0 ? lifecycleEvents : undefined,
           defenseEfficacy: {
             defenseAbilityId: summary.defenseAbilityId ?? null,
             incomingAbilityId: draft.abilityId ?? null,
@@ -597,6 +604,7 @@ export function useDefenseActions({
     [
       baseResolveDefense,
       clearDefenseDecisionLatency,
+      drainStatusLifecycleEvents,
       getDefenseDecisionLatency,
       stats,
     ]

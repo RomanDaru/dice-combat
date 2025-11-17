@@ -4,7 +4,11 @@ import type {
   DefenseStatusExpiry,
   DefenseVersion,
 } from "../defense/types";
-import type { StatusId, StatusTimingPhase } from "../engine/status/types";
+import type {
+  StatusId,
+  StatusTimingPhase,
+  StatusLifecycleEvent,
+} from "../engine/status/types";
 
 export const STATS_SCHEMA_VERSION = "1.0.0" as const;
 
@@ -138,6 +142,7 @@ export type TurnStat = {
   };
   defenseVersion?: DefenseVersion;
   defenseSchema?: DefenseSchemaLog;
+  statusEvents?: StatusLifecycleEvent[];
 };
 
 export type DefenseTelemetryTotals = {

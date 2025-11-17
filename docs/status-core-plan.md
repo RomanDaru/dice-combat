@@ -27,16 +27,34 @@
 - Stats/telemetry (`src/stats/...`) – iba ak po úpravách budú vyžadovať nové polia.
 
 ## 3. Návrhy riešení
-### Variant A – „Status Runtime Contract“
-Cieľ: zosilniť engine tak, aby každý status definovaný cez `defineStatus` mal jasný cycle (spend, grant, consume) bez obchádzok.
-- **Kroky**
-  1. V `src/engine/status/defs.ts` doplniť chýbajúce definície (Prevent Half) a doplniť explicitné `usablePhase` aliasy.
-  2. Rozšíriť `applyModifiers`/`spendStatusMany` aby poskytovali hook na „consume on modify“ (napr. prevent-half = zníž damage, odober stack).
-  3. Pridať jednotné logovanie (`StatusLifecycleEvent`) priamo do `runtime.ts`, aby každé pridanie/odobratie stacku bolo trackované.
-- **Riziká**
-  - *Regression across existing statuses*: `bonus_pool` (Chi) aj `pre_defense_reaction` (Evasive) bežia cez tieto funkcie – úprava by mohla zmeniť ich výstup. → **Mitigácia**: vytvoriť unit testy pre Chi/Evasive+PreventHalf (Vitest) pred úpravou.
-  - *Overcoupling*: hrozí, že do runtime pridáme príliš špecifickú logiku. → **Mitigácia**: použitie behavior pluginov; ak status potrebuje custom krok, nech definuje `behaviorId` a handler ho spracuje, nie hardcoded `if`.
+### Variant A - "Status Runtime Contract"
+Ciel: spevnit status engine tak, aby kazda buduca definicia (bez ohladu na konkretny status) presla rovnako vystopovatelnym cyklom grant -> pending buff -> spend -> consume -> log/telemetry, bez jedinej hardcodovanej vynimky.
 
+#### A. Kontrakt & dokumentacia
+1. Spisat povinne polia `defineStatus` + ich mapovanie na runtime (`behaviorId`, `spend`, `windows`, `usablePhase`, `turnLimited`, `maxStacks`). Vysledok drzat v tomto plane + ak treba vytvorit `docs/status-runtime.md` so sekciou "Lifecycle Contract".
+2. Zadefinovat genericku strukturu `StatusLifecycleEvent` (napr. `{ type, statusId, stacks, source, phase, turnId }`) a popisat, ktore subsystemy su povinne tieto eventy emitovat/pocuvat (GameController, hooks, telemetry, simy).
+
+#### B. Runtime instrumentacia (`src/engine/status/runtime.ts`)
+3. Instrumentovat helpery (`setStacks`, `addStacks`, `spendStatus`, `spendStatusMany`, `applyModifiers`, `tickStatuses`) tak, aby emitovali `StatusLifecycleEvent` pri kazdom prirastku/ubytku stacku. DEV buildy -> `defenseDebugLog`, produkcia -> strukturovane telemetry. Nova data musia rozsirit `StatusSpendSummary`, nie ho nahradit.
+4. Zabezpecit, aby existujuci odberatelia (`useDefenseActions`, `usePlayerDefenseController`, `useAiDefenseResponse`, `resolveAttack`) pouzivali tie iste eventy na vysvetlenie spendov, ale bez potreby vediet o konkretnom statusId.
+
+#### C. Behavior API (`src/engine/status/behaviors/*`)
+5. Rozsirit `StatusBehaviorHandlers` o volitelne hooky (`onGrant`, `onSpend`, `onModify`, `onConsume`, `onExpire`). Behavior implementacie sa stanou jedinym miestom, kde sa riesi status-unikatna logika; runtime iba orchestruju lifecycle eventy.
+6. Pridat registry/helpery pre behavior hooky, aby novy status mohol deklarovat custom krok bez toho, aby sme pridavali `if (statusId === "...")`.
+
+#### D. Genericke testy / simulacie
+7. Vytvorit data-driven Vitest modul (napr. `src/engine/status/__tests__/lifecycleMatrix.test.ts`), ktory cez `listStatuses()` generuje scenare (grant pred spendom, spend bez grantov, turn-limited budget, stack cap, paralelne pending buffy, AI reakcie). Ziadne hardcodovanie na Chi/Evasive/Prevent Half.
+8. Rozsirit simulacie/harness (`src/sim/statusHarness.ts` alebo existujuce test utilities) tak, aby vedeli prehrat cely lifecycle pre lubovolny status a validovat eventy/logy.
+
+#### E. Logging & Telemetry
+9. Zjednotit logovanie (`defenseDebugLog`, combat log buildery, stats tracker) okolo `StatusLifecycleEvent`. GameController nech pri `applyPendingDefenseBuff`/`triggerDefenseBuffs` vypisuje iba event payload; `resolveAttack` ma referencovat event ID v logoch, stats buduju agregacie podla behaviorId/fazy.
+10. Telemetry (`src/stats/*`) ma ingestovat eventy a pocitat metriky (granty/spendy/consumy per status/behavior), aby dokazala monitorovat aj buduce statusy bez kodovych zmien.
+
+#### F. Rizika & mitigacie
+- *Prebytok eventov*: moze zahlti debug logy. -> **Mitigacia**: verbose rezim nech je len v DEV + produkcny sampling/aggregacia.
+- *Spatna kompatibilita so summary*: aktualne AI/telemetry stoji na `StatusSpendSummary`. -> **Mitigacia**: dualne zapisovanie (summary + eventy), summary odstranime az po migracii spotrebitelov.
+- *Test matrix runtime*: stovky statusov mozu spomalit Vitest. -> **Mitigacia**: deterministicke scenare, minimalne stuby bez RNG, moznost filtrovat podla behavior/tagu.
+- *Neuplne metadata grantov*: niektore buffy nemaju `source`. -> **Mitigacia**: sprisnit `buildPendingDefenseBuffsFromGrants` aby vzdy doplnil `ruleId/effectId`, fallback label iba ak zdroj neznamy.
 ### Variant B – „Phase & Buff Synchronization“
 Cieľ: zosúladiť `PendingDefenseBuff` a `triggerDefenseBuffs` tak, aby granty prišli v očakávanej fáze a nemiešali sa so spendovými tokenmi.
 - **Kroky**
