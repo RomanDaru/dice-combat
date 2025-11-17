@@ -66,25 +66,29 @@ Cieľ: zosúladiť `PendingDefenseBuff` a `triggerDefenseBuffs` tak, aby granty 
   - *Neaktivované granty*: ak neexistuje `triggerDefenseBuffs` pre novú fázu, buff ostane navždy v pending stave. → **Mitigácia**: po pridaní nového triggeru napísať integration test v `usePlayerDefenseController` (simulate schema roll + next defense) a overiť, že buff sa aplikuje.
   - *Duplicity v logoch*: viac logov môže zahltiť CombatLog. → **Mitigácia**: zoskupenie logov cez `defenseDebugLog` only in dev.
 
-### Variant C – „Status Regression Harness“
-Cieľ: namiesto ručného debugovania pridať automatizovaný harness, ktorý spustí mini-simulácie pre každý status.
+### Variant C – „Status Lifecycle Regression Harness“
+Cieľ: namiesto ručného debugovania vytvoriť deterministický defense-v2 harness, ktorý genericky prejde celé životné cykly stavov (grant -> pending buff -> trigger -> spend/consume -> telemetry) bez hardcodov na konkrétne ID.
 - **Kroky**
-  1. V `src/sim/` pridať skript (napr. `statusHarness.ts`) ktorý používa `resolveAttack`, `buildDefensePlan` a `triggerDefenseBuffs` na simulovanie cyklu (grant -> spend -> outcome).
-  2. Pre Chi, Prevent Half a Evasive vytvoriť sample scenáre (Vitest) – validujú, že po jednej obrane ostanú očakávané stacky a damage.
-  3. Integráciu spustiť v CI (Vitest task) – chráni pred budúcimi regresiami.
+  1. V `src/sim/` pridať modul `statusHarness.ts`, ktorý skladá existujúce primitivá (`createInitialState`, `buildPendingDefenseBuffsFromGrants`, `deriveVirtualTokensForSide`, `buildDefensePlan`, `resolveAttack`) a dočasne registruje `StatusLifecycleSink`, aby vedel zachytiť grant/spend/consume eventy pre tvrdenia. Harness bude pracovať iba so schema-based (defense-v2) pipeline.
+  2. Zaviesť dátovo definované scenáre: pomocou `listStatuses()` automaticky vyhľadať statusy s rovnakým `behaviorId`/oknami, doplniť parametre (počiatočné stacky, pending granty, očakávané fázy, deterministické hody) a v scenári popísať očakávané token dify + eventy. Žiadne `if (statusId === "chi")` – špecifiká čerpáme len z definície/behavior configu.
+  3. Pridať Vitest balík (napr. `src/engine/status/__tests__/statusHarness.test.ts`), ktorý cez tieto scenáre spustí harness, overí výsledný `AttackResolution`, tok `StatusLifecycleEvent` a záznam v `StatsTracker`. Výstupy nech sú deterministické (fixné roll seed), aby sa testy dali zaradiť do CI.
+  4. Testy integrovať do existujúceho `pnpm test`/CI kroku, dokumentovať nový tooling (`docs/sim/status-harness.md` alebo aktualizácia tohto plánu) a nastaviť pravidlo – pri pridaní nového statusu sa musí doplniť aj scenár v harness-e.
 - **Riziká**
-  - *Falošná istota*: ak harness nepokrýva reálne edge cases, môžeme prehliadnuť chyby. → **Mitigácia**: pre každý status definovať minimálne 2 scenáre (grant before spend, spend without grant).
-  - *Čas buildov*: simulácie môžu predĺžiť CI. → **Mitigácia**: testy písať deterministicky, bez RNG, aby boli rýchle.
+  - *Nedostatočná generickosť*: ak scénarová vrstva vyžaduje manuálne ID, stratíme benefit. → **Mitigácia**: generovať scenáre podľa `behaviorId`, `windows` a `spend` metadát + umožniť custom hook len cez konfig.
+  - *Údržbové náklady*: zmeny engine môžu rozbiť veľa scenárov naraz. → **Mitigácia**: dodať helpery na spätné porovnanie očakávaných eventov (snapshot-like assert) a jasne logovať, ktorý behavior zlyhal.
+  - *Čas buildov*: stovky statusov môžu predĺžiť CI. → **Mitigácia**: umožniť filtrovanie podľa tagu/behavior a defaultne spúšťať len reprezentantov (napr. jeden scenár na behavior), s možnosťou úplného behu v nightly.
+- **2025-11-17 Update**: `src/sim/statusHarness.ts` + `src/engine/status/__tests__/statusHarness.test.ts` + `docs/sim/status-harness.md` implementujú Variant C. Scenáre sa generujú z `listStatuses()` podľa `behaviorId` (bonus_pool, pre_defense_reaction) a pokrývajú granty, pending buff pipeline a reakcie bez hardcodu na konkrétne ID.
 
 ## 4. Odporúčanie
 - **Začať Variantom B** (synchronizácia fáz + logging). Vyrieši, prečo Chi/Prevent Half pôsobia nekonzistentne, a pripraví pôdu pre Variant A.
 - Po stabilizácii pipeline implementovať Variant A (engine-level upgrades) → pridá definíciu Prevent Half a odstráni potrebu ručných zásahov.
-- Variant C spustiť paralelne ako guardrail (automatická regresia pre statusy).
+- Variant C spustiť paralelne ako guardrail (generický status harness pre defense-v2).
 
 ## 5. Best Practices & Guardrails
 - **Bez god-súborov**: ak bude treba nové helpery, dať ich do existujúcich modulov (`engine/status/behaviors`, `game/defenseBuffs`) alebo vytvoriť malý modul (napr. `statusLifecycle.ts`).
 - **Žiadne UI zmeny**: TokenChips a spol. nechávame tak, kým backend pipeline nebude konzistentná.
 - **Version control**: každú úpravu robiť v samostatných commitoch (napr. „phase triggers“, „prevent-half definition“, „status harness“).
+- **Dokumentácia**: po každom mile-stone (napr. dokončení kroku Variant A/B/C) aktualizovať príslušné dokumenty (`docs/status-core-plan.md`, špecifické statusové plány), aby zostal zdroj pravdy v sync s kódom.
 - **Logging**: do produkcie nepúšťať debug spam; `defenseDebugLog` už existuje – doplniť iba štruktúrované payloady.
 
 ---
