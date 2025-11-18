@@ -12,7 +12,10 @@ type DiceTrayOverlayProps = {
   diceImages?: (string | null | undefined)[];
 };
 
-export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps) {
+export function DiceTrayOverlay({
+  trayImage,
+  diceImages,
+}: DiceTrayOverlayProps) {
   const { state } = useGame();
   const {
     diceTrayVisible,
@@ -36,7 +39,8 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
     onConfirmDefenseResolution,
     performStatusClearRoll,
   } = useGameController();
-  const { dice, held, rolling, turn, rollsLeft, pendingStatusClear, players } = state;
+  const { dice, held, rolling, turn, rollsLeft, pendingStatusClear, players } =
+    state;
   const statusRoll = defenseStatusRoll;
   const statusDice = statusRoll?.dice ?? [];
   const statusHeld = useMemo(() => statusDice.map(() => false), [statusDice]);
@@ -49,14 +53,17 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
 
   if (!diceTrayVisible) return null;
 
+  const isStatusMode = Boolean(pendingStatusClear);
+
   const isRolling = Array.isArray(rolling)
     ? rolling.some(Boolean)
     : Boolean(rolling);
   const canInteract =
     turn === "you" && !statusActive && !isDefenseTurn && !isRolling;
-  const showRollAction = !isDefenseTurn && rollsLeft > 0;
+  const showRollAction = !isDefenseTurn && rollsLeft > 0 && !isStatusMode;
   const hasDefenseRoll = Boolean(defenseRoll);
-  const showDefenseRollAction = isDefenseTurn && !hasDefenseRoll;
+  const showDefenseRollAction =
+    isDefenseTurn && !hasDefenseRoll && !isStatusMode;
   const defenseRollDisabled =
     !isDefenseTurn ||
     statusActive ||
@@ -76,10 +83,6 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
     Boolean(statusRoll?.inProgress) ||
     statusRoll?.outcome === "success";
 
-  const statusOwnerName =
-    pendingStatusClear?.side === "you"
-      ? players.you.hero.name
-      : players.ai.hero.name;
   const statusTargetDef = pendingStatusClear
     ? getStatus(pendingStatusClear.status)
     : null;
@@ -91,17 +94,22 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
     pendingStatusClear?.action === "transfer"
       ? "Attempt Transfer"
       : "Status Roll";
-  const statusInfo = pendingStatusClear
-    ? pendingStatusClear.action === "transfer"
-      ? `${statusSourceDef?.name ?? "Status"}: ${
-          statusTargetDef?.name ?? pendingStatusClear.status
-        } (${pendingStatusClear.stacks} stack${
-          pendingStatusClear.stacks === 1 ? "" : "s"
-        })`
-      : `${statusTargetDef?.name ?? pendingStatusClear.status} stacks: ${
-          pendingStatusClear.stacks
-        }`
-    : null;
+  const statusInfo = (() => {
+    if (!pendingStatusClear) return null;
+    const statusName = statusTargetDef?.name ?? pendingStatusClear.status;
+    const stacksLine = `${statusName} stacks: ${pendingStatusClear.stacks}`;
+    const dieSize = pendingStatusClear.dieSize ?? 6;
+    const threshold = pendingStatusClear.rollThreshold ?? 4;
+    const highRange =
+      threshold >= dieSize ? `${threshold}` : `${threshold}-${dieSize}`;
+    const effectVerb =
+      pendingStatusClear.action === "transfer" ? "transfer" : "cleanse";
+    const ruleLine =
+      threshold > 1
+        ? `Roll d${dieSize}. On ${highRange}: ${effectVerb} ${statusName}.`
+        : `Roll d${dieSize} to ${effectVerb} ${statusName}.`;
+    return `${stacksLine}\n${ruleLine}`;
+  })();
   const statusResultText =
     pendingStatusClear && pendingStatusClear.roll !== undefined
       ? pendingStatusClear.success
@@ -118,12 +126,22 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
     !impactLocked;
 
   const helperText = (() => {
+    if (isStatusMode) {
+      // For status rolls, keep helper minimal; main explanation lives in statusInfo.
+      if (statusRoll?.inProgress) {
+        return defenseStatusMessage ?? "Rolling status...";
+      }
+      if (statusRoll?.outcome) {
+        return defenseStatusMessage ?? null;
+      }
+      return "Tap Status Roll to resolve the effect.";
+    }
     if (statusRoll) {
       if (statusRoll.inProgress) {
         return defenseStatusMessage ?? "Rolling...";
       }
       if (statusRoll.outcome) {
-        return null;
+        return defenseStatusMessage ?? null;
       }
     }
     if (isDefenseTurn) {
@@ -142,16 +160,18 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
   })();
 
   const showingStatusRoll = Boolean(statusRoll && statusDice.length > 0);
-  const trayDice = showingStatusRoll ? statusDice : dice;
-  const trayHeld = showingStatusRoll ? statusHeld : held;
-  const trayRolling = showingStatusRoll
+  const showStatusDice = isStatusMode && showingStatusRoll;
+  const showMainDice = !isStatusMode;
+  const trayDice = showStatusDice ? statusDice : dice;
+  const trayHeld = showStatusDice ? statusHeld : held;
+  const trayRolling = showStatusDice
     ? statusRolling.length
       ? statusRolling
       : false
     : rolling;
-  const trayCanInteract = showingStatusRoll ? false : canInteract;
-  const trayDefIndex = showingStatusRoll ? -1 : defenseDieIndex;
-  const trayToggleHold = showingStatusRoll ? () => {} : onToggleHold;
+  const trayCanInteract = showStatusDice ? false : canInteract;
+  const trayDefIndex = showStatusDice ? -1 : defenseDieIndex;
+  const trayToggleHold = showStatusDice ? () => {} : onToggleHold;
 
   return (
     <div className={styles.overlay}>
@@ -164,153 +184,126 @@ export function DiceTrayOverlay({ trayImage, diceImages }: DiceTrayOverlayProps)
               }
             : undefined
         }>
+        <div className={styles.header}>
+          <span>Dice Tray</span>
+          <ArtButton
+            variant='square'
+            className={styles.closeButton}
+            onClick={closeDiceTray}
+            aria-label='Close dice tray'>
+            {"\u2715"}
+          </ArtButton>
+        </div>
         <div className={styles.trayContent}>
-          <div className={styles.header}>
-            <span>Dice Tray</span>
-            <ArtButton
-              variant='square'
-              className={styles.closeButton}
-              onClick={closeDiceTray}
-              aria-label='Close dice tray'>
-              {"\u2715"}
-            </ArtButton>
-          </div>
           <div className={styles.trayBody}>
-            {pendingStatusClear && (
-              <div className={styles.statusPrompt}>
-                <div className={styles.statusPromptHeader}>
-                  <span className={styles.statusBadge}>{statusOwnerName}</span>
-                  <span className={styles.statusPromptTitle}>
-                    {statusTargetDef?.name ?? pendingStatusClear.status}
-                  </span>
-                </div>
-                <div className={styles.statusPromptBody}>
-                  <div className={styles.statusPromptText}>{statusInfo}</div>
-                  <div className={styles.statusPromptControls}>
-                    {pendingStatusClear.side === "you" ? (
-                      <ArtButton
-                        variant='medium'
-                        className={styles.statusPromptButton}
-                        onClick={() => performStatusClearRoll("you")}
-                        disabled={!canRollStatus}>
-                        {statusActionLabel}
-                      </ArtButton>
-                    ) : (
-                      <div className={styles.statusPromptHint}>
-                        {pendingStatusClear.rolling
-                          ? "AI is rolling..."
-                          : pendingStatusClear.action === "transfer"
-                          ? "AI will attempt a transfer."
-                          : "AI will roll automatically."}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {pendingStatusClear.roll !== undefined && (
-                  <div className={styles.statusPromptResult}>
-                    Roll: <b>{pendingStatusClear.roll}</b> {statusResultText}
-                  </div>
-                )}
-              </div>
-            )}
-            <div className={styles.diceWrapper}>
-              <DiceGrid
-                dice={trayDice}
-                held={trayHeld}
-                rolling={trayRolling}
-                canInteract={trayCanInteract}
-                onToggleHold={trayToggleHold}
-                defIndex={trayDefIndex}
-                showDcLogo={false}
-                isDefensePhase={isDefenseTurn}
-                statusActive={statusActive}
-                diceImages={diceImages}
-              />
-            </div>
-            {showingStatusRoll && (
+            {(showMainDice || showStatusDice) && (
               <div
                 className={clsx(
-                  styles.statusRollSection,
-                  statusRoll?.outcome === "success" && styles.statusRollSuccess,
-                  statusRoll?.outcome === "failure" && styles.statusRollFailure
+                  styles.diceWrapper,
+                  showStatusDice && styles.statusRollDice
                 )}>
-                <div className={styles.statusRollHeader}>
-                  {statusRoll?.label ?? "Status Roll"}
-                </div>
-                {showStatusToast && (
-                  <div
-                    className={clsx(
-                      styles.statusToast,
-                      statusRoll?.outcome === "success" && styles.toastSuccess,
-                      statusRoll?.outcome === "failure" && styles.toastFailure,
-                      statusRoll?.outcome === "failure" && styles.toastShake
-                    )}>
-                    {defenseStatusMessage}
-                  </div>
-                )}
+                <DiceGrid
+                  dice={trayDice}
+                  held={trayHeld}
+                  rolling={trayRolling}
+                  canInteract={trayCanInteract}
+                  onToggleHold={trayToggleHold}
+                  defIndex={trayDefIndex}
+                  showDcLogo={false}
+                  isDefensePhase={isDefenseTurn}
+                  statusActive={statusActive}
+                  diceImages={diceImages}
+                />
               </div>
             )}
             <div className={styles.actions}>
-              {showRollAction && (
-                <ArtButton
-                  variant='medium'
-                  className={styles.actionButton}
-                  onClick={onRoll}
-                  disabled={!canInteract}>
-                  Roll ({rollsLeft})
-                </ArtButton>
-              )}
-              {showDefenseRollAction && (
-                <ArtButton
-                  variant='medium'
-                  className={styles.actionButton}
-                  onClick={onUserDefenseRoll}
-                  disabled={defenseRollDisabled}>
-                  Roll Defense
-                </ArtButton>
-              )}
-              {defenseActiveAbilities.map((ability) => (
-                <ArtButton
-                  key={ability.id}
-                  variant='medium'
-                  className={styles.actionButton}
-                  onClick={() => onPerformActiveAbility(ability.id)}
-                  disabled={activeAbilityDisabled}>
-                  {ability.label}
-                </ArtButton>
-              ))}
-              {needsDefenseSelection && (
-                <ArtButton
-                  variant='medium'
-                  className={styles.actionButton}
-                  onClick={closeDiceTray}
-                  disabled={defenseConfirmDisabled}>
-                  Select Defense
-                </ArtButton>
-              )}
-              {needsDefenseConfirmationOnly && (
-                <ArtButton
-                  variant='medium'
-                  className={styles.actionButton}
-                  onClick={onConfirmDefenseResolution}
-                  disabled={defenseConfirmDisabled}>
-                  Confirm Defense
-                </ArtButton>
-              )}
-              {!needsDefenseSelection &&
-                !needsDefenseConfirmationOnly &&
-                !isDefenseTurn && (
+              {isStatusMode ? (
+                pendingStatusClear?.side === "you" ? (
                   <ArtButton
                     variant='medium'
                     className={styles.actionButton}
-                    onClick={closeDiceTray}>
-                    Select Attack
+                    onClick={() => performStatusClearRoll("you")}
+                    disabled={!canRollStatus}>
+                    {statusActionLabel}
                   </ArtButton>
-                )}
+                ) : (
+                  <div className={styles.statusPromptHint}>
+                    {pendingStatusClear?.rolling
+                      ? "AI is rolling..."
+                      : pendingStatusClear?.action === "transfer"
+                      ? "AI will attempt a transfer."
+                      : "AI will roll automatically."}
+                  </div>
+                )
+              ) : (
+                <>
+                  {showRollAction && (
+                    <ArtButton
+                      variant='medium'
+                      className={styles.actionButton}
+                      onClick={onRoll}
+                      disabled={!canInteract}>
+                      Roll ({rollsLeft})
+                    </ArtButton>
+                  )}
+                  {showDefenseRollAction && (
+                    <ArtButton
+                      variant='medium'
+                      className={styles.actionButton}
+                      onClick={onUserDefenseRoll}
+                      disabled={defenseRollDisabled}>
+                      Roll Defense
+                    </ArtButton>
+                  )}
+                  {defenseActiveAbilities.map((ability) => (
+                    <ArtButton
+                      key={ability.id}
+                      variant='medium'
+                      className={styles.actionButton}
+                      onClick={() => onPerformActiveAbility(ability.id)}
+                      disabled={activeAbilityDisabled}>
+                      {ability.label}
+                    </ArtButton>
+                  ))}
+                  {needsDefenseSelection && (
+                    <ArtButton
+                      variant='medium'
+                      className={styles.actionButton}
+                      onClick={closeDiceTray}
+                      disabled={defenseConfirmDisabled}>
+                      Select Defense
+                    </ArtButton>
+                  )}
+                  {needsDefenseConfirmationOnly && (
+                    <ArtButton
+                      variant='medium'
+                      className={styles.actionButton}
+                      onClick={onConfirmDefenseResolution}
+                      disabled={defenseConfirmDisabled}>
+                      Confirm Defense
+                    </ArtButton>
+                  )}
+                  {!needsDefenseSelection &&
+                    !needsDefenseConfirmationOnly &&
+                    !isDefenseTurn && (
+                      <ArtButton
+                        variant='medium'
+                        className={styles.actionButton}
+                        onClick={closeDiceTray}>
+                        Select Attack
+                      </ArtButton>
+                    )}
+                </>
+              )}
             </div>
-            {helperText && (
-              <div className={styles.helper}>{helperText}</div>
+            {isStatusMode && statusInfo && (
+              <div className={styles.statusPromptText}>
+                {statusInfo.split("\n").map((line) => (
+                  <div key={line}>{line}</div>
+                ))}
+              </div>
             )}
+            {helperText && <div className={styles.helper}>{helperText}</div>}
           </div>
         </div>
       </div>

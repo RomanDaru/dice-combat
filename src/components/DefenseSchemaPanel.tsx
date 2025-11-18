@@ -119,7 +119,7 @@ export const DefenseSchemaPanel = ({
       <ul className={styles.ruleList}>
         {baseSchema.rules.map((rule) => {
           const hit = ruleHits?.get(rule.id);
-          const matched = hit?.matched;
+          const matched = Boolean(hit?.matched);
           const applied = Boolean(
             hit?.effects?.some((e) => e.outcome === "applied")
           );
@@ -130,11 +130,13 @@ export const DefenseSchemaPanel = ({
           return (
             <li key={rule.id} className={itemClass}>
               <div className={styles.ruleTitle}>{formatRuleLabel(rule)}</div>
-              <div className={styles.ruleMeta}>
-                {matched
-                  ? `Matched (count ${hit?.matcher.matchCount ?? 0})`
-                  : "Awaiting match"}
-              </div>
+              {!isMinimal && (
+                <div className={styles.ruleMeta}>
+                  {matched
+                    ? `Matched (count ${hit?.matcher.matchCount ?? 0})`
+                    : "Awaiting match"}
+                </div>
+              )}
               {Array.isArray(rule.effects) && rule.effects.length > 0 && (
                 <div className={styles.ruleMeta}>
                   {rule.effects.map((eff, idx) => (

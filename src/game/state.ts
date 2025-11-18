@@ -11,6 +11,7 @@ import {
   Combo,
   PendingDefenseBuff,
 } from "./types";
+import type { DefenseSchemaResolution } from "../defense/resolver";
 import { normalizeSeed } from "../engine/rng";
 import { defenseDebugLog } from "../utils/debug";
 import { setPlayerSnapshot, setPlayerSnapshots } from "../context/playerSnapshot";
@@ -70,6 +71,7 @@ export type AiDefenseState = {
   defenseDice: number[] | null;
   defenseCombo: Combo | null;
   evasiveRoll: number | null;
+  defenseSchema?: DefenseSchemaResolution | null;
 };
 
 export type FxState = {

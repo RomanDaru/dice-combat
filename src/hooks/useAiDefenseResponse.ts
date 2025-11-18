@@ -296,6 +296,7 @@ export function useAiDefenseResponse({
                 defenseDice: rolledDice,
                 defenseCombo: null,
                 defenseRoll: totalBlock,
+                defenseSchema: schemaOutcome.schema,
               });
 
               let updatedDefender = defensePlan.defenderAfter;

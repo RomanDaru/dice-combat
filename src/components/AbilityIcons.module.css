@@ -135,11 +135,45 @@
 }
 
 .ready {
-  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.45);
+  box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.7);
+  background: rgba(250, 204, 21, 0.05);
+  animation: abilityHighlightPulse 1400ms ease-in-out infinite;
 }
 .selected {
-  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.45);
-  background: rgba(250, 204, 21, 0.12);
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.9);
+  background: rgba(250, 204, 21, 0.18);
+  animation: abilityHighlightPulseStrong 1400ms ease-in-out infinite;
+}
+
+@keyframes abilityHighlightPulse {
+  0% {
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.6), 0 0 10px rgba(250, 204, 21, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.9), 0 0 16px rgba(250, 204, 21, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.6), 0 0 10px rgba(250, 204, 21, 0.2);
+  }
+}
+
+@keyframes abilityHighlightPulseStrong {
+  0% {
+    box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.9), 0 0 12px rgba(250, 204, 21, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(250, 250, 190, 1), 0 0 20px rgba(250, 204, 21, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.9), 0 0 12px rgba(250, 204, 21, 0.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ready,
+  .selected {
+    animation: none;
+  }
 }
 
 .iconLabel {
