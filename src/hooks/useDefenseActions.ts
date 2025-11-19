@@ -520,24 +520,6 @@ export function useDefenseActions({
               },
             });
           }
-          // Telemetry flag if we ever emit v1 while V2 is enabled
-          if (ENABLE_DEFENSE_V2 && defenseVersionUsed === "v1") {
-            stats.updateGameMeta({
-              defenseMeta: {
-                enableDefenseV2: ENABLE_DEFENSE_V2,
-                defenseDslVersion: DEFENSE_DSL_VERSION,
-                totals: {
-                  blockFromDefenseRoll: 0,
-                  blockFromStatuses: 0,
-                  preventHalfEvents: 0,
-                  preventAllEvents: 0,
-                  reflectSum: 0,
-                  wastedBlockSum: 0,
-                  v1WhileV2Emits: 1,
-                },
-              },
-            });
-          }
         }
 
         const lifecycleEvents = drainStatusLifecycleEvents();
