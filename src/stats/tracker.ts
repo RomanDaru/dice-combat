@@ -94,11 +94,11 @@ export class StatsTracker {
     you: {},
     ai: {},
   };
-  private defenseTurnCounts: Record<DefenseVersion, number> = { v1: 0, v2: 0 };
+  private defenseTurnCounts: Record<DefenseVersion, number> = { v2: 0 };
 
   beginGame(meta: StatsGameInit) {
     const gameId = createId("game");
-    this.defenseTurnCounts = { v1: 0, v2: 0 };
+    this.defenseTurnCounts = { v2: 0 };
     this.game = {
       id: gameId,
       schemaVersion: STATS_SCHEMA_VERSION,

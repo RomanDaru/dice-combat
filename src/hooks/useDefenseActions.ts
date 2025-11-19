@@ -500,15 +500,9 @@ export function useDefenseActions({
 
         const defenseSelection = resolution.defense?.selection;
         const schemaSnapshot = defenseSelection?.roll.schema ?? null;
-        // While V2 is enabled, status-only mitigation should still count as v2 (empty dice set)
-        const defenseVersionUsed: DefenseVersion | undefined =
-          ENABLE_DEFENSE_V2
-            ? "v2"
-            : schemaSnapshot
-            ? "v2"
-            : defenseSelection
-            ? "v1"
-            : undefined;
+        const defenseVersionUsed: DefenseVersion | undefined = schemaSnapshot
+          ? "v2"
+          : undefined;
         const defenseSchemaLog = mapDefenseSchemaLog(schemaSnapshot, actualDamage);
 
         if (summary) {

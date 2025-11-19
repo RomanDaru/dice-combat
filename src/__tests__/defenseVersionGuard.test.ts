@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { StatsTracker } from "../stats/tracker";
 
-describe("defense version guard", () => {
-  it("aggregates v1WhileV2Emits telemetry totals", () => {
+describe("defense telemetry totals", () => {
+  it("aggregates defenseMeta.totals via updateGameMeta", () => {
     const stats = new StatsTracker();
     stats.beginGame({
       heroId: "TestHero" as any,
@@ -25,7 +25,7 @@ describe("defense version guard", () => {
           preventAllEvents: 0,
           reflectSum: 0,
           wastedBlockSum: 0,
-          v1WhileV2Emits: 1,
+          schemaDamageDriftCount: 2,
         },
       },
     } as any);
@@ -38,6 +38,6 @@ describe("defense version guard", () => {
 
     expect(snapshot).not.toBeNull();
     const game = snapshot!.gameStats!;
-    expect(game.defenseMeta?.totals?.v1WhileV2Emits ?? 0).toBeGreaterThan(0);
+    expect(game.defenseMeta?.totals?.schemaDamageDriftCount ?? 0).toBe(2);
   });
 });

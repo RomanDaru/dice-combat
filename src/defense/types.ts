@@ -5,7 +5,7 @@ export type DefenseCarryOverPolicy = {
   opponent?: boolean;
 };
 
-export type DefenseVersion = "v1" | "v2";
+export type DefenseVersion = "v2";
 
 export type DefenseDieValue = 1 | 2 | 3 | 4 | 5 | 6;
 

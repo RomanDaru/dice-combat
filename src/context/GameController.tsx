@@ -1217,8 +1217,8 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     const resolvedYouHero = applyDefenseVersionOverride(players.you.hero);
     const resolvedAiHero = applyDefenseVersionOverride(players.ai.hero);
     const heroDefenseVersion = {
-      [youHeroId]: resolvedYouHero.defenseVersion ?? "v1",
-      [aiHeroId]: resolvedAiHero.defenseVersion ?? "v1",
+      [youHeroId]: resolvedYouHero.defenseVersion ?? "v2",
+      [aiHeroId]: resolvedAiHero.defenseVersion ?? "v2",
     };
     const heroSchemaHash = {
       [youHeroId]: players.you.hero.defenseSchemaHash ?? null,

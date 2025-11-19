@@ -154,8 +154,6 @@ export type DefenseTelemetryTotals = {
   wastedBlockSum: number;
   // Count of turns where schema.finalDamage != actualDamage
   schemaDamageDriftCount?: number;
-  // Count of times v1 was emitted while V2 was enabled
-  v1WhileV2Emits?: number;
 };
 
 export type DefenseMeta = {
