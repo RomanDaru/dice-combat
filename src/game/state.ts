@@ -9,8 +9,12 @@ import {
   OffensiveAbility,
   Tokens,
   Combo,
+  PendingDefenseBuff,
 } from "./types";
+import type { DefenseSchemaResolution } from "../defense/resolver";
 import { normalizeSeed } from "../engine/rng";
+import { defenseDebugLog } from "../utils/debug";
+import { setPlayerSnapshot, setPlayerSnapshots } from "../context/playerSnapshot";
 
 type FloatDamage = { val: number; kind: "hit" | "reflect" };
 
@@ -67,6 +71,7 @@ export type AiDefenseState = {
   defenseDice: number[] | null;
   defenseCombo: Combo | null;
   evasiveRoll: number | null;
+  defenseSchema?: DefenseSchemaResolution | null;
 };
 
 export type FxState = {
@@ -94,6 +99,7 @@ export type GameState = {
   savedDefenseDice: number[] | null;
   fx: FxState;
   initialRoll: InitialRollState;
+  pendingDefenseBuffs: PendingDefenseBuff[];
 };
 
 const MAX_LOG = 80;
@@ -119,7 +125,7 @@ export function createInitialState(
   const youPlayer = createPlayer(youHero);
   const aiPlayer = createPlayer(aiHero);
   const startMessage = `Start of battle. (${youPlayer.hero.name} HP: ${youPlayer.hp}/${youPlayer.hero.maxHp}, ${aiPlayer.hero.name} HP: ${aiPlayer.hp}/${aiPlayer.hero.maxHp})`;
-  return {
+  const initial: GameState = {
     players: {
       you: youPlayer,
       ai: aiPlayer,
@@ -161,8 +167,12 @@ export function createInitialState(
       tie: false,
       awaitingConfirmation: false,
     },
+    pendingDefenseBuffs: [],
   };
+  setPlayerSnapshots({ you: youPlayer, ai: aiPlayer });
+  return initial;
 }
+
 
 export type GameAction =
   | {
@@ -181,6 +191,7 @@ export type GameAction =
       type: "SET_PLAYER";
       side: Side;
       player: PlayerState;
+      meta?: string | null;
     }
   | {
       type: "SET_PLAYERS";
@@ -218,15 +229,21 @@ export type GameAction =
       type: "RESOLVE_INITIAL_ROLL";
       payload: { you: number; ai: number; winner: Side | null };
     }
-  | { type: "CONFIRM_INITIAL_ROLL" };
+  | { type: "CONFIRM_INITIAL_ROLL" }
+  | {
+      type: "SET_PENDING_DEFENSE_BUFFS";
+      buffs: PendingDefenseBuff[];
+    };
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
-    case "RESET":
-      return createInitialState(
+    case "RESET": {
+      const nextState = createInitialState(
         action.payload.youHero,
         action.payload.aiHero,
         action.payload.seed
       );
+      return nextState;
+    }
     case "SET_PHASE":
       return { ...state, phase: action.phase };
     case "SET_TURN":
@@ -248,12 +265,26 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         log: next.length > MAX_LOG ? next.slice(next.length - MAX_LOG) : next,
       };
     }
-    case "SET_PLAYER":
+    case "SET_PLAYER": {
+      setPlayerSnapshot(action.side, action.player);
+      if (import.meta.env?.DEV) {
+        const before = state.players[action.side];
+        defenseDebugLog("reducer:setPlayer", {
+          side: action.side,
+          source: action.meta ?? null,
+          hpBefore: before?.hp ?? null,
+          hpAfter: action.player.hp,
+          tokensBefore: before?.tokens ?? null,
+          tokensAfter: action.player.tokens,
+        });
+      }
       return {
         ...state,
         players: { ...state.players, [action.side]: action.player },
       };
+    }
     case "SET_PLAYERS":
+      setPlayerSnapshots(action.players);
       return {
         ...state,
         players: action.players,
@@ -352,6 +383,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ...state.initialRoll,
           awaitingConfirmation: false,
         },
+      };
+    case "SET_PENDING_DEFENSE_BUFFS":
+      return {
+        ...state,
+        pendingDefenseBuffs: action.buffs,
       };
     default:
       return state;

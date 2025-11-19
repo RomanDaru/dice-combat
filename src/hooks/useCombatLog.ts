@@ -29,10 +29,18 @@ export function useCombatLog() {
     [dispatch]
   );
 
+  const formatAttackAbility = (ability: OffensiveAbility) => {
+    const baseDamage =
+      typeof ability.damage === "number" ? `${ability.damage} dmg` : null;
+    const tags = [baseDamage].filter(Boolean);
+    const suffix = tags.length ? ` (${tags.join(", ")})` : "";
+    return `${formatAbilityName(ability)}${suffix}`;
+  };
+
   const logPlayerAttackStart = useCallback(
     (diceValues: number[], ability: OffensiveAbility, attackerName: string) => {
       pushLog(
-        `[Roll] ${attackerName} attacks: ${formatDice(diceValues)} -> ${formatAbilityName(
+        `[Roll] ${attackerName} attacks: ${formatDice(diceValues)} -> ${formatAttackAbility(
           ability
         )}.`,
         { blankLineBefore: true }
@@ -53,7 +61,7 @@ export function useCombatLog() {
 
   const logAiAttackRoll = useCallback(
     (diceValues: number[], ability: OffensiveAbility) => {
-      pushLog(indentLog(`AI roll: ${formatDice(diceValues)} -> ${formatAbilityName(ability)}.`));
+      pushLog(indentLog(`AI roll: ${formatDice(diceValues)} -> ${formatAttackAbility(ability)}.`));
     },
     [pushLog]
   );

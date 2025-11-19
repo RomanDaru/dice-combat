@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import type { StatusId } from "../engine/status";
+import {
+  aggregateStatusSpendSummaries,
+  type StatusId,
+} from "../engine/status";
+import type { StatusLifecycleEvent } from "../engine/status/types";
 import { useGame } from "../context/GameContext";
 import { useActiveAbilities } from "./useActiveAbilities";
 import { useAttackExecution } from "./useAttackExecution";
@@ -12,7 +16,14 @@ import {
 } from "./usePlayerDefenseController";
 import { detectCombos } from "../game/combos";
 import { useStatsTracker } from "../context/StatsContext";
-import type { PhaseDamage, StatsTurnInput, StatusRemovalReason } from "../stats/types";
+import type {
+  DefenseSchemaLog,
+  PhaseDamage,
+  StatsTurnInput,
+  StatusRemovalReason,
+  DefenseTelemetryTotals,
+} from "../stats/types";
+import type { StatusTimingPhase } from "../engine/status/types";
 import type { GameFlowEvent } from "./useTurnController";
 import type { GameState } from "../game/state";
 import type {
@@ -21,8 +32,18 @@ import type {
   Side,
   ActiveAbilityContext,
   ActiveAbilityOutcome,
+  Hero,
 } from "../game/types";
-import type { CombatEvent } from "../game/combat/types";
+import type {
+  CombatEvent,
+  AttackResolution,
+  ResolvedDefenseState,
+} from "../game/combat/types";
+import type { DefenseStatusGrant } from "../defense/effects";
+import type { DefenseSchemaResolution } from "../defense/resolver";
+import type { DefenseVersion } from "../defense/types";
+import { ENABLE_DEFENSE_V2 } from "../config/featureFlags";
+import { DEFENSE_DSL_VERSION } from "../config/buildInfo";
 import type { StatusSpendSummary } from "../engine/status";
 import type { TurnEndResolution } from "../game/flow/turnEnd";
 import type { Cue } from "../game/flow/cues";
@@ -101,6 +122,96 @@ type UseDefenseActionsArgs = {
   enqueueCue: (cue: Cue) => void;
   interruptCue: () => void;
   scheduleCallback: (durationMs: number, callback: () => void) => () => void;
+  queuePendingDefenseGrants: (payload: {
+    grants: DefenseStatusGrant[];
+    attackerSide: Side;
+    defenderSide: Side;
+  }) => void;
+  triggerDefenseBuffs: (phase: StatusTimingPhase, owner: Side) => void;
+  triggerDefenseBuffsBatch: (
+    entries: Array<{ phase: StatusTimingPhase; owner: Side }>
+  ) => void;
+  applyDefenseVersionOverride: (hero: Hero) => Hero;
+  queueDefenseResolution: (payload: { resolve: () => void; defenderSide: Side }) => void;
+  setPlayer: (side: Side, player: PlayerState, reason?: string) => void;
+  drainStatusLifecycleEvents: () => StatusLifecycleEvent[];
+};
+
+const mapDefenseSchemaLog = (
+  schema?: DefenseSchemaResolution | null,
+  damageApplied?: number
+): DefenseSchemaLog | undefined => {
+  if (!schema) return undefined;
+  return {
+    schemaHash: schema.schemaHash ?? null,
+    dice: [...schema.dice],
+    checkpoints: { ...schema.checkpoints },
+    damageApplied,
+    rulesHit: schema.rules.map((rule) => ({
+      id: rule.id,
+      label: rule.label,
+      matched: rule.matched,
+      matchCount: rule.matcher.matchCount,
+      effects: rule.effects.map((effect) => ({
+        type: effect.effectType,
+        target: effect.target,
+        outcome: effect.outcome,
+        value: effect.value,
+        reason: effect.reason,
+        metadata: effect.metadata,
+      })),
+    })),
+  };
+};
+
+const PREVENT_HALF_STATUS_ID: StatusId = "prevent_half";
+const PREVENT_ALL_STATUS_ID: StatusId = "prevent_all";
+
+const buildDefenseTelemetryDelta = (
+  defenseState: ResolvedDefenseState | null,
+  summary: AttackResolution["summary"],
+  blockedAmount: number
+): DefenseTelemetryTotals | null => {
+  const baseBlock = defenseState?.baseBlock ?? 0;
+  const statusTotals = defenseState
+    ? aggregateStatusSpendSummaries(defenseState.statusSpends)
+    : null;
+  const statusBlock = statusTotals?.bonusBlock ?? 0;
+  const countEvents = (statusId: StatusId): number =>
+    defenseState?.statusSpends.reduce((sum, spend) => {
+      if (spend.id === statusId) {
+        return sum + spend.successCount;
+      }
+      return sum;
+    }, 0) ?? 0;
+
+  const preventHalfEvents = countEvents(PREVENT_HALF_STATUS_ID);
+  const preventAllEvents = countEvents(PREVENT_ALL_STATUS_ID);
+  const reflectSum = summary.reflected ?? 0;
+  const wastedBlock = Math.max(
+    0,
+    baseBlock + statusBlock - blockedAmount
+  );
+
+  if (
+    baseBlock === 0 &&
+    statusBlock === 0 &&
+    preventHalfEvents === 0 &&
+    preventAllEvents === 0 &&
+    reflectSum === 0 &&
+    wastedBlock === 0
+  ) {
+    return null;
+  }
+
+  return {
+    blockFromDefenseRoll: baseBlock,
+    blockFromStatuses: statusBlock,
+    preventHalfEvents,
+    preventAllEvents,
+    reflectSum,
+    wastedBlockSum: wastedBlock,
+  };
 };
 
 export function useDefenseActions({
@@ -143,6 +254,13 @@ export function useDefenseActions({
   enqueueCue,
   interruptCue,
   scheduleCallback,
+  queuePendingDefenseGrants,
+  triggerDefenseBuffs,
+  triggerDefenseBuffsBatch,
+  applyDefenseVersionOverride,
+  queueDefenseResolution,
+  setPlayer,
+  drainStatusLifecycleEvents,
 }: UseDefenseActionsArgs) {
   const { state, dispatch } = useGame();
   const latestState = useLatest(state);
@@ -275,13 +393,6 @@ export function useDefenseActions({
     [dispatch, resetDefenseRequests, setPlayerDefenseState]
   );
 
-  const setPlayer = useCallback(
-    (side: Side, player: PlayerState) => {
-      dispatch({ type: "SET_PLAYER", side, player });
-    },
-    [dispatch]
-  );
-
   const { resolveDefenseWithEvents: baseResolveDefense } = useDefenseResolution({
     enqueueCue,
     interruptCue,
@@ -295,6 +406,9 @@ export function useDefenseActions({
     popDamage,
     pushLog,
     setPlayer,
+    queueDefenseResolution,
+    triggerDefenseBuffs,
+    triggerDefenseBuffsBatch,
   });
   const resolveDefenseWithEvents = useCallback(
     (
@@ -384,6 +498,32 @@ export function useDefenseActions({
         );
         const actualDamage = attackAfterMit;
 
+        const defenseSelection = resolution.defense?.selection;
+        const schemaSnapshot = defenseSelection?.roll.schema ?? null;
+        const defenseVersionUsed: DefenseVersion | undefined = schemaSnapshot
+          ? "v2"
+          : undefined;
+        const defenseSchemaLog = mapDefenseSchemaLog(schemaSnapshot, actualDamage);
+
+        if (summary) {
+          const telemetryDelta = buildDefenseTelemetryDelta(
+            resolution.defense ?? null,
+            summary,
+            blockedAmount
+          );
+          if (telemetryDelta) {
+            stats.updateGameMeta({
+              defenseMeta: {
+                enableDefenseV2: ENABLE_DEFENSE_V2,
+                defenseDslVersion: DEFENSE_DSL_VERSION,
+                totals: telemetryDelta,
+              },
+            });
+          }
+        }
+
+        const lifecycleEvents = drainStatusLifecycleEvents();
+
         stats.recordTurn({
           ...draft,
           actualDamage,
@@ -419,6 +559,8 @@ export function useDefenseActions({
             Object.keys(summary.defenderStatusDiff).length > 0
               ? summary.defenderStatusDiff
               : undefined,
+          statusEvents:
+            lifecycleEvents.length > 0 ? lifecycleEvents : undefined,
           defenseEfficacy: {
             defenseAbilityId: summary.defenseAbilityId ?? null,
             incomingAbilityId: draft.abilityId ?? null,
@@ -426,6 +568,8 @@ export function useDefenseActions({
             prevented: preventedAmount,
             reflected: summary.reflected,
           },
+          defenseVersion: defenseVersionUsed,
+          defenseSchema: defenseSchemaLog,
         });
         if (draft.defenderSide === "you") {
           clearDefenseDecisionLatency();
@@ -436,6 +580,7 @@ export function useDefenseActions({
     [
       baseResolveDefense,
       clearDefenseDecisionLatency,
+      drainStatusLifecycleEvents,
       getDefenseDecisionLatency,
       stats,
     ]
@@ -474,6 +619,9 @@ export function useDefenseActions({
     aiActiveAbilities,
     performAiActiveAbility,
     aiReactionRequestRef: aiStatusReactionRef,
+    queuePendingDefenseGrants,
+    triggerDefenseBuffs,
+    applyDefenseVersionOverride,
   });
 
   const {
@@ -503,6 +651,9 @@ export function useDefenseActions({
     setPendingAttack: setPendingAttackDispatch,
     resolveDefenseWithEvents,
     scheduleCallback,
+    queuePendingDefenseGrants,
+    triggerDefenseBuffs,
+    applyDefenseVersionOverride,
   });
 
   return {

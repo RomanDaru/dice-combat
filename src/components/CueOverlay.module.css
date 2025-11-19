@@ -9,7 +9,7 @@
     rgba(15, 23, 42, 0.78),
     rgba(30, 41, 59, 0.72)
   );
-  backdrop-filter: blur(8px);
+  backdrop-filter: none;
   pointer-events: none;
   z-index: 24;
 }

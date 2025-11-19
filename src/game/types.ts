@@ -1,5 +1,12 @@
+import type {
+  DefenseCarryOverPolicy,
+  DefenseSchema,
+  DefenseStatusExpiry,
+  DefenseVersion,
+} from "../defense/types";
 import type { GameDispatch, GameState } from "./state";
 import type { HeroSkinId } from "./heroSkinIds";
+import type { StatusId, StatusTimingPhase } from "../engine/status/types";
 
 export type Combo =
   | "5OAK" | "4OAK" | "FULL_HOUSE" | "3OAK" | "PAIR_PAIR" | "SMALL_STRAIGHT" | "LARGE_STRAIGHT";
@@ -54,6 +61,9 @@ export interface Hero {
   name: string;
   maxHp: number;
   skin?: HeroSkinId;
+  defenseVersion?: DefenseVersion;
+  defenseSchema?: DefenseSchema | null;
+  defenseSchemaHash?: string | null;
   offensiveBoard: OffensiveAbilityBoard;
   defensiveBoard: DefensiveAbilityBoard;
   ai: {
@@ -117,6 +127,28 @@ export type ActiveAbility = {
   cost?: ActiveAbilityCost;
   canUse: (context: ActiveAbilityContext) => boolean;
   execute: (context: ActiveAbilityContext) => ActiveAbilityOutcome | void;
+};
+
+export type PendingDefenseBuff = {
+  id: string;
+  owner: Side;
+  kind: "status";
+  statusId: StatusId;
+  stacks: number;
+  usablePhase: StatusTimingPhase;
+  stackCap?: number;
+  expires?: DefenseStatusExpiry;
+  cleansable?: boolean;
+  turnsRemaining?: number;
+  carryOverOnKO?: DefenseCarryOverPolicy;
+  createdAt: {
+    round: number;
+    turnId: string;
+  };
+  source?: {
+    ruleId: string;
+    effectId?: string;
+  };
 };
 
 

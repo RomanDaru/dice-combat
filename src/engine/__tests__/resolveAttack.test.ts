@@ -646,4 +646,97 @@ describe("resolveAttack with modifiers", () => {
     expect(resolution.summary.negated).toBe(true);
     expect(getStacks(resolution.updatedDefender.tokens, "burn", 0)).toBe(1);
   });
+
+  it("halves post-block damage when a defense spend supplies a damage multiplier", () => {
+    const baseState = createInitialState(
+      HEROES.Pyromancer,
+      HEROES["Shadow Monk"]
+    );
+    const attacker = clonePlayer(baseState.players.you);
+    const defender = clonePlayer(baseState.players.ai);
+
+    const offense: OffensiveAbility = {
+      combo: "3OAK",
+      damage: 20,
+      label: "Heavy Strike",
+    };
+
+    const defenseResolution = makeDefenseState({
+      baseBlock: 3,
+      statusSpends: [
+        createStatusSpendSummary("prevent_half", 1, [
+          {
+            log: "Prevent Half halves the damage.",
+            success: true,
+            damageMultiplier: 0.5,
+          },
+        ]),
+      ],
+    });
+
+    const resolution = resolveAttack({
+      source: "player",
+      attackerSide: "you",
+      defenderSide: "ai",
+      attacker,
+      defender,
+      ability: offense,
+      baseDamage: offense.damage,
+      attackStatusSpends: [],
+      defense: { resolution: defenseResolution },
+    });
+
+    expect(resolution.summary.damageDealt).toBe(8);
+    expect(resolution.summary.blocked).toBe(12);
+    expect(resolution.summary.totalBlock).toBe(12);
+    expect(resolution.logs.join("\n")).toMatch(
+      /Prevent Half reduced damage by 9/i
+    );
+  });
+
+  it("applies damage mitigation spends even when no base block is present", () => {
+    const baseState = createInitialState(
+      HEROES.Pyromancer,
+      HEROES["Shadow Monk"]
+    );
+    const attacker = clonePlayer(baseState.players.you);
+    const defender = clonePlayer(baseState.players.ai);
+
+    const offense: OffensiveAbility = {
+      combo: "3OAK",
+      damage: 10,
+      label: "Quick Slash",
+    };
+
+    const defenseResolution = makeDefenseState({
+      baseBlock: 0,
+      statusSpends: [
+        createStatusSpendSummary("prevent_half", 1, [
+          {
+            log: "Prevent Half halves the damage.",
+            success: true,
+            damageMultiplier: 0.5,
+          },
+        ]),
+      ],
+    });
+
+    const resolution = resolveAttack({
+      source: "player",
+      attackerSide: "you",
+      defenderSide: "ai",
+      attacker,
+      defender,
+      ability: offense,
+      baseDamage: offense.damage,
+      attackStatusSpends: [],
+      defense: { resolution: defenseResolution },
+    });
+
+    expect(resolution.summary.damageDealt).toBe(5);
+    expect(resolution.summary.blocked).toBe(5);
+    expect(resolution.logs.join("\n")).toMatch(
+      /Prevent Half reduced damage by 5/i
+    );
+  });
 });

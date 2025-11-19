@@ -1,5 +1,7 @@
 import { useCallback, type MutableRefObject } from "react";
 import { getStatus } from "../engine/status";
+import type { StatusTimingPhase } from "../engine/status/types";
+import type { DefenseStatusGrant } from "../defense/effects";
 import type { StatusId, StatusSpendSummary } from "../engine/status";
 import type { GameState } from "../game/state";
 import type {
@@ -7,6 +9,7 @@ import type {
   OffensiveAbility,
   PlayerState,
   Side,
+  Hero,
 } from "../game/types";
 import { ActiveAbilityIds } from "../game/activeAbilities";
 import { resolvePassTurn } from "../game/flow/turnEnd";
@@ -82,6 +85,13 @@ type UseAttackExecutionArgs = {
   aiActiveAbilities: ActiveAbility[];
   performAiActiveAbility: (abilityId: string) => boolean;
   aiReactionRequestRef: MutableRefObject<StatusId | null>;
+  queuePendingDefenseGrants: (payload: {
+    grants: DefenseStatusGrant[];
+    attackerSide: Side;
+    defenderSide: Side;
+  }) => void;
+  triggerDefenseBuffs: (phase: StatusTimingPhase, owner: Side) => void;
+  applyDefenseVersionOverride: (hero: Hero) => Hero;
 };
 
 export function useAttackExecution({
@@ -117,6 +127,9 @@ export function useAttackExecution({
   aiActiveAbilities,
   performAiActiveAbility,
   aiReactionRequestRef,
+  queuePendingDefenseGrants,
+  triggerDefenseBuffs,
+  applyDefenseVersionOverride,
 }: UseAttackExecutionArgs) {
   const { handleAiDefenseResponse } = useAiDefenseResponse({
     setDefenseStatusMessage,
@@ -134,6 +147,9 @@ export function useAttackExecution({
     pendingDefenseSpendsRef,
     resolveDefenseWithEvents,
     setPlayer,
+    queuePendingDefenseGrants,
+    triggerDefenseBuffs,
+    applyDefenseVersionOverride,
   });
 
   const onConfirmAttack = useCallback(() => {

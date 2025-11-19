@@ -86,6 +86,8 @@ const createHook = () => {
     popDamage: vi.fn(),
     pushLog: vi.fn(),
     setPlayer: vi.fn(),
+    triggerDefenseBuffs: vi.fn(),
+    triggerDefenseBuffsBatch: vi.fn(),
   };
 
   const { result } = renderHook(() => useDefenseResolution(args));
@@ -166,5 +168,36 @@ describe("useDefenseResolution - defense summary cue", () => {
     expect(payload.priority).toBe("urgent");
     expect(payload.allowDuringTransition).toBe(true);
     expect(payload.title).toMatch(/You Fall/i);
+  });
+
+  it("fires defense buff triggers after resolution commits", () => {
+    const { handler, args } = createHook();
+    const resolution = {
+      updatedAttacker: basePlayer,
+      updatedDefender: basePlayer,
+      logs: [],
+      fx: [],
+      events: [],
+      nextPhase: "roll",
+    } as any;
+
+    handler(resolution, {
+      attackerSide: "ai",
+      defenderSide: "you",
+      attackerName: "Shadow Monk",
+      defenderName: "Pyromancer",
+      abilityName: "Moon Slash",
+    });
+
+    expect(args.triggerDefenseBuffsBatch).toHaveBeenCalledTimes(1);
+    expect(args.triggerDefenseBuffsBatch).toHaveBeenCalledWith([
+      { phase: "nextDefenseCommit", owner: "you" },
+      { phase: "nextDefenseCommit", owner: "ai" },
+    ]);
+    expect(args.triggerDefenseBuffs).toHaveBeenCalledTimes(1);
+    expect(args.triggerDefenseBuffs).toHaveBeenCalledWith(
+      "postDamageApply",
+      "you"
+    );
   });
 });

@@ -2,6 +2,7 @@ import type {
   StatusBehaviorConfig,
   StatusBehaviorId,
   StatusDef,
+  StatusLifecycleEvent,
   StatusPhase,
   StatusSpendApplyContext,
   StatusSpendApplyResult,
@@ -21,6 +22,20 @@ export type BehaviorTickContext = {
   stacks: number;
 };
 
+export type BehaviorLifecycleContext = {
+  def: StatusDef;
+  config?: StatusBehaviorConfig;
+  event: StatusLifecycleEvent;
+};
+
+export type StatusBehaviorLifecycleHandlers = {
+  onGrant?: (context: BehaviorLifecycleContext) => void;
+  onSpend?: (context: BehaviorLifecycleContext) => void;
+  onConsume?: (context: BehaviorLifecycleContext) => void;
+  onExpire?: (context: BehaviorLifecycleContext) => void;
+  onTick?: (context: BehaviorLifecycleContext) => void;
+};
+
 export type StatusBehaviorHandlers = {
   applySpend?: (
     context: BehaviorSpendContext
@@ -28,4 +43,5 @@ export type StatusBehaviorHandlers = {
   applyTick?: (
     context: BehaviorTickContext
   ) => StatusTickResult | null | undefined;
+  lifecycle?: StatusBehaviorLifecycleHandlers;
 };

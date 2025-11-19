@@ -224,7 +224,12 @@ export function useAiController({
             ...latestAi,
             tokens: attackSpendResult.tokens,
           };
-          dispatch({ type: "SET_PLAYER", side: "ai", player: updatedAi });
+          dispatch({
+            type: "SET_PLAYER",
+            side: "ai",
+            player: updatedAi,
+            meta: "useAiController:spendAttackStatus",
+          });
           effectiveAbility = {
             ...ab,
             damage: baseDamage + attackSpendResult.bonusDamage,

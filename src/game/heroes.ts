@@ -1,3 +1,4 @@
+import { assertDefenseSchemaValid } from "../defense/validation";
 import { Hero, HeroId, OffensiveAbility, DefensiveAbility } from "./types";
 import type { EffectId } from "./effects";
 import { defaultAiStrategy, monkAiStrategy, pyroAiStrategy } from "./ai";
@@ -9,6 +10,7 @@ export const HEROES: Record<HeroId, Hero> = {
     skin: HERO_SKIN_IDS.PYROMANCER_DEFAULT,
     name: "Pyromancer",
     maxHp: 30,
+    defenseVersion: "v2",
     offensiveBoard: {
       FULL_HOUSE: {
         combo: "FULL_HOUSE",
@@ -86,12 +88,42 @@ export const HEROES: Record<HeroId, Hero> = {
     ai: {
       chooseHeld: pyroAiStrategy,
     },
+    // Defense v2 schema
+    defenseSchema: {
+      dice: 3,
+      fields: [
+        { id: "BLOCK_45", faces: [4, 5], label: "Block Triggers (4,5)" },
+        { id: "FACE_6", faces: [6], label: "Burn Trigger (6)" },
+      ],
+      rules: [
+        {
+          id: "pyro_block_per_45",
+          label: "Smolder Guard - Block",
+          matcher: { type: "countField", fieldId: "BLOCK_45" },
+          effects: [{ type: "blockPer", amount: 1 }],
+        },
+        {
+          id: "pyro_burn_on_6",
+          label: "Smolder Guard - Burn",
+          matcher: { type: "countField", fieldId: "FACE_6", min: 1, cap: 1 },
+          effects: [
+            {
+              type: "applyStatusToOpponent",
+              status: "burn",
+              stacks: 1,
+              usablePhase: "immediate",
+            },
+          ],
+        },
+      ],
+    },
   },
   "Shadow Monk": {
     id: "Shadow Monk",
     skin: HERO_SKIN_IDS.SHADOW_MONK_DEFAULT,
     name: "Shadow Monk",
     maxHp: 30,
+    defenseVersion: "v2",
     offensiveBoard: {
       FULL_HOUSE: {
         combo: "FULL_HOUSE",
@@ -185,6 +217,44 @@ export const HEROES: Record<HeroId, Hero> = {
         apply: { chi: 1 },
       },
     },
+    // Defense v2 schema
+    defenseSchema: {
+      dice: 4,
+      fields: [
+        { id: "LOW_123", faces: [1, 2, 3], label: "Block Triggers (1,2,3)" },
+        { id: "MID_45", faces: [4, 5], label: "Chi Triggers (4,5)" },
+        { id: "FACE_6", faces: [6], label: "Prevent Trigger (6)" },
+      ],
+      rules: [
+        {
+          id: "monk_block_per_123",
+          label: "Stone Skin - Block",
+          matcher: { type: "countField", fieldId: "LOW_123" },
+          effects: [{ type: "blockPer", amount: 1 }],
+        },
+        {
+          id: "monk_gain_chi_per_45",
+          label: "Stone Skin - Chi",
+          matcher: { type: "countField", fieldId: "MID_45" },
+          effects: [
+            // For each (4 or 5) gain 1 Chi → amount scales by matchCount
+            {
+              type: "gainStatus",
+              status: "chi",
+              amount: 1,
+              stackCap: 3,
+              usablePhase: "postDamageApply",
+            },
+          ],
+        },
+        {
+          id: "monk_prevent_on_6",
+          label: "Stone Skin - Prevent Half",
+          matcher: { type: "countField", fieldId: "FACE_6", min: 1, cap: 1 },
+          effects: [{ type: "preventHalf", stacks: 1 }],
+        },
+      ],
+    },
     ai: {
       chooseHeld: monkAiStrategy,
     },
@@ -194,6 +264,7 @@ export const HEROES: Record<HeroId, Hero> = {
     skin: HERO_SKIN_IDS.TRAINING_DUMMY_DEFAULT,
     name: "Training Dummy",
     maxHp: 50,
+    defenseVersion: "v2",
     offensiveBoard: {
       "5OAK": { combo: "5OAK", damage: 13, label: "Crushing Finale" },
       LARGE_STRAIGHT: {
@@ -231,8 +302,51 @@ export const HEROES: Record<HeroId, Hero> = {
     ai: {
       chooseHeld: defaultAiStrategy,
     },
+    // Simple defense schema: block scales with face buckets
+    defenseSchema: {
+      dice: 3,
+      fields: [
+        { id: "LOW_123", faces: [1, 2, 3], label: "Low guard (1–3)" },
+        { id: "MID_45", faces: [4, 5], label: "Mid guard (4–5)" },
+        { id: "HIGH_6", faces: [6], label: "High guard (6)" },
+      ],
+      rules: [
+        {
+          id: "dummy_block_low",
+          label: "Turtle Shell - Low Block",
+          matcher: { type: "countField", fieldId: "LOW_123" },
+          effects: [{ type: "blockPer", amount: 1 }],
+        },
+        {
+          id: "dummy_block_mid",
+          label: "Turtle Shell - Mid Block",
+          matcher: { type: "countField", fieldId: "MID_45" },
+          effects: [{ type: "blockPer", amount: 2 }],
+        },
+        {
+          id: "dummy_block_high",
+          label: "Turtle Shell - High Block",
+          matcher: { type: "countField", fieldId: "HIGH_6" },
+          effects: [{ type: "blockPer", amount: 3 }],
+        },
+      ],
+    },
   },
 };
+
+Object.values(HEROES).forEach((hero) => {
+  if (hero.defenseVersion === "v2" && !hero.defenseSchema) {
+    throw new Error(
+      `Hero "${hero.id}" is flagged for defense v2 but is missing defenseSchema`
+    );
+  }
+  if (hero.defenseSchema) {
+    const validation = assertDefenseSchemaValid(hero.id, hero.defenseSchema);
+    hero.defenseSchemaHash = validation.fieldsHash;
+  } else {
+    hero.defenseSchemaHash = null;
+  }
+});
 
 export const getHeroEffectIds = (hero: Hero): EffectId[] => {
   const effectIds = new Set<EffectId>();

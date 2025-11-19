@@ -1,23 +1,15 @@
 import type { StatusSpendSummary } from "../engine/status";
 import { buildDefensePlan } from "../game/combat/defensePipeline";
-import type { DefensiveAbility, OffensiveAbility } from "../game/types";
+import type { OffensiveAbility } from "../game/types";
 
 export const formatAbilityName = (offense: OffensiveAbility): string =>
   offense.displayName ?? offense.label ?? offense.combo;
 
-const formatDefenseAbilityName = (
-  ability: DefensiveAbility | null | undefined
-): string | null =>
-  ability?.displayName ?? ability?.label ?? ability?.combo ?? null;
-
-export type DefenseSelectionCarrier = {
-  selection: { selected: { ability: DefensiveAbility } | null };
-};
-
 export const extractDefenseAbilityName = (
-  defense: DefenseSelectionCarrier | null | undefined
+  defense: unknown
 ): string | null =>
-  formatDefenseAbilityName(defense?.selection?.selected?.ability);
+  // V2 defense schema does not select a discrete defensive ability; keep return value for logs.
+  null;
 
 export const combineDefenseSpends = (
   resolution: ReturnType<typeof buildDefensePlan>["defense"] | null,

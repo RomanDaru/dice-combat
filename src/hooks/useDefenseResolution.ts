@@ -4,7 +4,9 @@ import { getCueDuration } from "../config/cueDurations";
 import type { CombatEvent } from "../game/combat/types";
 import type { GameState } from "../game/state";
 import type { PlayerState, Side } from "../game/types";
+import type { StatusTimingPhase } from "../engine/status/types";
 import { resolveAttack } from "../engine/resolveAttack";
+import { defenseDebugLog } from "../utils/debug";
 
 type ResolveAttackResult = ReturnType<typeof resolveAttack>;
 
@@ -156,6 +158,11 @@ type UseDefenseResolutionArgs = {
     options?: { blankLineBefore?: boolean; blankLineAfter?: boolean }
   ) => void;
   setPlayer: (side: Side, player: PlayerState) => void;
+  queueDefenseResolution?: (payload: { resolve: () => void; defenderSide: Side }) => void;
+  triggerDefenseBuffs: (phase: StatusTimingPhase, owner: Side) => void;
+  triggerDefenseBuffsBatch?: (
+    entries: Array<{ phase: StatusTimingPhase; owner: Side }>
+  ) => void;
 };
 
 export function useDefenseResolution({
@@ -171,16 +178,51 @@ export function useDefenseResolution({
   popDamage,
   pushLog,
   setPlayer,
+  queueDefenseResolution,
+  triggerDefenseBuffs,
+  triggerDefenseBuffsBatch,
 }: UseDefenseResolutionArgs) {
   const resolveDefenseWithEvents = useCallback<DefenseResolutionHandler>(
     (resolution, context) => {
-      const { attackerSide, defenderSide } = context;
-      setPlayer(attackerSide, resolution.updatedAttacker);
-      setPlayer(defenderSide, resolution.updatedDefender);
-      if (resolution.logs.length) pushLog(resolution.logs);
-      resolution.fx.forEach(({ side, amount, kind }) =>
-        popDamage(side, amount, kind)
-      );
+      const executeResolution = () => {
+        const { attackerSide, defenderSide } = context;
+        if (import.meta.env?.DEV) {
+          const snapshot = latestState.current;
+          const attackerBefore = snapshot.players[attackerSide];
+          const defenderBefore = snapshot.players[defenderSide];
+          defenseDebugLog("resolveDefense:setPlayer", {
+            side: attackerSide,
+            reason: "resolveDefense:attacker",
+            hpBefore: attackerBefore?.hp ?? null,
+            hpAfter: resolution.updatedAttacker.hp,
+            tokensBefore: attackerBefore?.tokens ?? null,
+            tokensAfter: resolution.updatedAttacker.tokens,
+          });
+          defenseDebugLog("resolveDefense:setPlayer", {
+            side: defenderSide,
+            reason: "resolveDefense:defender",
+            hpBefore: defenderBefore?.hp ?? null,
+            hpAfter: resolution.updatedDefender.hp,
+            tokensBefore: defenderBefore?.tokens ?? null,
+            tokensAfter: resolution.updatedDefender.tokens,
+          });
+        }
+        setPlayer(attackerSide, resolution.updatedAttacker);
+        setPlayer(defenderSide, resolution.updatedDefender);
+        if (resolution.logs.length) pushLog(resolution.logs);
+        resolution.fx.forEach(({ side, amount, kind }) =>
+          popDamage(side, amount, kind)
+        );
+        if (triggerDefenseBuffsBatch) {
+          triggerDefenseBuffsBatch([
+            { phase: "nextDefenseCommit", owner: defenderSide },
+            { phase: "nextDefenseCommit", owner: attackerSide },
+          ]);
+        } else {
+          triggerDefenseBuffs("nextDefenseCommit", defenderSide);
+          triggerDefenseBuffs("nextDefenseCommit", attackerSide);
+        }
+        triggerDefenseBuffs("postDamageApply", defenderSide);
 
       let summaryDelay = 600;
 
@@ -229,6 +271,17 @@ export function useDefenseResolution({
           handleFlowEvent(event, followUp ? { afterReady: followUp } : undefined);
         });
       });
+      };
+
+      if (queueDefenseResolution && context.defenderSide === "ai") {
+        queueDefenseResolution({
+          defenderSide: context.defenderSide,
+          resolve: executeResolution,
+        });
+        return;
+      }
+
+      executeResolution();
     },
     [
       aiPlay,
@@ -243,6 +296,8 @@ export function useDefenseResolution({
       scheduleCallback,
       setPhase,
       setPlayer,
+      queueDefenseResolution,
+      triggerDefenseBuffs,
     ]
   );
 

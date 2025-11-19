@@ -1,17 +1,15 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { useGame } from "../context/GameContext";
 import { useGameData, useGameController } from "../context/GameController";
-import {
-  getOffensiveAbilities,
-  getDefensiveAbilities,
-} from "../game/abilityBoards";
+import { getOffensiveAbilities } from "../game/abilityBoards";
 import { getEffectDefinition } from "../game/effects";
-import type { Combo, DefensiveAbility, OffensiveAbility } from "../game/types";
+import type { Combo, OffensiveAbility } from "../game/types";
 import { getStatus, getStacks, type StatusId } from "../engine/status";
 import abilityStyles from "./AbilityIcons.module.css";
 import ArtButton from "./ArtButton";
 import { getAbilityIcon } from "../assets/abilityIconMap";
+import { DefenseSchemaPanel } from "./DefenseSchemaPanel";
 
 type ApplyMap = {
   burn?: number;
@@ -46,18 +44,18 @@ export function PlayerAbilityList() {
     readyForActing,
     isDefenseTurn,
     defenseRoll,
-    defenseSelection,
     awaitingDefenseSelection,
+    awaitingDefenseConfirmation,
     selectedAttackCombo,
     statusActive,
     impactLocked,
     defenseBaseBlock,
   } = useGameData();
   const {
-    onChooseDefenseOption,
     onSelectAttackCombo,
     onConfirmAttack,
     onConfirmDefense,
+    onConfirmDefenseResolution,
     onEndTurnNoAttack,
   attackStatusRequests,
   defenseStatusRequests,
@@ -70,18 +68,25 @@ export function PlayerAbilityList() {
   const hero = player.hero;
 
   const offenseAbilities = useMemo(() => getOffensiveAbilities(hero), [hero]);
-  const defenseAbilities = useMemo(() => getDefensiveAbilities(hero), [hero]);
 
-  const readyCombos = useMemo<Partial<Record<Combo, boolean>>>(() => {
-    if (isDefenseTurn) {
-      const map: Partial<Record<Combo, boolean>> = {};
-      defenseRoll?.options.forEach((option) => {
-        map[option.combo] = true;
-      });
-      return map;
-    }
-    return { ...(readyForActing ?? {}) };
-  }, [defenseRoll, isDefenseTurn, readyForActing]);
+  const [panelSide, setPanelSide] = useState<"offense" | "defense">(
+    isDefenseTurn ? "defense" : "offense"
+  );
+
+  useEffect(() => {
+    setPanelSide(isDefenseTurn ? "defense" : "offense");
+  }, [isDefenseTurn]);
+
+  const togglePanelSide = () => {
+    setPanelSide((prev) => (prev === "offense" ? "defense" : "offense"));
+  };
+
+  const showingDefense = panelSide === "defense";
+
+  const readyCombos = useMemo<Partial<Record<Combo, boolean>>>(
+    () => ({ ...(readyForActing ?? {}) }),
+    [readyForActing]
+  );
 
   const abilityInitials = (label: string) =>
     label
@@ -233,13 +238,6 @@ export function PlayerAbilityList() {
       const statusId = rawId as StatusId;
       const definition = getStatus(statusId);
       if (!definition?.spend) return;
-      if (
-        isDefenseTurn &&
-        isDefenseBlockStatus(definition) &&
-        baseBlockForDefense <= 0
-      ) {
-        return;
-      }
       if (definition.spend.needsRoll) return;
       if (!definition.spend.allowedPhases.includes(spendPhase)) return;
       ids.add(statusId);
@@ -249,13 +247,6 @@ export function PlayerAbilityList() {
       const statusId = rawId as StatusId;
       const definition = getStatus(statusId);
       if (!definition?.spend) return;
-      if (
-        isDefenseTurn &&
-        isDefenseBlockStatus(definition) &&
-        baseBlockForDefense <= 0
-      ) {
-        return;
-      }
       if (definition.spend.needsRoll) return;
       if (!definition.spend.allowedPhases.includes(spendPhase)) return;
       ids.add(statusId);
@@ -327,60 +318,8 @@ export function PlayerAbilityList() {
     );
   })();
 
-  if (isDefenseTurn) {
-    return (
-      <div className={abilityStyles.panel}>
-        <div className={abilityStyles.title}>{`Defensive Abilities (${hero.name})`}</div>
-        <div className={abilityStyles.grid}>
-          {(defenseAbilities as DefensiveAbility[]).map((ability) => {
-          const ready = !!readyCombos[ability.combo];
-          const selected = defenseSelection === ability.combo;
-          const canSelect = awaitingDefenseSelection && ready;
-
-            const tooltipParts: string[] = [];
-            if (ability.block != null)
-              tooltipParts.push(`Block ${ability.block}`);
-            if (ability.reflect != null)
-              tooltipParts.push(`Reflect ${ability.reflect}`);
-            if (ability.heal != null) tooltipParts.push(`Heal ${ability.heal}`);
-            if (ability.retaliatePercent != null)
-              tooltipParts.push(`Retaliate ${ability.retaliatePercent}%`);
-
-            const effectsText = formatEffects(
-              buildEffects(ability.apply as ApplyMap)
-            );
-            if (effectsText) tooltipParts.push(effectsText);
-
-            return renderAbilityButton(ability, {
-              ready,
-              selected,
-              disabled: !canSelect,
-              onClick: () => onChooseDefenseOption(ability.combo),
-              tooltipParts,
-              variant: "defense",
-            });
-          })}
-        </div>
-        {awaitingDefenseSelection && (
-          <>
-            {spendControls}
-            <div className={abilityStyles.actions}>
-              <button
-                type='button'
-                className='btn success'
-                onClick={onConfirmDefense}
-                disabled={!canConfirmDefense}>
-                Confirm Defense
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    );
-  }
-  return (
-    <div className={abilityStyles.panel}>
-      <div className={abilityStyles.title}>{`Your Abilities (${hero.name})`}</div>
+  const offenseContent = (
+    <>
       <div className={abilityStyles.grid}>
         {(offenseAbilities as OffensiveAbility[]).map((ability) => {
           const ready = !!readyCombos[ability.combo];
@@ -429,6 +368,74 @@ export function PlayerAbilityList() {
           </button>
         </div>
       )}
-    </div>
+    </>
+  );
+
+  const showDefenseConfirmButton =
+    isDefenseTurn && (awaitingDefenseSelection || awaitingDefenseConfirmation);
+  const defenseConfirmDisabled = awaitingDefenseSelection
+    ? !canConfirmDefense
+    : !awaitingDefenseConfirmation || impactLocked;
+  const handleDefenseConfirm = awaitingDefenseSelection
+    ? onConfirmDefense
+    : onConfirmDefenseResolution;
+
+  const defenseContent = (
+    <>
+      <div className={abilityStyles.schemaWrapper}>
+        <DefenseSchemaPanel
+          hero={hero}
+          variant='minimal'
+          activeSchema={defenseRoll?.schema ?? null}
+        />
+      </div>
+      {awaitingDefenseSelection && spendControls}
+      {showDefenseConfirmButton && (
+        <div className={abilityStyles.actions}>
+          <button
+            type='button'
+            className='btn success'
+            onClick={handleDefenseConfirm}
+            disabled={defenseConfirmDisabled}>
+            Confirm Defense
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <>
+      <div className={clsx(abilityStyles.panel, abilityStyles.panelFlip)}>
+        <div className={abilityStyles.flipHeader}>
+          <span className={abilityStyles.flipLabel}>
+            {showingDefense ? "Defense Mode" : "Offense Mode"}
+          </span>
+          <button
+            type='button'
+            className={abilityStyles.flipToggle}
+            onClick={togglePanelSide}
+            aria-pressed={showingDefense}
+            aria-label={
+              showingDefense ? "Show offensive abilities" : "Show defense schema"
+            }>
+            <span>{showingDefense ? "OFF" : "DEF"}</span>
+            {"\u21c4"}
+          </button>
+        </div>
+        <div
+          className={clsx(
+            abilityStyles.panelFlipInner,
+            showingDefense && abilityStyles.panelFlipInnerDefense
+          )}>
+          <div className={clsx(abilityStyles.panelFace, abilityStyles.panelFaceFront)}>
+            {offenseContent}
+          </div>
+          <div className={clsx(abilityStyles.panelFace, abilityStyles.panelFaceBack)}>
+            {defenseContent}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

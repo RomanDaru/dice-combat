@@ -157,6 +157,7 @@ export const useActiveAbilities = ({
           type: "SET_PLAYER",
           side,
           player: updatedPlayer,
+          meta: `useActiveAbilities:${abilityId}`,
         });
       }
 

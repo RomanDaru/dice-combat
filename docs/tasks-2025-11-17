@@ -1,0 +1,122 @@
+# Defense Integrity Fix Tasklist
+
+> **Process guardrails**: Every change here targets the new defense v2 schema runtime exclusively. For each step, document the work thoroughly and commit/push immediately with the actual local timestamp (`Get-Date` output) included in the log/plan entry so we keep an auditable history.
+> **Diff hygiene**: When tackling these tasks, always note the precise files (and line ranges if possible) touched in each commit so code review can trace the fix quickly.
+
+## Context
+
+Integrity drift in session `game_mi23otmj_obxsr9` exposed multiple mismatches between the defense DSL outputs and the damage that actually landed. To keep tomorrow's work focused, the checklist below captures each fix along with concrete subtasks.
+
+---
+
+## 1. Align `defenseSchema.finalDamage` with applied damage
+
+- [ ] Trace how `finalDamage` is computed inside the defense DSL (`src/engine/defense/dsl/*`) versus how `applyDefenseResults` subtracts mitigation from HP.
+- [ ] Normalize both paths to use the same clamping logic (never let `finalDamage` go below zero, mirror rounding rules, etc.).
+- [ ] Extend the schema snapshot to include a `damageApplied` field coming directly from combat resolution so logging can assert equality during capture.
+- [ ] Add a regression test in `src/__tests__/defenseIntegrity.test.ts` that replays the logged turn `turn_mi23q7z3_zi8nx9` and fails if schema damage diverges from applied damage.
+
+Work log (Defense v2 only)
+- Timestamp: pondelok, 17. novembra 2025 16:52:47 (Get-Date)
+- Commit: 04acce9 — “Defense v2 integrity (Task 1): add schema.damageApplied and align logging with applied damage”
+- Changes:
+  - Added `damageApplied` to `DefenseSchemaLog` so we capture actual applied damage next to schema checkpoints.
+  - `src/stats/types.ts:77-91` — added optional `damageApplied?: number` under `DefenseSchemaLog`.
+  - `src/hooks/useDefenseActions.ts:138-163` — updated `mapDefenseSchemaLog(schema, damageApplied)` to include `damageApplied`.
+  - `src/hooks/useDefenseActions.ts:498-509` — when logging v2 schema snapshot, pass `actualDamage` as `damageApplied`.
+  - `src/__tests__/defenseIntegrity.test.ts:1` — added test asserting readable diff when `schema.finalDamage` != `applied` and drift counter increments.
+  - Note: no change to HP application; telemetry/logging only for v2.
+
+## 2. Clamp `damageBlocked` / `damagePrevented` totals per turn
+
+- [ ] In the aggregator (`src/stats/builders/turnStatsBuilder.ts`), cap `blocked + prevented` at `rawDamage` before writing `turnStats` and `gameStats.defenseMeta`.
+- [ ] Recompute `hpDrift` after the change using the provided log to confirm drift == 0.
+- [ ] Backfill unit coverage for the cap logic (a synthetic turn where prevent + block > raw).
+
+Work log (Defense v2 only)
+- Timestamp: pondelok, 17. novembra 2025 16:52:47 (Get-Date)
+- Implemented at write-time in stats tracker (closest equivalent to builder):
+  - `src/stats/tracker.ts:137-157` — clamp before persisting each turn:
+    - `raw = (phaseDamage.attack || damageWithoutBlock) + (phaseDamage.collateral || 0)`
+    - `blocked = min(damageBlocked, raw)`
+    - `prevented = min(damagePrevented, raw - blocked)`
+- Test: `src/__tests__/turnClamp.test.ts:1` — verifies prevent+block is capped to raw.
+
+## 3. Keep status-only mitigation on the v2 pipeline
+
+- [ ] Locate the branching logic that labeled `turn_mi23ug21_l387sy` as `defenseVersion: "v1"` (likely in `resolveDefense.ts`).
+- [ ] Remove the fallback unless we truly load an old schema version; status-driven prevents should still flow through v2 with an empty dice array.
+- [ ] Update telemetry to flag when we ever emit `defenseVersion: "v1"` while `enableDefenseV2` is true.
+
+Work log (Defense v2 only)
+- Timestamp: pondelok, 17. novembra 2025 17:05:32 (Get-Date)
+- Changes:
+  - Version attribution for the turn:
+    - `src/hooks/useDefenseActions.ts:500-508` — if `ENABLE_DEFENSE_V2` is true, force `defenseVersionUsed = "v2"` (status-only mitigation also counts as v2).
+  - Telemetry flag when v1 is emitted with V2 enabled:
+    - `src/hooks/useDefenseActions.ts:526-542` — call `stats.updateGameMeta` with `defenseMeta.totals.v1WhileV2Emits += 1` (see below TS fix commits).
+  - TS typing fixes for telemetry updates:
+    - Commit: 96b0f84 — pass a full `DefenseTelemetryTotals` object (zeros + `v1WhileV2Emits: 1`).
+    - Commit: 69d9bec — include required `DefenseMeta` fields (`enableDefenseV2`, `defenseDslVersion`) in the update payload.
+
+## 4. Telemetry guardrails
+
+- [ ] Enhance the integrity job (see `src/stats/integrity/recomputeHp.ts`) to compare `schema.finalDamage` vs. `turn.actualDamage` and include a readable diff in the log.
+- [ ] Add a dashboard-ready metric (Prometheus counter or log label) that increments whenever drift != 0 so we can alert earlier.
+
+Work log (Defense v2 only)
+- Timestamp: pondelok, 17. novembra 2025 16:52:47 (Get-Date)
+- Changes in stats aggregation/tracker:
+  - `src/stats/tracker.ts:344-360, 430-444` — while aggregating, compare `turn.defenseSchema.checkpoints.finalDamage` vs. `turn.actualDamage` (or `damageApplied` if present). Accumulate readable diff lines: `turn <id> schema.finalDamage=X vs applied=Y`.
+  - `src/stats/tracker.ts:540-549` — increment `defenseMeta.totals.schemaDamageDriftCount` by detected drift count.
+  - Integrity log now includes the drift lines via merged log composition.
+- Types extended for telemetry totals:
+  - `src/stats/types.ts:143-154` — add optional `schemaDamageDriftCount?`, `v1WhileV2Emits?` in `DefenseTelemetryTotals`.
+
+Verification
+- Full test suite OK; new tests:
+  - `src/__tests__/defenseIntegrity.test.ts` (drift diff + counter)
+  - `src/__tests__/turnClamp.test.ts` (clamp logic)
+
+Notes
+- Scope strictly v2: runtime/schema logging, per-turn clamping, and telemetry only. No changes to core HP application logic.
+
+---
+
+
+## 5. Variant A Runtime Contract Refresh (status-agnostic)
+
+- [x] Aktualizovat `docs/status-core-plan.md` (Variant A) tak, aby definoval univerzalny runtime kontrakt (ziadne status-specific instrukcie) a aby opisoval ako maju nove statusy pouzivat `defineStatus`, `StatusTimingPhase`, pending buff pipeline a lifecycle eventy.
+- [x] Vybudovat data-driven Vitest pokrytie pre cele spektrum statusov: generator cez `listStatuses()` si vyberie statusy s `spend`/`behaviorId` a spusti scenare (grant pred spendom, spend bez grantov, paralelne pending buffy, turn-limited budgety). Ziadne hardcodovanie na Chi/Evasive/Prevent Half.
+- [x] Instrumentovat runtime (`setStacks`, `addStacks`, `spendStatus`, `spendStatusMany`, `applyModifiers`) aby publikoval `StatusLifecycleEvent` udalosti, ktore vie konzumovat UI, AI aj telemetry.
+- [x] Rozsirit `StatusBehaviorHandlers` o nove hooky tak, aby kazdy status mohol dodat vlastnu logiku bez `if (statusId === ...)` vetiev. Behavior konfiguracia sa stane jedine miesto, kde sa riesi specificka funkcionalita.
+- [x] Zjednotit logging/telemetry okolo novych eventov (Combat log, stats, `defenseDebugLog`) a zdokumentovat proces priradovania vysvetleni pre hraca.
+
+Work log (Defense v2 only)
+- Timestamp: pondelok, 17. novembra 2025 19:30:42 (Get-Date)
+- Activity: Investigation only - sumarizovane medzery Variant A (runtime kontrakt + lifecycle logging) a zapisane follow-up tasky. Zatial ziadne code changes; dalsi krok je doc rewrite.
+- Timestamp: pondelok, 17. novembra 2025 19:43:56 (Get-Date)
+- Activity: Rewrote docs/status-core-plan.md Variant A sekciu na plne status-agnosticky plan (kontrakt, runtime instrumentacia, behavior API, genericke testy, logging/telemetry, rizika). Ziadne kodove zasahy, iba plan/guardrails update.
+- Timestamp: pondelok, 17. novembra 2025 19:46:57 (Get-Date)
+- Activity: Implemented prvotnu infra pre StatusLifecycleEvent (typy, dev sink, runtime set/add/spend instrumentacia + pendingDefenseBuff metadata). Zatial len defenseDebugLog sink bez telemetry/testov.
+- Timestamp: pondelok, 17. novembra 2025 19:59:13 (Get-Date)
+- Activity: Dokoncena prvotna integracia lifecycle eventov - multi-sink + register API, GameController zbiera a drainuje eventy do stats, useDefenseActions ich zapisuje do StatsTurnInput, stats typy rozsierene a pridany genericky Vitest (npx vitest run src/engine/status/__tests__/lifecycleMatrix.test.ts).
+- Timestamp: pondelok, 17. novembra 2025 20:01:40 (Get-Date)
+- Activity: Upkeep death logging pripojene na drainStatusLifecycleEvents aby sa eventy neprelievali do dalsieho turnu.
+- Timestamp: pondelok, 17. novembra 2025 20:32:29 (Get-Date)
+- Activity: Pridane lifecycle hooky do `StatusBehaviorHandlers` + runtime notifier, aby mohol kazdy behavior reagovat na grant/spend/consume/tick. Multi-sink logovanie (stats + defenseDebugLog) potvrdene Vitestom (`npx vitest run src/engine/status/__tests__/lifecycleMatrix.test.ts`).
+
+
+---
+
+### Notes
+
+- Keep commits granular (one per numbered section) so we can bisect issues quickly.
+- Follow the "one concern = one module" rule: shared utilities (e.g., `clampDamage`) should live in `src/engine/defense/utils/` and be reused across both logging and HP application.
+
+- Additional Timestamp: 
+pondelok, 17. novembra 2025 19:03:04
+
+
+
+- Commit: cd80765 � guardrail robustness (actualDamage fallback->damageApplied) in tracker + test case.

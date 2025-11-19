@@ -25,6 +25,100 @@
   overflow: visible;
 }
 
+.panelFlip {
+  perspective: 1400px;
+}
+
+.flipHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.6);
+}
+
+.flipLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.flipToggle {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  padding: 4px 10px;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: rgba(15, 23, 42, 0.8);
+  color: rgba(226, 232, 240, 0.85);
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.flipToggle:hover,
+.flipToggle:focus-visible {
+  background: rgba(59, 130, 246, 0.9);
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.panelFlipInner {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform 460ms ease;
+  margin-top: 8px;
+}
+
+.panelFlipInnerDefense {
+  transform: rotateY(180deg);
+}
+
+.panelFace {
+  grid-area: 1 / 1 / 2 / 2;
+  backface-visibility: hidden;
+  pointer-events: none;
+}
+
+.panelFaceFront {
+  transform: rotateY(0deg);
+}
+
+.panelFaceBack {
+  transform: rotateY(180deg);
+}
+
+.panelFlipInner:not(.panelFlipInnerDefense) .panelFaceFront {
+  pointer-events: auto;
+}
+
+.panelFlipInnerDefense .panelFaceBack {
+  pointer-events: auto;
+}
+
+.subtitle {
+  margin: 12px 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(226, 232, 240, 0.65);
+  text-align: center;
+}
+
+.schemaWrapper {
+  max-height: 320px;
+  overflow: auto;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 8px;
+  background: rgba(10, 15, 30, 0.55);
+}
+
 .iconButton {
   position: relative;
   width: 100%;
@@ -41,11 +135,45 @@
 }
 
 .ready {
-  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.45);
+  box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.7);
+  background: rgba(250, 204, 21, 0.05);
+  animation: abilityHighlightPulse 1400ms ease-in-out infinite;
 }
 .selected {
-  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.45);
-  background: rgba(250, 204, 21, 0.12);
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.9);
+  background: rgba(250, 204, 21, 0.18);
+  animation: abilityHighlightPulseStrong 1400ms ease-in-out infinite;
+}
+
+@keyframes abilityHighlightPulse {
+  0% {
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.6), 0 0 10px rgba(250, 204, 21, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.9), 0 0 16px rgba(250, 204, 21, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.6), 0 0 10px rgba(250, 204, 21, 0.2);
+  }
+}
+
+@keyframes abilityHighlightPulseStrong {
+  0% {
+    box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.9), 0 0 12px rgba(250, 204, 21, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(250, 250, 190, 1), 0 0 20px rgba(250, 204, 21, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.9), 0 0 12px rgba(250, 204, 21, 0.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ready,
+  .selected {
+    animation: none;
+  }
 }
 
 .iconLabel {

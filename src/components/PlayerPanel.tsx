@@ -5,6 +5,7 @@ import HPBar from "./HPBar";
 import TokenChips from "./TokenChips";
 import DamageOverlay from "./DamageOverlay";
 import { useGame } from "../context/GameContext";
+import { useGameData } from "../context/GameController";
 import styles from "./PlayerPanel.module.css";
 
 type PlayerPanelProps = {
@@ -13,6 +14,7 @@ type PlayerPanelProps = {
 
 export function PlayerPanel({ side }: PlayerPanelProps) {
   const { state } = useGame();
+  const { virtualTokens } = useGameData();
   const player = state.players[side];
   const shake = state.fx.shake[side];
   const floatDamage = state.fx.floatDamage[side];
@@ -22,6 +24,8 @@ export function PlayerPanel({ side }: PlayerPanelProps) {
     side === "you"
       ? `You - ${player.hero.name}`
       : `Opponent - ${player.hero.name} (AI)`;
+  const displayTokens =
+    side === "you" ? virtualTokens.you ?? player.tokens : player.tokens;
 
   return (
     <Section title={title} active={active}>
@@ -35,7 +39,7 @@ export function PlayerPanel({ side }: PlayerPanelProps) {
           <HPBar hp={player.hp} max={player.hero.maxHp} />
           <div className={styles.statusRow}>
             <div className='label'>Statuses</div>
-            <TokenChips tokens={player.tokens} />
+            <TokenChips tokens={displayTokens} />
           </div>
         </div>
         {floatDamage && (

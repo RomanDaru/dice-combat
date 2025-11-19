@@ -1,6 +1,7 @@
 import type { Side, Tokens } from "../game/types";
+import type { DefenseVersion } from "../defense/types";
 import { HEROES } from "../game/heroes";
-import { STATS_SCHEMA_VERSION, type GameStat, type RollStat, type StatsFinalizeInput, type StatsGameInit, type StatsSnapshot, type StatsTurnInput, type TurnStat, type StatsRollInput, type StatusRemovalReason, type StatsIntegrity } from "./types";
+import { STATS_SCHEMA_VERSION, type DefenseBuffSnapshotSet, type DefenseTelemetryTotals, type GameStat, type RollStat, type StatsFinalizeInput, type StatsGameInit, type StatsSnapshot, type StatsTurnInput, type TurnStat, type StatsRollInput, type StatusRemovalReason, type StatsIntegrity } from "./types";
 
 const createId = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -39,6 +40,50 @@ const cloneTurn = (turn: TurnStat): TurnStat => ({
   defenseEfficacy: turn.defenseEfficacy
     ? { ...turn.defenseEfficacy }
     : undefined,
+  defenseSchema: turn.defenseSchema
+    ? {
+        schemaHash: turn.defenseSchema.schemaHash,
+        dice: [...turn.defenseSchema.dice],
+        checkpoints: { ...turn.defenseSchema.checkpoints },
+        rulesHit: turn.defenseSchema.rulesHit.map((rule) => ({
+          ...rule,
+          effects: rule.effects.map((effect) => ({ ...effect })),
+        })),
+      }
+    : undefined,
+});
+
+const cloneDefenseBuff = (
+  buff: DefenseBuffSnapshotSet["pending"][number]
+): DefenseBuffSnapshotSet["pending"][number] => ({
+  ...buff,
+  carryOverOnKO: buff.carryOverOnKO ? { ...buff.carryOverOnKO } : undefined,
+  expires: buff.expires ? { ...buff.expires } : undefined,
+  createdAt: { ...buff.createdAt },
+  source: buff.source ? { ...buff.source } : undefined,
+});
+
+const cloneDefenseBuffs = (
+  set?: DefenseBuffSnapshotSet
+): DefenseBuffSnapshotSet | undefined => {
+  if (!set) return undefined;
+  return {
+    pending: set.pending.map(cloneDefenseBuff),
+    expired: set.expired.map((entry) => ({
+      ...cloneDefenseBuff(entry),
+      reason: entry.reason,
+      expiredAt: { ...entry.expiredAt },
+    })),
+  };
+};
+
+const createDefenseTelemetryTotals = (): DefenseTelemetryTotals => ({
+  blockFromDefenseRoll: 0,
+  blockFromStatuses: 0,
+  preventHalfEvents: 0,
+  preventAllEvents: 0,
+  reflectSum: 0,
+  wastedBlockSum: 0,
 });
 
 export class StatsTracker {
@@ -49,9 +94,11 @@ export class StatsTracker {
     you: {},
     ai: {},
   };
+  private defenseTurnCounts: Record<DefenseVersion, number> = { v2: 0 };
 
   beginGame(meta: StatsGameInit) {
     const gameId = createId("game");
+    this.defenseTurnCounts = { v2: 0 };
     this.game = {
       id: gameId,
       schemaVersion: STATS_SCHEMA_VERSION,
@@ -64,6 +111,13 @@ export class StatsTracker {
       seed: meta.seed,
       startedAt: Date.now(),
       metadata: {},
+      defenseMeta: meta.defenseMeta
+        ? {
+            ...meta.defenseMeta,
+            turnsByVersion: { ...this.defenseTurnCounts },
+            totals: meta.defenseMeta.totals ?? createDefenseTelemetryTotals(),
+          }
+        : undefined,
     };
     this.turns = [];
     this.rolls = [];
@@ -82,12 +136,38 @@ export class StatsTracker {
 
   recordTurn(entry: StatsTurnInput) {
     if (!this.game) return;
+    // Clamp blocked + prevented to raw (attack + collateral) before storing
+    const attackBaseRaw =
+      (entry.phaseDamage?.attack ?? entry.damageWithoutBlock ?? 0) +
+      (entry.phaseDamage?.collateral ?? 0);
+    const clampedBlocked = Math.max(
+      0,
+      Math.min(entry.damageBlocked ?? 0, attackBaseRaw)
+    );
+    const clampedPrevented = Math.max(
+      0,
+      Math.min(entry.damagePrevented ?? 0, Math.max(0, attackBaseRaw - clampedBlocked))
+    );
     const turn: TurnStat = {
       id: entry.turnId,
       gameId: this.game.id,
       ...entry,
+      damageBlocked: clampedBlocked,
+      damagePrevented: clampedPrevented,
     };
     this.turns = [...this.turns, turn];
+    if (entry.defenseVersion) {
+      this.defenseTurnCounts[entry.defenseVersion] += 1;
+      if (this.game.defenseMeta) {
+        this.game = {
+          ...this.game,
+          defenseMeta: {
+            ...this.game.defenseMeta,
+            turnsByVersion: { ...this.defenseTurnCounts },
+          },
+        };
+      }
+    }
   }
 
   recordStatusSnapshot(
@@ -125,10 +205,42 @@ export class StatsTracker {
 
   updateGameMeta(partial: Partial<GameStat>) {
     if (!this.game) return;
-    this.game = {
+    const { metadata, defenseMeta, ...rest } = partial;
+    let next: GameStat = {
       ...this.game,
-      ...partial,
+      ...rest,
     };
+    if (metadata) {
+      next = {
+        ...next,
+        metadata: { ...(this.game.metadata ?? {}), ...metadata },
+      };
+    }
+    if (defenseMeta) {
+      const existingMeta = next.defenseMeta ?? {};
+      const mergedMeta = {
+        ...existingMeta,
+        ...defenseMeta,
+      };
+      if (defenseMeta.totals) {
+        const currentTotals =
+          existingMeta.totals ?? createDefenseTelemetryTotals();
+        const delta = defenseMeta.totals;
+        const totals = { ...currentTotals };
+        (Object.keys(delta) as Array<keyof DefenseTelemetryTotals>).forEach(
+          (key) => {
+            const increment = delta[key] ?? 0;
+            totals[key] = (totals[key] ?? 0) + increment;
+          }
+        );
+        mergedMeta.totals = totals;
+      }
+      next = {
+        ...next,
+        defenseMeta: mergedMeta,
+      };
+    }
+    this.game = next;
   }
 
   finalizeGame(input: StatsFinalizeInput): StatsSnapshot | null {
@@ -167,8 +279,21 @@ export class StatsTracker {
   }
 
   getSnapshot(): StatsSnapshot {
+    const gameStats = this.game
+      ? {
+          ...this.game,
+          metadata: this.game.metadata ? { ...this.game.metadata } : undefined,
+          defenseMeta: this.game.defenseMeta
+            ? {
+                ...this.game.defenseMeta,
+                turnsByVersion: { ...this.defenseTurnCounts },
+              }
+            : undefined,
+          defenseBuffs: cloneDefenseBuffs(this.game.defenseBuffs),
+        }
+      : null;
     return {
-      gameStats: this.game ? { ...this.game, metadata: this.game.metadata ? { ...this.game.metadata } : undefined } : null,
+      gameStats,
       turnStats: this.turns.map(cloneTurn),
       rollStats: this.rolls.map(cloneRoll),
     };
@@ -216,6 +341,8 @@ export class StatsTracker {
       {};
     const capHits: Record<string, number> = {};
 
+    let schemaDamageDriftCount = 0;
+    const driftIssueLines: string[] = [];
     this.turns.forEach((turn) => {
       const phase = turn.phaseDamage;
       if (typeof turn.round === "number") {
@@ -299,6 +426,20 @@ export class StatsTracker {
             capHits[id] = (capHits[id] ?? 0) + hits;
           }
         });
+      }
+      // Integrity guardrail: compare schema.finalDamage vs applied damage (prefer actualDamage, fall back to damageApplied)
+      if (turn.defenseSchema?.checkpoints?.finalDamage != null) {
+        const schemaFinal = turn.defenseSchema.checkpoints.finalDamage;
+        const applied =
+          typeof turn.actualDamage === "number"
+            ? turn.actualDamage
+            : turn.defenseSchema?.damageApplied;
+        if (typeof applied === "number" && schemaFinal !== applied) {
+          schemaDamageDriftCount += 1;
+          driftIssueLines.push(
+            `turn ${turn.id} schema.finalDamage=${schemaFinal} vs applied=${applied}`
+          );
+        }
       }
     });
 
@@ -387,7 +528,26 @@ export class StatsTracker {
         ([round, count]) => `round ${round} has ${count} turns (expected <= 2)`
       );
 
-    const integrity = this.computeIntegrity(finalHp, roundIssues);
+    const integrityBase = this.computeIntegrity(finalHp, roundIssues);
+    const mergedLog = [integrityBase.log, ...driftIssueLines].filter(Boolean).join("; ");
+    const integrity: StatsIntegrity = {
+      ...integrityBase,
+      log: mergedLog.length ? mergedLog : undefined,
+    };
+    // Surface drift metric for dashboards
+    if (this.game.defenseMeta) {
+      const existingTotals = this.game.defenseMeta.totals ?? createDefenseTelemetryTotals();
+      this.game = {
+        ...this.game,
+        defenseMeta: {
+          ...this.game.defenseMeta,
+          totals: {
+            ...existingTotals,
+            schemaDamageDriftCount: (existingTotals.schemaDamageDriftCount ?? 0) + schemaDamageDriftCount,
+          },
+        },
+      };
+    }
 
     this.game = {
       ...this.game,

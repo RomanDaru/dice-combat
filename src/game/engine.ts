@@ -8,32 +8,44 @@ type ApplyAttackOptions = {
 
 const clampChi = (value: number) => Math.max(0, Math.min(3, value));
 
-const applyDefenseTokens = (tokens: Tokens, gains: Partial<Tokens>): Tokens => {
-  if (!gains || Object.keys(gains).length === 0) return tokens;
+const applyDefenseTokens = (
+  tokens: Tokens,
+  gains: Partial<Tokens>
+): { tokens: Tokens; delta: AbilityEffectDelta } => {
+  if (!gains || Object.keys(gains).length === 0) {
+    return {
+      tokens,
+      delta: { burnDelta: 0, chiDelta: 0, evasiveDelta: 0 },
+    };
+  }
 
   let updated = tokens;
+  const delta: AbilityEffectDelta = { burnDelta: 0, chiDelta: 0, evasiveDelta: 0 };
 
   if (typeof gains.burn === "number" && gains.burn !== 0) {
+    const before = getStacks(updated, "burn", 0);
     updated = addStacks(updated, "burn", gains.burn);
+    delta.burnDelta = getStacks(updated, "burn", 0) - before;
   }
 
   if (typeof gains.chi === "number" && gains.chi !== 0) {
-    const nextChi = clampChi(getStacks(updated, "chi", 0) + gains.chi);
+    const before = getStacks(updated, "chi", 0);
+    const nextChi = clampChi(before + gains.chi);
     updated = setStacks(updated, "chi", nextChi);
+    delta.chiDelta = nextChi - before;
   }
 
   if (typeof gains.evasive === "number" && gains.evasive !== 0) {
-    const nextEvasive = Math.max(
-      0,
-      getStacks(updated, "evasive", 0) + gains.evasive
-    );
+    const before = getStacks(updated, "evasive", 0);
+    const nextEvasive = Math.max(0, before + gains.evasive);
     updated = setStacks(updated, "evasive", nextEvasive);
+    delta.evasiveDelta = nextEvasive - before;
   }
 
-  return updated;
+  return { tokens: updated, delta };
 };
 
-type AbilityEffectDelta = {
+export type AbilityEffectDelta = {
   burnDelta: number;
   chiDelta: number;
   evasiveDelta: number;
@@ -99,7 +111,7 @@ export function applyAttack(
   defender: PlayerState,
   ability: OffensiveAbility,
   opts: ApplyAttackOptions = {}
-): [PlayerState, PlayerState, string[]] {
+): [PlayerState, PlayerState, string[], AbilityEffectDelta] {
   const notes: string[] = [];
   const postDamageEffects = ability.applyPostDamage ?? ability.apply;
   const incomingDamage = ability.damage;
@@ -130,7 +142,8 @@ export function applyAttack(
       ? Math.floor(damageDealt * retaliatePercent)
       : 0;
 
-  let defenderTokens = applyDefenseTokens(defender.tokens, defenseTokens);
+  const defenseTokenResult = applyDefenseTokens(defender.tokens, defenseTokens);
+  let defenderTokens = defenseTokenResult.tokens;
   const defenderAfterDefense =
     defenderTokens === defender.tokens
       ? defender
@@ -199,7 +212,7 @@ export function applyAttack(
     notes.push(`Defense used: ${abilityName}.`);
   }
 
-  return [nextAttacker, nextDefender, notes];
+  return [nextAttacker, nextDefender, notes, defenseTokenResult.delta];
 }
 
 

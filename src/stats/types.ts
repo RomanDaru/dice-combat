@@ -1,4 +1,14 @@
 import type { HeroId, Side } from "../game/types";
+import type {
+  DefenseCarryOverPolicy,
+  DefenseStatusExpiry,
+  DefenseVersion,
+} from "../defense/types";
+import type {
+  StatusId,
+  StatusTimingPhase,
+  StatusLifecycleEvent,
+} from "../engine/status/types";
 
 export const STATS_SCHEMA_VERSION = "1.0.0" as const;
 
@@ -50,6 +60,40 @@ export type RollStat = {
   missedDefenseRoll?: boolean;
 };
 
+
+export type DefenseRuleEffectLog = {
+  type: string;
+  target: string;
+  outcome: "applied" | "skipped";
+  value?: number;
+  reason?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type DefenseRuleHitLog = {
+  id: string;
+  label?: string;
+  matched: boolean;
+  matchCount: number;
+  effects: DefenseRuleEffectLog[];
+};
+
+export type DefenseSchemaLog = {
+  schemaHash?: string | null;
+  dice: number[];
+  checkpoints: {
+    rawDamage: number;
+    afterFlat: number;
+    afterPrevent: number;
+    afterBlock: number;
+    afterReflect: number;
+    finalDamage: number;
+  };
+  // Applied damage from actual combat resolution for integrity checks
+  damageApplied?: number;
+  rulesHit: DefenseRuleHitLog[];
+};
+
 export type TurnStat = {
   id: string;
   gameId: string;
@@ -96,6 +140,67 @@ export type TurnStat = {
     prevented: number;
     reflected: number;
   };
+  defenseVersion?: DefenseVersion;
+  defenseSchema?: DefenseSchemaLog;
+  statusEvents?: StatusLifecycleEvent[];
+};
+
+export type DefenseTelemetryTotals = {
+  blockFromDefenseRoll: number;
+  blockFromStatuses: number;
+  preventHalfEvents: number;
+  preventAllEvents: number;
+  reflectSum: number;
+  wastedBlockSum: number;
+  // Count of turns where schema.finalDamage != actualDamage
+  schemaDamageDriftCount?: number;
+};
+
+export type DefenseMeta = {
+  enableDefenseV2: boolean;
+  defenseDslVersion: string;
+  defenseSchemaVersion?: string;
+  heroDefenseVersion?: Partial<Record<HeroId, DefenseVersion | undefined>>;
+  heroSchemaHash?: Partial<Record<HeroId, string | null | undefined>>;
+  turnsByVersion?: Partial<Record<DefenseVersion, number>>;
+  totals?: DefenseTelemetryTotals;
+};
+
+export type DefenseBuffSnapshot = {
+  id: string;
+  owner: Side;
+  kind: "status";
+  statusId: StatusId;
+  stacks: number;
+  usablePhase: StatusTimingPhase;
+  stackCap?: number;
+  expires?: DefenseStatusExpiry;
+  cleansable?: boolean;
+  carryOverOnKO?: DefenseCarryOverPolicy;
+  turnsRemaining?: number;
+  createdAt: {
+    round: number;
+    turnId: string;
+  };
+  source?: {
+    ruleId: string;
+    effectId?: string;
+  };
+};
+
+export type DefenseBuffExpiredSnapshot = DefenseBuffSnapshot & {
+  reason: string;
+  expiredAt: {
+    round: number;
+    turnId: string;
+    phase?: StatusTimingPhase;
+    cause: "phase" | "ko";
+  };
+};
+
+export type DefenseBuffSnapshotSet = {
+  pending: DefenseBuffSnapshot[];
+  expired: DefenseBuffExpiredSnapshot[];
 };
 
 export type GameStat = {
@@ -143,6 +248,8 @@ export type GameStat = {
   matchTempo?: number;
   integrity?: StatsIntegrity;
   metadata?: Record<string, unknown>;
+  defenseMeta?: DefenseMeta;
+  defenseBuffs?: DefenseBuffSnapshotSet;
 };
 
 export type StatsSnapshot = {
@@ -160,6 +267,7 @@ export type StatsGameInit = {
   seed: number;
   sessionId?: string;
   firstPlayer?: Side;
+  defenseMeta?: DefenseMeta;
 };
 
 export type StatsRollInput = Omit<RollStat, "id" | "gameId">;

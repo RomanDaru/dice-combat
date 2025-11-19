@@ -4,12 +4,11 @@ import { useGame } from "../context/GameContext";
 import { useGameController, useGameData } from "../context/GameController";
 import { useCombatLog, indentLog } from "../hooks/useCombatLog";
 import { getHeroSkin } from "../game/visuals";
-import { getStatus } from "../engine/status";
 import styles from "./PlayerActionPanel.module.css";
 
 export function PlayerActionPanel() {
   const { state } = useGame();
-  const { performStatusClearRoll, openDiceTray } = useGameController();
+  const { openDiceTray } = useGameController();
   const { statusActive, isDefenseTurn, diceTrayVisible, impactLocked } =
     useGameData();
   const { pushLog } = useCombatLog();
@@ -23,7 +22,6 @@ export function PlayerActionPanel() {
     rolling,
     rollsLeft,
     pendingAttack,
-    pendingStatusClear,
   } = state;
 
   const you = players.you;
@@ -92,78 +90,6 @@ export function PlayerActionPanel() {
     openDiceTray();
   };
 
-  const handleStatusRoll = (
-    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
-  ) => {
-    event.stopPropagation();
-    performStatusClearRoll("you");
-  };
-
-  const statusCard =
-    statusActive &&
-    pendingStatusClear && (
-      <div className={clsx("card", styles.statusCard)}>
-        <div className={styles.statusHeader}>
-          <span className='badge indigo'>
-            {pendingStatusClear.side === "you" ? you.hero.name : ai.hero.name}
-          </span>
-          {(() => {
-            const targetDef = getStatus(pendingStatusClear.status);
-            const sourceDef = pendingStatusClear.sourceStatus
-              ? getStatus(pendingStatusClear.sourceStatus)
-              : null;
-            const mode = pendingStatusClear.action ?? "cleanse";
-            const targetName = targetDef?.name ?? pendingStatusClear.status;
-            const sourceName = sourceDef?.name ?? "Status";
-            return mode === "transfer" ? (
-              <span>
-                {sourceName}: {targetName} ({pendingStatusClear.stacks} stack
-                {pendingStatusClear.stacks === 1 ? "" : "s"})
-              </span>
-            ) : (
-              <span>
-                {targetName} stacks: {pendingStatusClear.stacks}
-              </span>
-            );
-          })()}
-        </div>
-        <div className={styles.statusActions}>
-          {pendingStatusClear.side === "you" ? (
-            <button
-              className='btn success'
-              onClick={handleStatusRoll}
-              disabled={impactLocked}>
-              {pendingStatusClear.action === "transfer"
-                ? "Attempt Transfer"
-                : "Status Roll"}
-            </button>
-          ) : (
-            <div className={styles.statusInfoColumn}>
-              <div className={styles.statusInfoText}>
-                {pendingStatusClear.rolling
-                  ? "AI is rolling..."
-                  : pendingStatusClear.action === "transfer"
-                  ? "AI will attempt a transfer."
-                  : "AI will roll automatically."}
-              </div>
-            </div>
-          )}
-          {pendingStatusClear.roll !== undefined && (
-            <div className={styles.statusRollText}>
-              Roll: <b>{pendingStatusClear.roll}</b>{" "}
-              {pendingStatusClear.success
-                ? pendingStatusClear.action === "transfer"
-                  ? "-> Transfer success"
-                  : "-> Cleansed"
-                : pendingStatusClear.action === "transfer"
-                ? "-> Transfer failed"
-                : "-> Status sticks"}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-
   const previewLabel = isDefenseTurn
     ? "Roll For Defense"
     : `Rolls left: ${rollsLeft}`;
@@ -215,7 +141,6 @@ export function PlayerActionPanel() {
         </div>
         <span className={styles.dicePreviewHint}>{previewHint}</span>
       </div>
-      {statusCard}
       {defenseIndicators}
     </div>
   );
