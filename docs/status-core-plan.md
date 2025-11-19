@@ -1,6 +1,6 @@
 ﻿# Status Core Investigation & Remediation Plan
 
-⚠️ **Scope**: Nadväzujeme na `docs/chi-status.md` a `docs/prevent-half.md`. Oba prípady odhaľujú diery v jadre status systému – chceme riešiť príčinu, nie len konkrétne symptómy. UI vrstvy ani starý defense board sa netýkame.
+⚠️ **Scope**: Nadväzujeme na `docs/chi-status.md` a `docs/prevent-half.md`. Oba prípady odhaľujú diery v jadre status systému – chceme riešiť príčinu, nie len konkrétne symptómy. UI vrstvy ani (už odstránený) legacy defense board sa netýkame.
 
 ## 1. Problémová mapa
 | Status | Symptómy | Dôležité súbory |
@@ -23,7 +23,7 @@
 
 ### Súbory ktorých sa NEchytáme (ak to nie je nevyhnutné)
 - Všetky UI vrstvy (`src/components/...`, CSS).
-- Legacy defense board definície v `src/game/heroes.ts` (nezasahovať, kým nevyriešime jadro).
+- Legacy defense board definície v `src/game/heroes.ts` (už odstránené; v2 defense schema je jediný runtime path).
 - Stats/telemetry (`src/stats/...`) – iba ak po úpravách budú vyžadovať nové polia.
 
 ## 3. Návrhy riešení

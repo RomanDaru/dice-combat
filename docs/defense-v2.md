@@ -1,24 +1,24 @@
 ﻿# Defense System V2 Specification
 
 ## High-Level Goals
-- Introduce a flexible, data-driven defense dice schema for every hero while keeping the path to retire the legacy v1 system once rollout completes.
+- Introduce a flexible, data-driven defense dice schema for every hero, with the legacy v1 system fully retired from runtime.
 - Ensure every defense outcome is deterministic (no player choice per rule) and fully logged for telemetry/debugging.
 - Keep mitigation concepts separated: defense dice produce block/auxiliary effects, status systems own prevent-half/full, and reflect operates only on resolved damage.
 
 ## Versioning & Rollout
-- `hero.defenseVersion`: `"v1"` or `"v2"` stored with each hero definition during rollout; defaults to `"v2"` once the hero is validated.
-- Global kill-switch `enableDefenseV2` (env/config). When `false`, everyone runs v1 regardless of hero flag. When `true`, heroes obey their `defenseVersion`.
-- Dev-only toggle (query param or dev panel) to override per session for A/B testing and QA.
+- `hero.defenseVersion`: `"v2"` stored with each hero definition. Historical logs may still reference `"v1"`, but the runtime no longer supports the v1 board pipeline.
+- Global flag `enableDefenseV2` (env/config) is retained for telemetry and diagnostics, but does not switch back to a v1 runtime. All live games use the schema-based defense path.
+- Dev-only toggle (query param or dev panel) can still expose additional schema diagnostics, but no longer offers a v1/v2 A/B switch.
 - Reports/snapshots must include:
   - `defenseSchemaVersion`
   - `defenseDslVersion` (semver for matcher/effect DSL)
   - `enableDefenseV2`
   - `hero.defenseVersion`
-  - Count of v1 vs. v2 turns for telemetry.
-- Schema validation errors fail fast (build-time or load-time) and surface in telemetry/logs; there is no automatic runtime fallback to v1, so the kill-switch is the escape hatch if something catastrophic occurs.
+  - Count of v2 turns for telemetry (older reports may still contain v1 counts for historical comparison).
+- Schema validation errors fail fast (build-time or load-time) and surface in telemetry/logs; there is no automatic runtime fallback to v1.
 
 ## Defense Dice Schema
-- Each hero defines a `defenseSchema` structure that drives their defense roll when `defenseVersion === "v2"`:
+- Each hero defines a `defenseSchema` structure that drives their defense roll:
   - `dice`: number of defense dice rolled.
   - `fields`: partition of die faces into labeled groups (`{ id: string; faces: number[] }[]`). Validator enforces disjoint faces and ensures every rule-referenced face belongs to exactly one field.
   - `rules`: ordered list of rule definitions evaluated once per roll.
