@@ -83,16 +83,10 @@ export function PlayerAbilityList() {
 
   const showingDefense = panelSide === "defense";
 
-  const readyCombos = useMemo<Partial<Record<Combo, boolean>>>(() => {
-    if (isDefenseTurn) {
-      const map: Partial<Record<Combo, boolean>> = {};
-      defenseRoll?.options.forEach((option) => {
-        map[option.combo] = true;
-      });
-      return map;
-    }
-    return { ...(readyForActing ?? {}) };
-  }, [defenseRoll, isDefenseTurn, readyForActing]);
+  const readyCombos = useMemo<Partial<Record<Combo, boolean>>>(
+    () => ({ ...(readyForActing ?? {}) }),
+    [readyForActing]
+  );
 
   const abilityInitials = (label: string) =>
     label
