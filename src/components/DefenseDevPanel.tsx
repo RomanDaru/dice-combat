@@ -7,7 +7,6 @@ import styles from "./DefenseDevPanel.module.css";
 
 const VERSION_OPTIONS = [
   { label: "Auto", value: "auto" },
-  { label: "Force v1", value: "v1" },
   { label: "Force v2", value: "v2" },
 ];
 
@@ -38,11 +37,8 @@ export const DefenseDevPanel = () => {
         <select
           value={value}
           onChange={(event) => {
-            const next = event.target.value as "auto" | "v1" | "v2";
-            setDefenseVersionOverride(
-              heroId,
-              next === "auto" ? null : (next as "v1" | "v2")
-            );
+            const next = event.target.value as "auto" | "v2";
+            setDefenseVersionOverride(heroId, next === "auto" ? null : "v2");
           }}
         >
           {VERSION_OPTIONS.map((option) => (

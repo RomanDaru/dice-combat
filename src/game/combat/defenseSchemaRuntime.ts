@@ -16,19 +16,12 @@ import {
   getStatus,
   type StatusId,
 } from "../../engine/status";
-import { ENABLE_DEFENSE_V2 } from "../../config/featureFlags";
-
 type HeroWithSchema = Hero & { defenseSchema: DefenseSchema };
 
 export const isDefenseSchemaEnabled = (
   hero: Hero | null | undefined
 ): hero is HeroWithSchema =>
-  Boolean(
-    ENABLE_DEFENSE_V2 &&
-      hero &&
-      hero.defenseVersion === "v2" &&
-      hero.defenseSchema
-  );
+  Boolean(hero && hero.defenseSchema);
 
 type ApplyGrantResult = {
   player: PlayerState;

@@ -636,7 +636,16 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
     }
     try {
       const raw = window.localStorage.getItem(DEFENSE_OVERRIDE_KEY);
-      return raw ? (JSON.parse(raw) as Record<HeroId, DefenseVersion>) : {};
+      if (!raw) return {};
+      const stored = JSON.parse(raw) as Record<HeroId, DefenseVersion>;
+      const coerced: Record<HeroId, DefenseVersion> = {};
+      Object.entries(stored).forEach(([heroId, value]) => {
+        if (value === "v2") {
+          coerced[heroId as HeroId] = "v2";
+        }
+        // Legacy "v1" overrides are ignored now that v1 is fully retired.
+      });
+      return coerced;
     } catch {
       return {};
     }
@@ -650,7 +659,7 @@ const [defenseStatusRoll, setDefenseStatusRoll] = useState<{
       try {
         const filtered = Object.fromEntries(
           Object.entries(overrides).filter(
-            ([, value]) => value && (value === "v1" || value === "v2")
+            ([, value]) => value && value === "v2"
           )
         ) as Record<HeroId, DefenseVersion>;
         window.localStorage.setItem(

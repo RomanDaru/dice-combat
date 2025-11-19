@@ -10,7 +10,7 @@ export const HEROES: Record<HeroId, Hero> = {
     skin: HERO_SKIN_IDS.PYROMANCER_DEFAULT,
     name: "Pyromancer",
     maxHp: 30,
-    defenseVersion: "v1",
+    defenseVersion: "v2",
     offensiveBoard: {
       FULL_HOUSE: {
         combo: "FULL_HOUSE",
@@ -88,7 +88,7 @@ export const HEROES: Record<HeroId, Hero> = {
     ai: {
       chooseHeld: pyroAiStrategy,
     },
-    // Defense v2 schema (can be enabled via Force v2 in Dev HUD)
+    // Defense v2 schema
     defenseSchema: {
       dice: 3,
       fields: [
@@ -98,13 +98,13 @@ export const HEROES: Record<HeroId, Hero> = {
       rules: [
         {
           id: "pyro_block_per_45",
-          label: "Smolder Guard – Block",
+          label: "Smolder Guard - Block",
           matcher: { type: "countField", fieldId: "BLOCK_45" },
           effects: [{ type: "blockPer", amount: 1 }],
         },
         {
           id: "pyro_burn_on_6",
-          label: "Smolder Guard – Burn",
+          label: "Smolder Guard - Burn",
           matcher: { type: "countField", fieldId: "FACE_6", min: 1, cap: 1 },
           effects: [
             {
@@ -123,7 +123,7 @@ export const HEROES: Record<HeroId, Hero> = {
     skin: HERO_SKIN_IDS.SHADOW_MONK_DEFAULT,
     name: "Shadow Monk",
     maxHp: 30,
-    defenseVersion: "v1",
+    defenseVersion: "v2",
     offensiveBoard: {
       FULL_HOUSE: {
         combo: "FULL_HOUSE",
@@ -217,7 +217,7 @@ export const HEROES: Record<HeroId, Hero> = {
         apply: { chi: 1 },
       },
     },
-    // Defense v2 schema (can be enabled via Force v2 in Dev HUD)
+    // Defense v2 schema
     defenseSchema: {
       dice: 4,
       fields: [
@@ -228,13 +228,13 @@ export const HEROES: Record<HeroId, Hero> = {
       rules: [
         {
           id: "monk_block_per_123",
-          label: "Stone Skin – Block",
+          label: "Stone Skin - Block",
           matcher: { type: "countField", fieldId: "LOW_123" },
           effects: [{ type: "blockPer", amount: 1 }],
         },
         {
           id: "monk_gain_chi_per_45",
-          label: "Stone Skin – Chi",
+          label: "Stone Skin - Chi",
           matcher: { type: "countField", fieldId: "MID_45" },
           effects: [
             // For each (4 or 5) gain 1 Chi → amount scales by matchCount
@@ -249,7 +249,7 @@ export const HEROES: Record<HeroId, Hero> = {
         },
         {
           id: "monk_prevent_on_6",
-          label: "Stone Skin – Prevent Half",
+          label: "Stone Skin - Prevent Half",
           matcher: { type: "countField", fieldId: "FACE_6", min: 1, cap: 1 },
           effects: [{ type: "preventHalf", stacks: 1 }],
         },
@@ -264,7 +264,7 @@ export const HEROES: Record<HeroId, Hero> = {
     skin: HERO_SKIN_IDS.TRAINING_DUMMY_DEFAULT,
     name: "Training Dummy",
     maxHp: 50,
-    defenseVersion: "v1",
+    defenseVersion: "v2",
     offensiveBoard: {
       "5OAK": { combo: "5OAK", damage: 13, label: "Crushing Finale" },
       LARGE_STRAIGHT: {
@@ -301,6 +301,35 @@ export const HEROES: Record<HeroId, Hero> = {
     },
     ai: {
       chooseHeld: defaultAiStrategy,
+    },
+    // Simple defense schema: block scales with face buckets
+    defenseSchema: {
+      dice: 3,
+      fields: [
+        { id: "LOW_123", faces: [1, 2, 3], label: "Low guard (1–3)" },
+        { id: "MID_45", faces: [4, 5], label: "Mid guard (4–5)" },
+        { id: "HIGH_6", faces: [6], label: "High guard (6)" },
+      ],
+      rules: [
+        {
+          id: "dummy_block_low",
+          label: "Turtle Shell - Low Block",
+          matcher: { type: "countField", fieldId: "LOW_123" },
+          effects: [{ type: "blockPer", amount: 1 }],
+        },
+        {
+          id: "dummy_block_mid",
+          label: "Turtle Shell - Mid Block",
+          matcher: { type: "countField", fieldId: "MID_45" },
+          effects: [{ type: "blockPer", amount: 2 }],
+        },
+        {
+          id: "dummy_block_high",
+          label: "Turtle Shell - High Block",
+          matcher: { type: "countField", fieldId: "HIGH_6" },
+          effects: [{ type: "blockPer", amount: 3 }],
+        },
+      ],
     },
   },
 };
