@@ -1,10 +1,4 @@
 import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
-import {
-  evaluateDefenseRoll,
-  resolveDefenseSelection,
-  selectDefenseOptionByCombo,
-  selectHighestBlockOption,
-} from "../game/combat/defenseBoard";
 import { buildDefensePlan } from "../game/combat/defensePipeline";
 import type {
   BaseDefenseResolution,
@@ -388,23 +382,35 @@ export function usePlayerDefenseController({
         });
         return;
       }
-      const rollResult = evaluateDefenseRoll(defender.hero, rolledDice);
-      if (rollResult.options.length === 0) {
-        pushLog(
-          `[Defense] ${defender.hero.name} found no defensive combos and will block 0 damage.`,
-          { blankLineBefore: true }
-        );
-      }
-      const initialCombo = rollResult.options[0]?.combo ?? null;
-      const initialSelection = selectDefenseOptionByCombo(
-        rollResult,
-        initialCombo
+      // No defense schema available: this should not happen in the v2-only runtime.
+      pushLog(
+        `[Defense] No defense schema found for ${defender.hero.name}; blocking 0 damage.`,
+        { blankLineBefore: true }
       );
-      const initialBaseResolution = resolveDefenseSelection(initialSelection);
       setPlayerDefenseState({
-        roll: rollResult,
-        selectedCombo: initialCombo,
-        baseResolution: initialBaseResolution,
+        roll: {
+          dice: rolledDice,
+          combos: [],
+          options: [],
+          schema: undefined,
+        },
+        selectedCombo: null,
+        baseResolution: {
+          selection: {
+            roll: {
+              dice: rolledDice,
+              combos: [],
+              options: [],
+              schema: undefined,
+            },
+            selected: null,
+          },
+          baseBlock: 0,
+          reflect: 0,
+          heal: 0,
+          appliedTokens: {},
+          retaliatePercent: 0,
+        },
         tokenSnapshot: { ...defender.tokens },
       });
     }, 700, { diceCount: defenseDiceCount });

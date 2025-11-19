@@ -1,10 +1,4 @@
 import { useCallback, type MutableRefObject } from "react";
-import {
-  evaluateDefenseRoll,
-  resolveDefenseSelection,
-  selectDefenseOptionByCombo,
-  selectHighestBlockOption,
-} from "../game/combat/defenseBoard";
 import { buildDefensePlan } from "../game/combat/defensePipeline";
 import {
   isDefenseSchemaEnabled,
@@ -329,59 +323,18 @@ export function useAiDefenseResponse({
               return;
             }
 
-            const defenseRollResult = evaluateDefenseRoll(
-              defenderState.hero,
-              rolledDice
+            // No defense schema available: this should not happen in the v2-only runtime.
+            pushLog(
+              `[Defense] No defense schema found for ${defenderState.hero.name}; AI will block 0 damage.`,
+              { blankLineBefore: true }
             );
-            if (defenseRollResult.options.length === 0) {
-              pushLog(
-                `[Defense] ${defenderState.hero.name} found no defensive combos and will block 0 damage.`,
-                { blankLineBefore: true }
-              );
-            }
-            const selection = defenseRollResult.options.length
-              ? selectHighestBlockOption(defenseRollResult)
-              : selectDefenseOptionByCombo(defenseRollResult, null);
-            const baseResolution = resolveDefenseSelection(selection);
-
-            const defenseSpendRequests = buildDefenseSpendRequests(
-              defenderState,
-              effectiveAbility.damage,
-              baseResolution.baseBlock,
-              defenderSide,
-              getStatusBudget
-            );
-            const defensePlan = buildDefensePlan({
-              defender: defenderState,
-              incomingDamage: effectiveAbility.damage,
-              baseResolution,
-              spendRequests: defenseSpendRequests,
-            });
-            const defenseTotals = aggregateStatusSpendSummaries(
-              defensePlan.defense.statusSpends
-            );
-            const totalBlock =
-              defensePlan.defense.baseBlock + defenseTotals.bonusBlock;
-
             patchAiDefense({
               inProgress: false,
               defenseDice: rolledDice,
-              defenseCombo: defensePlan.defense.selection.selected?.combo ?? null,
-              defenseRoll: totalBlock,
+              defenseCombo: null,
+              defenseRoll: 0,
             });
-
-            let updatedDefender = defensePlan.defenderAfter;
-            defensePlan.defense.statusSpends.forEach((spend) => {
-              if (spend.stacksSpent <= 0) return;
-              if (getStatus(spend.id)?.spend?.turnLimited) {
-                consumeStatusBudget(defenderSide, spend.id, spend.stacksSpent);
-              }
-            });
-            if (updatedDefender !== defenderState) {
-              setPlayer(defenderSide, updatedDefender);
-            }
-
-            resolveAfterDefense(updatedDefender, defensePlan.defense);
+            resolveAfterDefense(defenderState, null);
           },
           undefined,
           {

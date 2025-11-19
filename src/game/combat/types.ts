@@ -1,32 +1,20 @@
-import type {
-  Combo,
-  DefensiveAbility,
-  OffensiveAbility,
-  PlayerState,
-  Side,
-  Tokens,
-} from "../types";
+import type { OffensiveAbility, PlayerState, Side, Tokens } from "../types";
 import type { GameState } from "../state";
 import type { StatusSpendSummary } from "../../engine/status";
 import type { DefenseSchemaResolution } from "../../defense/resolver";
 
 export type AttackSource = "player" | "ai";
 
-export type DefenseBoardOption = {
-  combo: Combo;
-  ability: DefensiveAbility;
-};
-
 export type DefenseRollResult = {
   dice: number[];
-  combos: Combo[];
-  options: DefenseBoardOption[];
+  combos: string[];
+  options: never[];
   schema?: DefenseSchemaResolution;
 };
 
 export type DefenseSelection = {
   roll: DefenseRollResult;
-  selected: DefenseBoardOption | null;
+  selected: null;
 };
 
 /**
